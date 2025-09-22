@@ -11,11 +11,11 @@
 - [x] Set up build tools and development environment
 
 ### 1.2 Project Structure Setup
-- [ ] Initialize project with chosen framework
-- [ ] Set up folder structure (`/src`, `/components`, `/api`, `/utils`, etc.)
-- [ ] Configure development environment (linting, formatting, hot reload)
-- [ ] Set up version control and basic CI/CD
-- [ ] Create basic routing structure
+- [x] Initialize project with chosen framework
+- [x] Set up folder structure (`/src`, `/components`, `/api`, `/utils`, etc.)
+- [x] Configure development environment (linting, formatting, hot reload)
+- [x] Set up version control and basic CI/CD
+- [x] Create basic routing structure
 
 ### 1.3 YGOPRODeck API Integration
 - [ ] Research and test YGOPRODeck API endpoints
