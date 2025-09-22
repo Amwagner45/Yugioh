@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { Card, CardSearchParams, CardSearchResponse } from '../types';
 
 // Base API URL - will be configurable via environment variables
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) || 'http://localhost:8000';
 
 // Create axios instance with default configuration
 const api = axios.create({
