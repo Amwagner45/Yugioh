@@ -1,0 +1,57 @@
+# Ignore OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignore environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Ignore dependency directories
+node_modules/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Ignore build outputs
+dist/
+build/
+*.egg-info/
+
+# Ignore database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Ignore log files
+*.log
+logs/
+
+# Ignore Python virtual environment
+venv/
+env/
+ENV/
+
+# Ignore package manager files
+package-lock.json
+yarn.lock
+pipfile.lock
+
+# Ignore temporary files
+*.tmp
+*.temp
+.cache/

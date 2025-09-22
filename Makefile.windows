@@ -1,0 +1,43 @@
+# Development Scripts for Windows
+
+# Start frontend development server
+frontend:
+	cd frontend && npm run dev
+
+# Start backend development server  
+backend:
+	cd backend && C:/Users/amwag/Desktop/Coding/Yugioh/.venv/Scripts/python.exe -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+# Install frontend dependencies
+install-frontend:
+	cd frontend && npm install
+
+# Install backend dependencies
+install-backend:
+	cd backend && C:/Users/amwag/Desktop/Coding/Yugioh/.venv/Scripts/pip.exe install -r requirements.txt
+
+# Complete setup
+setup: install-frontend install-backend
+	@echo Setup complete! Run 'make frontend' and 'make backend' in separate terminals
+
+# Test API
+test:
+	cd backend && C:/Users/amwag/Desktop/Coding/Yugioh/.venv/Scripts/python.exe -m pytest
+
+# Lint and format frontend
+lint:
+	cd frontend && npm run lint
+
+format:
+	cd frontend && npm run format
+
+# Build for production
+build:
+	cd frontend && npm run build
+
+# Clean build artifacts
+clean:
+	cd frontend && rmdir /s /q node_modules dist 2>nul || echo "Frontend clean complete"
+	cd backend && rmdir /s /q __pycache__ 2>nul && del *.db 2>nul || echo "Backend clean complete"
+
+.PHONY: frontend backend install-frontend install-backend setup test lint format build clean
