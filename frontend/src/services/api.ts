@@ -89,7 +89,7 @@ export const cardService = {
 };
 
 /**
- * Binder API services (placeholder for future implementation)
+ * Binder API services
  */
 export const binderService = {
     async getBinders() {
@@ -99,6 +99,46 @@ export const binderService = {
         } catch (error) {
             console.error('Error fetching binders:', error);
             return { data: [], error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async createBinder(binder: Omit<import('../types').Binder, 'id' | 'cards' | 'createdAt' | 'modifiedAt'>) {
+        try {
+            const response = await api.post('/api/binders', binder);
+            return response.data;
+        } catch (error) {
+            console.error('Error creating binder:', error);
+            return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async updateBinder(id: string, binder: Partial<import('../types').Binder>) {
+        try {
+            const response = await api.put(`/api/binders/${id}`, binder);
+            return response.data;
+        } catch (error) {
+            console.error('Error updating binder:', error);
+            return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async deleteBinder(id: string) {
+        try {
+            const response = await api.delete(`/api/binders/${id}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error deleting binder:', error);
+            return { error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async getBinder(id: string) {
+        try {
+            const response = await api.get(`/api/binders/${id}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching binder:', error);
+            return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     },
 };

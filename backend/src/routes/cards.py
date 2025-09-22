@@ -76,10 +76,9 @@ async def search_cards(
 
     # Basic filters
     if name:
-        if fuzzy:
-            search_params["fname"] = name  # fuzzy name search
-        else:
-            search_params["name"] = name  # exact name search
+        # Always use fuzzy search by default for better user experience
+        # The YGOPRODeck API is very strict with exact name matching
+        search_params["fname"] = name  # fuzzy name search
 
     if type:
         search_params["type"] = type
