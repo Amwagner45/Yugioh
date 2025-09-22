@@ -29,7 +29,7 @@ const QuantityInput: React.FC<QuantityInputProps> = ({
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value;
         setInputValue(newValue);
-        
+
         const numValue = parseInt(newValue);
         if (!isNaN(numValue) && numValue >= min && numValue <= max) {
             onChange(numValue);
@@ -69,7 +69,7 @@ const QuantityInput: React.FC<QuantityInputProps> = ({
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
                 </svg>
             </button>
-            
+
             <input
                 type="number"
                 value={inputValue}
@@ -80,7 +80,7 @@ const QuantityInput: React.FC<QuantityInputProps> = ({
                 disabled={disabled}
                 className="w-16 h-8 text-center border-t border-b border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            
+
             <button
                 onClick={handleIncrement}
                 disabled={disabled || value >= max}
@@ -194,11 +194,10 @@ const CardQuantityManager: React.FC<CardQuantityManagerProps> = ({
                                 key={qty}
                                 onClick={() => handleQuickSet(qty)}
                                 disabled={isUpdating}
-                                className={`px-2 py-1 text-xs rounded border transition-colors ${
-                                    binderCard.quantity === qty
+                                className={`px-2 py-1 text-xs rounded border transition-colors ${binderCard.quantity === qty
                                         ? 'bg-blue-600 text-white border-blue-600'
                                         : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 {qty}
                             </button>

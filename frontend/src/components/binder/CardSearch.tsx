@@ -25,7 +25,7 @@ const CardSearch: React.FC<CardSearchProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [hasSearched, setHasSearched] = useState(false);
-    
+
     const [filters, setFilters] = useState<SearchFilters>({
         name: '',
         type: '',
@@ -40,7 +40,7 @@ const CardSearch: React.FC<CardSearchProps> = ({
     // Debounced search
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            if (filters.name.trim().length >= 2 || 
+            if (filters.name.trim().length >= 2 ||
                 filters.type || filters.race || filters.attribute || filters.level) {
                 handleSearch();
             }
@@ -56,7 +56,7 @@ const CardSearch: React.FC<CardSearchProps> = ({
 
         try {
             const searchParams: CardSearchParams = {};
-            
+
             if (filters.name.trim()) {
                 searchParams.name = filters.name.trim();
             }
@@ -76,7 +76,7 @@ const CardSearch: React.FC<CardSearchProps> = ({
             searchParams.limit = 50; // Limit results to keep UI responsive
 
             const response = await cardService.searchCards(searchParams);
-            
+
             if (response.error) {
                 // If there's an error but we have fallback data, show warning instead of error
                 if (response.data && response.data.length > 0) {
@@ -283,26 +283,22 @@ const CardSearch: React.FC<CardSearchProps> = ({
 
             {/* Error State */}
             {error && (
-                <div className={`border rounded-md p-4 mb-6 ${
-                    searchResults.length > 0 
-                        ? 'bg-yellow-50 border-yellow-200' 
+                <div className={`border rounded-md p-4 mb-6 ${searchResults.length > 0
+                        ? 'bg-yellow-50 border-yellow-200'
                         : 'bg-red-50 border-red-200'
-                }`}>
+                    }`}>
                     <div className="flex">
-                        <svg className={`w-5 h-5 ${
-                            searchResults.length > 0 ? 'text-yellow-400' : 'text-red-400'
-                        }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className={`w-5 h-5 ${searchResults.length > 0 ? 'text-yellow-400' : 'text-red-400'
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                         <div className="ml-3">
-                            <h3 className={`text-sm font-medium ${
-                                searchResults.length > 0 ? 'text-yellow-800' : 'text-red-800'
-                            }`}>
+                            <h3 className={`text-sm font-medium ${searchResults.length > 0 ? 'text-yellow-800' : 'text-red-800'
+                                }`}>
                                 {searchResults.length > 0 ? 'Warning' : 'Search Error'}
                             </h3>
-                            <p className={`text-sm mt-1 ${
-                                searchResults.length > 0 ? 'text-yellow-700' : 'text-red-700'
-                            }`}>{error}</p>
+                            <p className={`text-sm mt-1 ${searchResults.length > 0 ? 'text-yellow-700' : 'text-red-700'
+                                }`}>{error}</p>
                         </div>
                     </div>
                 </div>
@@ -326,9 +322,8 @@ const CardSearch: React.FC<CardSearchProps> = ({
                             {searchResults.map((card) => (
                                 <div
                                     key={card.id}
-                                    className={`border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${
-                                        selectedCard?.id === card.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                                    }`}
+                                    className={`border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer ${selectedCard?.id === card.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                                        }`}
                                     onClick={() => handleCardSelect(card)}
                                 >
                                     {/* Card Image */}
@@ -345,7 +340,7 @@ const CardSearch: React.FC<CardSearchProps> = ({
                                     <h4 className="font-medium text-gray-900 mb-2 line-clamp-2">
                                         {card.name}
                                     </h4>
-                                    
+
                                     <div className="text-sm text-gray-600 space-y-1">
                                         <div>Type: {card.type}</div>
                                         {card.race && <div>Race: {card.race}</div>}
@@ -389,7 +384,7 @@ const CardSearch: React.FC<CardSearchProps> = ({
                         <h3 className="text-lg font-medium text-gray-900 mb-4">
                             Add Card to Binder
                         </h3>
-                        
+
                         <div className="mb-4">
                             <h4 className="font-medium text-gray-700 mb-2">{selectedCard.name}</h4>
                             <p className="text-sm text-gray-600">

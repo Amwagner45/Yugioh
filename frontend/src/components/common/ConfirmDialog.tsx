@@ -95,11 +95,10 @@ const DeleteBinderConfirm: React.FC<DeleteBinderConfirmProps> = ({
     const uniqueCardCount = binder.cards.length;
 
     const title = 'Delete Binder';
-    const message = `Are you sure you want to delete "${binder.name}"? This action cannot be undone.${
-        cardCount > 0 
+    const message = `Are you sure you want to delete "${binder.name}"? This action cannot be undone.${cardCount > 0
             ? ` This binder contains ${cardCount} card${cardCount !== 1 ? 's' : ''} (${uniqueCardCount} unique) that will be permanently removed.`
             : ''
-    }`;
+        }`;
 
     return (
         <ConfirmDialog

@@ -31,7 +31,7 @@ const BinderForm: React.FC<BinderFormProps> = ({
         description: '',
         tags: [],
     });
-    
+
     const [errors, setErrors] = useState<FormErrors>({});
     const [tagInput, setTagInput] = useState('');
 
@@ -80,7 +80,7 @@ const BinderForm: React.FC<BinderFormProps> = ({
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (validateForm()) {
             onSubmit({
                 name: formData.name.trim(),
@@ -92,7 +92,7 @@ const BinderForm: React.FC<BinderFormProps> = ({
 
     const handleInputChange = (field: keyof FormData, value: string) => {
         setFormData(prev => ({ ...prev, [field]: value }));
-        
+
         // Clear error for this field when user starts typing
         if (errors[field]) {
             setErrors(prev => ({ ...prev, [field]: undefined }));
@@ -146,9 +146,8 @@ const BinderForm: React.FC<BinderFormProps> = ({
                         type="text"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            errors.name ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                            }`}
                         placeholder="Enter binder name"
                         maxLength={50}
                         disabled={isSubmitting}
@@ -167,9 +166,8 @@ const BinderForm: React.FC<BinderFormProps> = ({
                         id="binder-description"
                         value={formData.description}
                         onChange={(e) => handleInputChange('description', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                            errors.description ? 'border-red-500' : 'border-gray-300'
-                        }`}
+                        className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                            }`}
                         placeholder="Optional description for your binder"
                         rows={3}
                         maxLength={500}

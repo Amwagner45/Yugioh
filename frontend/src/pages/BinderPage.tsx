@@ -16,16 +16,16 @@ const BinderPage: React.FC = () => {
     const [selectedBinder, setSelectedBinder] = useState<Binder | null>(null);
     const [editingBinder, setEditingBinder] = useState<Binder | null>(null);
     const [deletingBinder, setDeletingBinder] = useState<Binder | null>(null);
-    
+
     // Loading states
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isAddingCard, setIsAddingCard] = useState(false);
-    
+
     // Card data cache
     const [cardCache, setCardCache] = useState<Map<number, Card>>(new Map());
-    
+
     // Error handling
     const [error, setError] = useState<string | null>(null);
 
@@ -90,12 +90,12 @@ const BinderPage: React.FC = () => {
 
             storageService.saveBinder(updatedBinder);
             setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
-            
+
             // Update selected binder if it's the same one
             if (selectedBinder?.id === updatedBinder.id) {
                 setSelectedBinder(updatedBinder);
             }
-            
+
             setEditingBinder(null);
             setCurrentView('list');
         } catch (err) {
@@ -115,13 +115,13 @@ const BinderPage: React.FC = () => {
 
             storageService.deleteBinder(deletingBinder.id);
             setBinders(prev => prev.filter(b => b.id !== deletingBinder.id));
-            
+
             // Clear selection if deleted binder was selected
             if (selectedBinder?.id === deletingBinder.id) {
                 setSelectedBinder(null);
                 setCurrentView('list');
             }
-            
+
             setDeletingBinder(null);
         } catch (err) {
             setError('Failed to delete binder');
@@ -176,7 +176,7 @@ const BinderPage: React.FC = () => {
             }
 
             updatedBinder.modifiedAt = new Date();
-            
+
             storageService.saveBinder(updatedBinder);
             setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
             setSelectedBinder(updatedBinder);
@@ -207,7 +207,7 @@ const BinderPage: React.FC = () => {
                 }
 
                 updatedBinder.modifiedAt = new Date();
-                
+
                 storageService.saveBinder(updatedBinder);
                 setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
                 setSelectedBinder(updatedBinder);
@@ -227,7 +227,7 @@ const BinderPage: React.FC = () => {
             const updatedBinder = { ...selectedBinder };
             updatedBinder.cards = updatedBinder.cards.filter(c => c.cardId !== cardId);
             updatedBinder.modifiedAt = new Date();
-            
+
             storageService.saveBinder(updatedBinder);
             setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
             setSelectedBinder(updatedBinder);
