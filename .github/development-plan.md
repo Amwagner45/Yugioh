@@ -18,11 +18,11 @@
 - [x] Create basic routing structure
 
 ### 1.3 YGOPRODeck API Integration
-- [ ] Research and test YGOPRODeck API endpoints
-- [ ] Create API service layer for card data fetching
-- [ ] Implement error handling and rate limiting
-- [ ] Set up caching strategy for card data
-- [ ] Test API integration with sample queries
+- [x] Research and test YGOPRODeck API endpoints
+- [x] Create API service layer for card data fetching
+- [x] Implement error handling and rate limiting
+- [x] Set up caching strategy for card data
+- [x] Test API integration with sample queries
 
 **Deliverable**: Working development environment with API connectivity
 
@@ -32,11 +32,11 @@
 **Goal**: Implement the fundamental data structures
 
 ### 2.1 Database Schema Design
-- [ ] Design Binder table structure
-- [ ] Design Deck table structure  
-- [ ] Design Card cache table structure
-- [ ] Design User/Profile table structure
-- [ ] Create database migrations/setup scripts
+- [x] Design Binder table structure
+- [x] Design Deck table structure  
+- [x] Design Card cache table structure
+- [x] Design User/Profile table structure
+- [x] Create database migrations/setup scripts
 
 ### 2.2 Data Models Implementation
 - [ ] Implement Binder model with CRUD operations

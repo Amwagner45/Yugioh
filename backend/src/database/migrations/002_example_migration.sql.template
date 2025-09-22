@@ -1,0 +1,8 @@
+-- Example migration file
+-- This demonstrates how future schema changes would be applied
+
+-- Add example field to binders table (this is just an example)
+-- ALTER TABLE binders ADD COLUMN example_field TEXT;
+
+-- This file exists as a template for future migrations
+-- Real migrations would be numbered starting from 002_
