@@ -57,3 +57,4 @@ pipfile.lock
 .cache/
 cache.db
 *.cache
+backend/cache/
