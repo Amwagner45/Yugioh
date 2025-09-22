@@ -1,6 +1,7 @@
 """
 Database connection and configuration module
 """
+
 import sqlite3
 import os
 import logging
@@ -12,7 +13,9 @@ from .manager import DatabaseManager
 logger = logging.getLogger(__name__)
 
 # Default database configuration
-DEFAULT_DB_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "cache", "yugioh_deckbuilder.db")
+DEFAULT_DB_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "..", "cache", "yugioh_deckbuilder.db"
+)
 
 # Global database manager instance
 _db_manager = None
@@ -31,7 +34,7 @@ def get_db_manager() -> DatabaseManager:
 @contextmanager
 def get_db_connection() -> Generator[sqlite3.Connection, None, None]:
     """Get a database connection context manager
-    
+
     Usage:
         with get_db_connection() as conn:
             cursor = conn.execute("SELECT * FROM users")
@@ -47,32 +50,34 @@ def get_db_connection() -> Generator[sqlite3.Connection, None, None]:
 
 def init_database() -> bool:
     """Initialize the database if it doesn't exist
-    
+
     Returns:
         True if initialization was successful
     """
     db_manager = get_db_manager()
     success = db_manager.setup_database()
-    
+
     if success:
         # Ensure default user exists
         try:
             with get_db_connection() as conn:
-                conn.execute("""
+                conn.execute(
+                    """
                     INSERT OR IGNORE INTO users (id, username, display_name, created_at, updated_at) 
                     VALUES (1, 'default', 'Default User', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-                """)
+                """
+                )
                 conn.commit()
         except Exception as e:
             logger.error(f"Failed to create default user: {e}")
             return False
-    
+
     return success
 
 
 def reset_database() -> bool:
     """Reset the database (DESTRUCTIVE - deletes all data)
-    
+
     Returns:
         True if reset was successful
     """
@@ -82,7 +87,7 @@ def reset_database() -> bool:
 
 def validate_database() -> bool:
     """Validate database schema
-    
+
     Returns:
         True if schema is valid
     """
