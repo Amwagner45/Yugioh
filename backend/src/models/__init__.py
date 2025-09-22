@@ -72,6 +72,7 @@ class CardSearchResponse(BaseModel):
     data: List[Card]
     count: int
     error: Optional[str] = None
+    cached: Optional[bool] = False
 
 
 class ErrorResponse(BaseModel):

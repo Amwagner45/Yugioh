@@ -1,6 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from src.routes import cards, binders, decks
+from src.services.cache import initialize_cache, cleanup_cache
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan events"""
+    # Startup
+    await initialize_cache()
+    yield
+    # Shutdown
+    await cleanup_cache()
 
 
 def create_app() -> FastAPI:
@@ -9,6 +21,7 @@ def create_app() -> FastAPI:
         title="Yu-Gi-Oh Deck Builder API",
         description="API for managing Yu-Gi-Oh card collections and deck building",
         version="1.0.0",
+        lifespan=lifespan,
     )
 
     # Enable CORS for frontend development
