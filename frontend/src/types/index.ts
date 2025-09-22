@@ -81,8 +81,22 @@ export interface CardSearchParams {
     attribute?: string;
     level?: number;
     atk?: number;
+    atk_min?: number;
+    atk_max?: number;
     def?: number;
+    def_min?: number;
+    def_max?: number;
+    archetype?: string;
+    banlist?: string;
+    format?: string;
+    sort?: string;
+    order?: string;
+    cardset?: string;
+    rarity?: string;
+    description?: string;
+    fuzzy?: boolean;
     limit?: number;
+    offset?: number;
 }
 
 export interface CardSearchResponse {

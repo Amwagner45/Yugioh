@@ -4,15 +4,18 @@ import { cardService } from '../services/api';
 import BinderForm from '../components/binder/BinderForm';
 import BinderList from '../components/binder/BinderList';
 import CardSearch from '../components/binder/CardSearch';
+import SetBrowser from '../components/binder/SetBrowser';
 import CardQuantityManager from '../components/binder/CardQuantityManager';
 import { DeleteBinderConfirm } from '../components/common/ConfirmDialog';
 import type { Binder, BinderCard, Card } from '../types';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'search';
+type SearchTab = 'search' | 'sets';
 
 const BinderPage: React.FC = () => {
     const [binders, setBinders] = useState<Binder[]>([]);
     const [currentView, setCurrentView] = useState<ViewMode>('list');
+    const [searchTab, setSearchTab] = useState<SearchTab>('search');
     const [selectedBinder, setSelectedBinder] = useState<Binder | null>(null);
     const [editingBinder, setEditingBinder] = useState<Binder | null>(null);
     const [deletingBinder, setDeletingBinder] = useState<Binder | null>(null);
@@ -445,11 +448,50 @@ const BinderPage: React.FC = () => {
                 )}
 
                 {currentView === 'search' && (
-                    <CardSearch
-                        selectedBinder={selectedBinder}
-                        onAddToBinder={handleAddCardToBinder}
-                        isAddingCard={isAddingCard}
-                    />
+                    <div className="space-y-6">
+                        {/* Search Tabs */}
+                        <div className="bg-white rounded-lg shadow-lg">
+                            <div className="border-b border-gray-200">
+                                <nav className="flex space-x-8 px-6" aria-label="Tabs">
+                                    <button
+                                        onClick={() => setSearchTab('search')}
+                                        className={`py-4 px-1 border-b-2 font-medium text-sm ${searchTab === 'search'
+                                                ? 'border-blue-500 text-blue-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        Search Cards
+                                    </button>
+                                    <button
+                                        onClick={() => setSearchTab('sets')}
+                                        className={`py-4 px-1 border-b-2 font-medium text-sm ${searchTab === 'sets'
+                                                ? 'border-blue-500 text-blue-600'
+                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            }`}
+                                    >
+                                        Browse by Set
+                                    </button>
+                                </nav>
+                            </div>
+                        </div>
+
+                        {/* Tab Content */}
+                        {searchTab === 'search' && (
+                            <CardSearch
+                                selectedBinder={selectedBinder}
+                                onAddToBinder={handleAddCardToBinder}
+                                isAddingCard={isAddingCard}
+                            />
+                        )}
+
+                        {searchTab === 'sets' && (
+                            <SetBrowser
+                                selectedBinder={selectedBinder}
+                                onAddToBinder={handleAddCardToBinder}
+                                isAddingCard={isAddingCard}
+                            />
+                        )}
+                    </div>
                 )}
 
                 {/* Delete Confirmation Dialog */}
