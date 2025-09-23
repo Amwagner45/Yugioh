@@ -28,13 +28,13 @@ const CardImage: React.FC<CardImageProps> = ({
     onClick,
     onRightClick
 }) => {
-    console.log('🔧 CardImage props:', { 
-        cardName: card.name, 
-        hasOnClick: !!onClick, 
+    console.log('🔧 CardImage props:', {
+        cardName: card.name,
+        hasOnClick: !!onClick,
         hasOnRightClick: !!onRightClick,
-        showZoom 
+        showZoom
     });
-    
+
     const [isZoomed, setIsZoomed] = useState(false);
     const [imageError, setImageError] = useState(false);
 
@@ -57,17 +57,17 @@ const CardImage: React.FC<CardImageProps> = ({
 
     const handleMouseUp = (e: React.MouseEvent) => {
         console.log('🖱️ CardImage handleMouseUp - button:', e.button, 'type:', e.type);
-        
+
         if (e.button === 0) {
             // Left click only
             console.log('👆 Left click detected - triggering onClick');
             e.stopPropagation();
-            
+
             // Only auto-zoom if we don't have a right-click handler AND showZoom is enabled
             if (showZoom && !onRightClick) {
                 setIsZoomed(true);
             }
-            
+
             // Only call onClick if this is actually a left click
             onClick?.();
         } else if (e.button === 2) {
@@ -75,7 +75,7 @@ const CardImage: React.FC<CardImageProps> = ({
             console.log('👆 Right click detected - triggering onRightClick');
             e.preventDefault();
             e.stopPropagation();
-            
+
             // Don't call onClick for right clicks
             onRightClick?.(e);
             return; // Early return to prevent any other handling

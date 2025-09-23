@@ -78,22 +78,22 @@ const EnhancedCardContextMenu: React.FC<EnhancedCardContextMenuProps> = ({
     // Helper function to determine if card can be added to specific deck type
     const canAddToSection = (section: 'main' | 'extra' | 'side'): boolean => {
         if (!cardDetails || !onAddToSection) return false;
-        
+
         // Check if there are available copies in binder
         if (availableCopies <= 0) return false;
-        
+
         // Check card type restrictions for Extra Deck
         if (section === 'extra') {
             const extraDeckTypes = ['Fusion Monster', 'Synchro Monster', 'XYZ Monster', 'Link Monster'];
             return extraDeckTypes.includes(cardDetails.type);
         }
-        
+
         // Main and Side deck can accept most card types except Extra Deck monsters
         if (section === 'main' || section === 'side') {
             const extraDeckTypes = ['Fusion Monster', 'Synchro Monster', 'XYZ Monster', 'Link Monster'];
             return !extraDeckTypes.includes(cardDetails.type);
         }
-        
+
         return true;
     };
 
@@ -101,19 +101,19 @@ const EnhancedCardContextMenu: React.FC<EnhancedCardContextMenuProps> = ({
     const canMoveToSection = (toSection: 'main' | 'extra' | 'side'): boolean => {
         if (!cardDetails || !onMoveToSection || currentLocation === 'binder') return false;
         if (currentLocation === toSection) return false;
-        
+
         // Check card type restrictions for Extra Deck
         if (toSection === 'extra') {
             const extraDeckTypes = ['Fusion Monster', 'Synchro Monster', 'XYZ Monster', 'Link Monster'];
             return extraDeckTypes.includes(cardDetails.type);
         }
-        
+
         // Main and Side deck can accept most card types except Extra Deck monsters
         if (toSection === 'main' || toSection === 'side') {
             const extraDeckTypes = ['Fusion Monster', 'Synchro Monster', 'XYZ Monster', 'Link Monster'];
             return !extraDeckTypes.includes(cardDetails.type);
         }
-        
+
         return true;
     };
 
@@ -139,7 +139,7 @@ const EnhancedCardContextMenu: React.FC<EnhancedCardContextMenuProps> = ({
         // Add section - shows when card is in binder or can be added to other sections
         if (currentLocation === 'binder' || currentLocation !== 'main') {
             const canAdd = canAddToSection('main');
-            const label = currentLocation === 'binder' 
+            const label = currentLocation === 'binder'
                 ? `Add to Main Deck${quantityInMain > 0 ? ` (${quantityInMain})` : ''}`
                 : `Add to Main Deck${quantityInMain > 0 ? ` (${quantityInMain})` : ''} (copy)`;
             options.push({
@@ -153,7 +153,7 @@ const EnhancedCardContextMenu: React.FC<EnhancedCardContextMenuProps> = ({
 
         if (currentLocation === 'binder' || currentLocation !== 'extra') {
             const canAdd = canAddToSection('extra');
-            const label = currentLocation === 'binder' 
+            const label = currentLocation === 'binder'
                 ? `Add to Extra Deck${quantityInExtra > 0 ? ` (${quantityInExtra})` : ''}`
                 : `Add to Extra Deck${quantityInExtra > 0 ? ` (${quantityInExtra})` : ''} (copy)`;
             options.push({
@@ -167,7 +167,7 @@ const EnhancedCardContextMenu: React.FC<EnhancedCardContextMenuProps> = ({
 
         if (currentLocation === 'binder' || currentLocation !== 'side') {
             const canAdd = canAddToSection('side');
-            const label = currentLocation === 'binder' 
+            const label = currentLocation === 'binder'
                 ? `Add to Side Deck${quantityInSide > 0 ? ` (${quantityInSide})` : ''}`
                 : `Add to Side Deck${quantityInSide > 0 ? ` (${quantityInSide})` : ''} (copy)`;
             options.push({
@@ -213,8 +213,8 @@ const EnhancedCardContextMenu: React.FC<EnhancedCardContextMenuProps> = ({
 
         // Remove section - only if currently in a deck section
         if (canRemoveFromSection()) {
-            const sectionName = currentLocation === 'main' ? 'Main Deck' : 
-                              currentLocation === 'extra' ? 'Extra Deck' : 'Side Deck';
+            const sectionName = currentLocation === 'main' ? 'Main Deck' :
+                currentLocation === 'extra' ? 'Extra Deck' : 'Side Deck';
             options.push({
                 label: `Remove from ${sectionName}`,
                 onClick: () => onRemoveFromSection?.(cardId, currentLocation as 'main' | 'extra' | 'side', 1),
@@ -313,17 +313,15 @@ const EnhancedCardContextMenu: React.FC<EnhancedCardContextMenuProps> = ({
                             }
                         }}
                         disabled={option.disabled}
-                        className={`w-full text-left px-4 py-2 text-sm flex items-center space-x-2 ${
-                            option.disabled
+                        className={`w-full text-left px-4 py-2 text-sm flex items-center space-x-2 ${option.disabled
                                 ? 'text-gray-400 cursor-not-allowed bg-gray-50'
                                 : 'text-gray-700 hover:bg-blue-50 cursor-pointer'
-                        } ${
-                            option.group === 'add' ? 'border-l-2 border-l-green-400' :
-                            option.group === 'move' ? 'border-l-2 border-l-blue-400' :
-                            option.group === 'remove' ? 'border-l-2 border-l-red-400' :
-                            option.group === 'quantity' ? 'border-l-2 border-l-yellow-400' :
-                            ''
-                        }`}
+                            } ${option.group === 'add' ? 'border-l-2 border-l-green-400' :
+                                option.group === 'move' ? 'border-l-2 border-l-blue-400' :
+                                    option.group === 'remove' ? 'border-l-2 border-l-red-400' :
+                                        option.group === 'quantity' ? 'border-l-2 border-l-yellow-400' :
+                                            ''
+                            }`}
                     >
                         {option.icon && (
                             <span className="text-base flex-shrink-0">{option.icon}</span>
@@ -340,7 +338,7 @@ const EnhancedCardContextMenu: React.FC<EnhancedCardContextMenuProps> = ({
                     )}
                 </React.Fragment>
             ))}
-            
+
             {/* Info footer */}
             <div className="border-t border-gray-200 mt-1 px-4 py-2 text-xs text-gray-500 bg-gray-50">
                 <div className="flex justify-between">

@@ -117,12 +117,12 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
             quantity: card.quantity,
             binderCard: card
         }));
-        
+
         console.log('🔍 BINDER RAW CARDS:', transformed.length, 'total cards');
-        console.log('🔍 Looking for 8-Claws Scorpion in binder:', 
+        console.log('🔍 Looking for 8-Claws Scorpion in binder:',
             transformed.find(c => c.card?.name?.includes('8-Claws') || c.card?.name?.includes('Scorpion')));
         console.log('🔍 First 5 binder cards:', transformed.slice(0, 5).map(c => c.card?.name));
-        
+
         return transformed;
     }, [binder.cards]);
 
@@ -272,11 +272,11 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
             rarity: binderCard.rarity,
             tags: binderCard.tags
         }));
-        
+
         console.log('🔍 Available Cards being passed to view:', transformed.map(c => c.card_details?.name).slice(0, 10));
         console.log('🔍 Total cards for view:', transformed.length);
         console.log('🔍 Looking for 8-Claws Scorpion:', transformed.find(c => c.card_details?.name?.includes('8-Claws')));
-        
+
         return transformed;
     }, [filteredAndSortedCards]);
 

@@ -56,14 +56,14 @@ const DeckSection: React.FC<DeckSectionProps> = ({
     const getCardQuantities = (cardId: number) => {
         const binderCard = binderCards.find(bc => bc.cardId === cardId);
         const quantityInBinder = binderCard?.quantity || 0;
-        
+
         const quantityInMain = allDeckCards?.mainDeck.find(c => c.cardId === cardId)?.quantity || 0;
         const quantityInExtra = allDeckCards?.extraDeck.find(c => c.cardId === cardId)?.quantity || 0;
         const quantityInSide = allDeckCards?.sideDeck.find(c => c.cardId === cardId)?.quantity || 0;
-        
+
         const totalUsed = quantityInMain + quantityInExtra + quantityInSide;
         const availableCopies = Math.max(0, quantityInBinder - totalUsed);
-        
+
         return {
             quantityInBinder,
             quantityInMain,

@@ -522,13 +522,13 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         try {
             // First remove from source section
             await handleRemoveCardFromDeck(cardId, fromSection, quantity);
-            
+
             // Then add to target section
             await handleAddCardToDeck(cardId, toSection, quantity);
         } catch (error) {
             console.error('Failed to move card between sections:', error);
             alert('Failed to move card between sections. Please try again.');
-            
+
             // On error, reload deck to ensure consistency
             await loadDeck();
         }
