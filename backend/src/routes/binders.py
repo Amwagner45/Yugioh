@@ -265,16 +265,19 @@ async def parse_and_import_csv(csv_content: str, binder: Binder) -> dict:
                     # Map condition abbreviations to full names
                     condition_mapping = {
                         "M": "Mint",
-                        "NM": "Near Mint", 
+                        "NM": "Near Mint",
                         "LP": "Lightly Played",
-                        "MP": "Moderately Played", 
+                        "MP": "Moderately Played",
                         "HP": "Heavily Played",
                         "D": "Damaged",
-                        "": "Near Mint"  # Default for empty values
+                        "": "Near Mint",  # Default for empty values
                     }
-                    
+
                     raw_condition = row.get("cardcondition", "").strip()
-                    condition = condition_mapping.get(raw_condition, raw_condition) or "Near Mint"
+                    condition = (
+                        condition_mapping.get(raw_condition, raw_condition)
+                        or "Near Mint"
+                    )
 
                     # Add card to binder
                     binder.add_card(

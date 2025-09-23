@@ -744,7 +744,9 @@ async def get_sync_status():
         status = bulk_sync_service.get_sync_status()
         return status
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting sync status: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error getting sync status: {str(e)}"
+        )
 
 
 @router.post("/sync/start")
@@ -755,17 +757,17 @@ async def start_sync(background_tasks: BackgroundTasks):
         if not bulk_sync_service.needs_sync():
             return {
                 "status": "skipped",
-                "message": "Card database is already up to date"
+                "message": "Card database is already up to date",
             }
-        
+
         # Start sync in background
         background_tasks.add_task(bulk_sync_service.sync_all_cards)
-        
+
         return {
             "status": "started",
-            "message": "Card synchronization started in background"
+            "message": "Card synchronization started in background",
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error starting sync: {str(e)}")
 
@@ -776,14 +778,16 @@ async def force_sync(background_tasks: BackgroundTasks):
     try:
         # Force sync by bypassing version check
         background_tasks.add_task(bulk_sync_service.sync_all_cards)
-        
+
         return {
             "status": "started",
-            "message": "Force card synchronization started in background"
+            "message": "Force card synchronization started in background",
         }
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error starting force sync: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error starting force sync: {str(e)}"
+        )
 
 
 @router.get("/sync/version")
@@ -793,4 +797,6 @@ async def check_api_version():
         version_info = bulk_sync_service.check_db_version()
         return version_info
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error checking API version: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error checking API version: {str(e)}"
+        )
