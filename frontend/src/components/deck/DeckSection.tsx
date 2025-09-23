@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { DeckCard } from '../../types';
+import type { DeckCard, BinderCard } from '../../types';
 
 interface DeckSectionProps {
     title: string;
@@ -9,6 +9,7 @@ interface DeckSectionProps {
     maxCards: number;
     minCards: number;
     sectionType: 'main' | 'extra' | 'side';
+    binderCards?: BinderCard[];  // Add binder cards to get card details
 }
 
 const DeckSection: React.FC<DeckSectionProps> = ({
@@ -18,7 +19,8 @@ const DeckSection: React.FC<DeckSectionProps> = ({
     onRemoveCard,
     maxCards,
     minCards,
-    sectionType
+    sectionType,
+    binderCards = []
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     const totalCards = cards.reduce((sum, card) => sum + card.quantity, 0);
@@ -27,11 +29,15 @@ const DeckSection: React.FC<DeckSectionProps> = ({
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
-        setIsDragOver(true);
+        if (!isDragOver) {
+            console.log('Drag over', title);
+            setIsDragOver(true);
+        }
     };
 
     const handleDragLeave = (e: React.DragEvent) => {
         e.preventDefault();
+        console.log('Drag leave', title);
         setIsDragOver(false);
     };
 
@@ -39,10 +45,20 @@ const DeckSection: React.FC<DeckSectionProps> = ({
         e.preventDefault();
         setIsDragOver(false);
 
+        console.log('Drop event triggered in', title);
+
         try {
-            const data = JSON.parse(e.dataTransfer.getData('application/json'));
+            const dataString = e.dataTransfer.getData('application/json');
+            console.log('Drop data received:', dataString);
+
+            const data = JSON.parse(dataString);
+            console.log('Parsed drop data:', data);
+
             if (data.type === 'binder-card' && data.cardId) {
+                console.log('Adding card to deck:', data.cardId);
                 onAddCard(data.cardId, 1);
+            } else {
+                console.log('Invalid drop data type or missing cardId');
             }
         } catch (error) {
             console.error('Invalid drag data:', error);
@@ -112,6 +128,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                             <DeckCardItem
                                 key={card.cardId}
                                 card={card}
+                                cardDetails={binderCards.find(bc => bc.cardId === card.cardId)?.card_details}
                                 onIncrease={() => handleIncreaseQuantity(card.cardId)}
                                 onDecrease={() => handleDecreaseQuantity(card.cardId)}
                             />
@@ -125,22 +142,54 @@ const DeckSection: React.FC<DeckSectionProps> = ({
 
 interface DeckCardItemProps {
     card: DeckCard;
+    cardDetails?: import('../../types').Card;
     onIncrease: () => void;
     onDecrease: () => void;
 }
 
-const DeckCardItem: React.FC<DeckCardItemProps> = ({ card, onIncrease, onDecrease }) => {
+const DeckCardItem: React.FC<DeckCardItemProps> = ({ card, cardDetails, onIncrease, onDecrease }) => {
     return (
-        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
-            <div className="flex-1">
-                <div className="font-medium text-gray-900">
-                    Card ID: {card.cardId}
+        <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+            {/* Card Image */}
+            {cardDetails?.card_images?.[0] && (
+                <div className="flex-shrink-0">
+                    <img
+                        src={cardDetails.card_images[0].image_url_small}
+                        alt={cardDetails.name}
+                        className="w-10 h-14 object-cover rounded border"
+                        onError={(e) => {
+                            // Fallback to main image if small image fails
+                            if (cardDetails?.card_images?.[0]) {
+                                (e.target as HTMLImageElement).src = cardDetails.card_images[0].image_url;
+                            }
+                        }}
+                    />
                 </div>
-                <div className="text-sm text-gray-600">
-                    Quantity: {card.quantity}
+            )}
+
+            {/* Card Info */}
+            <div className="flex-1 min-w-0">
+                <div className="font-medium text-gray-900 truncate">
+                    {cardDetails ? cardDetails.name : `Card ID: ${card.cardId}`}
                 </div>
+
+                {cardDetails && (
+                    <div className="text-sm text-gray-600">
+                        {cardDetails.type}
+                        {cardDetails.race && cardDetails.race !== cardDetails.type && ` • ${cardDetails.race}`}
+                    </div>
+                )}
+
+                {cardDetails && (cardDetails.atk !== null || cardDetails.def !== null) && (
+                    <div className="text-xs text-gray-500">
+                        {cardDetails.atk !== null && `ATK: ${cardDetails.atk}`}
+                        {cardDetails.def !== null && ` DEF: ${cardDetails.def}`}
+                        {cardDetails.level && ` • Level: ${cardDetails.level}`}
+                    </div>
+                )}
             </div>
 
+            {/* Quantity Controls */}
             <div className="flex items-center space-x-2">
                 <button
                     onClick={onDecrease}

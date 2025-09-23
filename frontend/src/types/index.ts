@@ -10,6 +10,10 @@ export interface Card {
     level?: number;
     race?: string;
     attribute?: string;
+    archetype?: string;
+    scale?: number;
+    linkval?: number;
+    linkmarkers?: string[];
     card_images?: CardImage[];
     card_sets?: CardSet[];
     banlist_info?: BanlistInfo;
@@ -46,6 +50,7 @@ export interface BinderCard {
     notes?: string;
     tags?: string[];
     dateAdded?: Date;
+    card_details?: Card;  // Full card details when included from API
 }
 
 export interface Binder {

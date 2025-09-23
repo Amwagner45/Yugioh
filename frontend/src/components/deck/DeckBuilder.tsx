@@ -442,6 +442,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             maxCards={60}
                             minCards={40}
                             sectionType="main"
+                            binderCards={binder?.cards || []}
                         />
 
                         <DeckSection
@@ -452,6 +453,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             maxCards={15}
                             minCards={0}
                             sectionType="extra"
+                            binderCards={binder?.cards || []}
                         />
 
                         <DeckSection
@@ -462,6 +464,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             maxCards={15}
                             minCards={0}
                             sectionType="side"
+                            binderCards={binder?.cards || []}
                         />
                     </div>
 
