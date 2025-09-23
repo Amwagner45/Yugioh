@@ -4,7 +4,7 @@ import DeckSection from './DeckSection';
 import DeckStatistics from './DeckStatistics';
 import EnhancedBinderCardList from '../binder/EnhancedBinderCardList';
 import CardDetailModal from '../common/CardDetailModal';
-import api, { binderService, deckService } from '../../services/api';
+import api, { binderService, deckService, cardService } from '../../services/api';
 import { storageService } from '../../services/storage';
 import { importExportService } from '../../services/importExport';
 
@@ -80,6 +80,22 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
     const loadBinders = async () => {
         try {
+            // Try loading from local storage first (for local binders)
+            const localBinders = storageService.getBinders();
+
+            if (localBinders && localBinders.length > 0) {
+                console.log(`✅ Loaded ${localBinders.length} binders from local storage`);
+                setAvailableBinders(localBinders);
+
+                // If no binder is selected, use the first available binder
+                if (!selectedBinderId && localBinders.length > 0) {
+                    setSelectedBinderId(localBinders[0].id.toString());
+                }
+                return;
+            }
+
+            // Fallback to API if no local binders found
+            console.log('🔍 No local binders found, trying backend API...');
             const response = await api.get('/api/binders');
             setAvailableBinders(response.data);
 
@@ -114,7 +130,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
                 // For local decks, default to the first available binder if none is selected
                 if (!selectedBinderId && availableBinders.length > 0) {
-                    setSelectedBinderId(availableBinders[0].id.toString());
+                    const firstBinderId = availableBinders[0].uuid || availableBinders[0].id.toString();
+                    setSelectedBinderId(firstBinderId);
                     setBinder(availableBinders[0]);
                 }
                 return;
@@ -164,7 +181,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             if (deckData.binder_id && availableBinders.length > 0) {
                 const associatedBinder = availableBinders.find(b => b.id === deckData.binder_id);
                 if (associatedBinder) {
-                    setSelectedBinderId(associatedBinder.uuid);
+                    setSelectedBinderId(associatedBinder.uuid || associatedBinder.id.toString());
                 }
             }
         } catch (error) {
@@ -178,6 +195,51 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         if (!selectedBinderId) return;
 
         try {
+            // Try loading from local storage first
+            const localBinder = storageService.getBinder(selectedBinderId);
+
+            if (localBinder) {
+                console.log(`✅ Loaded binder "${localBinder.name}" from local storage`);
+
+                // Check if card details are already populated
+                const hasCardDetails = localBinder.cards.some(card => card.card_details);
+
+                if (!hasCardDetails && localBinder.cards.length > 0) {
+                    console.log('🔍 Fetching card details for local binder cards...');
+                    // Get unique card IDs
+                    const cardIds = [...new Set(localBinder.cards.map(card => card.cardId))];
+
+                    try {
+                        // Fetch card details in batch
+                        const cardResponse = await cardService.getCardsBatch(cardIds);
+                        const cardDetailsMap = new Map(cardResponse.data.map((card: Card) => [card.id, card]));
+
+                        // Populate card details
+                        const enhancedBinder = {
+                            ...localBinder,
+                            cards: localBinder.cards.map(card => ({
+                                ...card,
+                                card_details: cardDetailsMap.get(card.cardId) as Card | undefined
+                            }))
+                        };
+
+                        console.log(`✅ Enhanced ${cardResponse.data.length} cards with details`);
+                        setBinder(enhancedBinder);
+                        return;
+                    } catch (error) {
+                        console.error('Failed to fetch card details:', error);
+                        // Still set the binder even if card details failed
+                        setBinder(localBinder);
+                        return;
+                    }
+                }
+
+                setBinder(localBinder);
+                return;
+            }
+
+            // Fallback to API if not found locally
+            console.log('🔍 Binder not found locally, trying backend API...');
             const binderData = await binderService.getBinder(selectedBinderId, true);
             setBinder(binderData);
         } catch (error) {
@@ -220,7 +282,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             // Save to backend API for server-side decks
             console.log('🌐 Saving deck to backend API');
             // Find the selected binder's integer ID
-            const selectedBinder = availableBinders.find(b => b.uuid === selectedBinderId);
+            const selectedBinder = availableBinders.find(b => (b.uuid || b.id.toString()) === selectedBinderId);
             const binderIntegerId = selectedBinder ? selectedBinder.id : null;
 
             const deckData = {
@@ -773,7 +835,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             >
                                 <option value="">Select binder</option>
                                 {availableBinders.map((binder) => (
-                                    <option key={binder.uuid} value={binder.uuid}>
+                                    <option key={binder.uuid || binder.id} value={binder.uuid || binder.id}>
                                         {binder.name}
                                     </option>
                                 ))}
