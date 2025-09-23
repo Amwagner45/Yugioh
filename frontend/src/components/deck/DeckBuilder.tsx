@@ -266,15 +266,6 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         setHasUnsavedChanges(true);
     };
 
-    // Check if user wants to leave with unsaved changes
-    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-        if (hasUnsavedChanges) {
-            e.preventDefault();
-            e.returnValue = '';
-            return '';
-        }
-    };
-
     // Handle cancel with unsaved changes warning
     const handleCancel = () => {
         if (hasUnsavedChanges) {
@@ -290,14 +281,6 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
     };
 
-    // Add beforeunload event listener
-    useEffect(() => {
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => {
-            window.removeEventListener('beforeunload', handleBeforeUnload);
-        };
-    }, [hasUnsavedChanges]);
-
     // Block navigation when there are unsaved changes
     useEffect(() => {
         const handlePopState = (e: PopStateEvent) => {
@@ -307,18 +290,56 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 );
                 if (!confirmLeave) {
                     e.preventDefault();
+                    // Push the current state back to prevent navigation
                     window.history.pushState(null, '', location.pathname);
+                    return;
+                }
+            }
+        };
+
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = 'You have unsaved changes. Are you sure you want to leave without saving?';
+                return 'You have unsaved changes. Are you sure you want to leave without saving?';
+            }
+        };
+
+        // Intercept all link clicks to check for unsaved changes
+        const handleLinkClick = (e: MouseEvent) => {
+            if (!hasUnsavedChanges) return;
+
+            const target = e.target as HTMLElement;
+            const link = target.closest('a');
+
+            if (link && (link.href.startsWith('http') || link.href.includes('#') || link.getAttribute('href')?.startsWith('/'))) {
+                const confirmLeave = window.confirm(
+                    'You have unsaved changes. Are you sure you want to leave without saving?'
+                );
+                if (!confirmLeave) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
                 }
             }
         };
 
         if (hasUnsavedChanges) {
+            // Prevent browser back/forward navigation
             window.history.pushState(null, '', location.pathname);
             window.addEventListener('popstate', handlePopState);
+
+            // Prevent page unload/refresh
+            window.addEventListener('beforeunload', handleBeforeUnload);
+
+            // Intercept link clicks
+            document.addEventListener('click', handleLinkClick, true);
         }
 
         return () => {
             window.removeEventListener('popstate', handlePopState);
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+            document.removeEventListener('click', handleLinkClick, true);
         };
     }, [hasUnsavedChanges, location.pathname]);
 
@@ -876,8 +897,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             <button
                                 onClick={handleSaveDeck}
                                 className={`px-3 py-1.5 text-sm rounded transition-colors ${hasUnsavedChanges
-                                        ? 'bg-orange-600 text-white hover:bg-orange-700'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    ? 'bg-orange-600 text-white hover:bg-orange-700'
+                                    : 'bg-blue-600 text-white hover:bg-blue-700'
                                     }`}
                                 disabled={isLoading}
                             >
