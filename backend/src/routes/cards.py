@@ -641,16 +641,58 @@ async def get_card_by_id(
     Get a specific card by its ID with caching, rate limiting, and error handling
     """
     # Apply rate limiting
-    client_ip = await apply_rate_limit(request, "get_by_id", is_external_api=True)
+    client_ip = await apply_rate_limit(request, "get_by_id", is_external_api=False)
 
-    # Check cache first
+    # Check memory cache first
     try:
         cached_card = await cache_service.get_card_by_id(card_id)
         if cached_card is not None:
             await record_request_success(client_ip, "get_by_id", is_external_api=False)
             return {"data": cached_card, "cached": True}
     except Exception as e:
-        error_handler.logger.warning(f"Cache lookup failed: {e}")
+        error_handler.logger.warning(f"Memory cache lookup failed: {e}")
+
+    # Check database cache (this is where all bulk-synced cards are stored)
+    from ..database.models import Card
+    try:
+        card = Card.get_by_id(card_id, fetch_if_missing=False)
+        if card is not None:
+            # Convert card model to dict format
+            card_data = {
+                "id": card.id,
+                "name": card.name,
+                "type": card.type,
+                "desc": card.description,
+                "atk": card.atk,
+                "def": card.def_,
+                "level": card.level,
+                "race": card.race,
+                "attribute": card.attribute,
+                "archetype": card.archetype,
+                "scale": card.scale,
+                "linkval": card.linkval,
+                "linkmarkers": card.linkmarkers,
+                "card_images": card.card_images,
+                "card_sets": card.card_sets,
+                "banlist_info": card.banlist_info,
+            }
+            
+            # Store in memory cache for faster access next time
+            try:
+                await cache_service.cache_card_by_id(card_id, card_data)
+            except Exception as e:
+                error_handler.logger.warning(f"Failed to cache card in memory: {e}")
+            
+            await record_request_success(client_ip, "get_by_id", is_external_api=False)
+            return {"data": card_data, "cached": True}
+    except Exception as e:
+        error_handler.logger.warning(f"Database cache lookup failed: {e}")
+
+    # Only make external API call if card is not in database (which shouldn't happen after bulk sync)
+    error_handler.logger.warning(f"Card {card_id} not found in local database cache, attempting external API call")
+
+    # Apply rate limiting for external API
+    client_ip = await apply_rate_limit(request, "get_by_id", is_external_api=True)
 
     # Define the API call function
     async def api_call():
@@ -668,9 +710,12 @@ async def get_card_by_id(
             api_call, operation_type="api_request"
         )
 
-        # Cache the card data
+        # Cache the card data in both memory and database
         try:
             await cache_service.cache_card_by_id(card_id, card_data)
+            # Also save to database for future use
+            card = Card.from_api_response(card_data)
+            card.save()
         except Exception as e:
             error_handler.logger.warning(f"Failed to cache card: {e}")
 
