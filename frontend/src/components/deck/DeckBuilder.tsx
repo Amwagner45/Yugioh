@@ -150,7 +150,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             // Find the selected binder's integer ID
             const selectedBinder = availableBinders.find(b => b.uuid === selectedBinderId);
             const binderIntegerId = selectedBinder ? selectedBinder.id : null;
-            
+
             const deckData = {
                 name: deckName,
                 description: deckDescription,
