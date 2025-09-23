@@ -111,13 +111,99 @@
 
 **Deliverable**: Complete deck building system with binder integration
 
-### 4.4 Extra
+### 4.4 UI Enhancements
+**Goal**: Create a polished, professional deck building interface inspired by leading deck builders
+
+#### 4.4.1 Card Display & Layout Optimization
+- [ ] **Large Card Images**: Implement high-resolution card display as primary visual element
+  - Display card images at minimum 200x300px for readability
+  - Add hover/click zoom functionality for detailed card text viewing
+  - Ensure crisp image quality with lazy loading for performance
+- [ ] **Grid vs List Views**: Multiple display options like Archidekt
+  - Grid view: Card images in rows with quantity indicators
+  - List view: Compact text-based listing with small thumbnails
+  - Stacked view: Grouped cards with quantity stack display
+  - Table view: Spreadsheet-style for advanced sorting/filtering
+- [ ] **Quantity Indicators**: Clear visual quantity display
+  - Number badges on card corners (e.g., "3x" overlay)
+  - Stacked card visual effect for quantities > 1
+  - Color-coded quantities (1=white, 2=yellow, 3=red, etc.)
+
+#### 4.4.2 Advanced Filtering & Search UI
+- [ ] **Collapsible Filter Sidebar**: YGOProg-style filter panel
+  - Binder selection dropdown (currently selected collection)
+  - Card name search with autocomplete
+  - Card type checkboxes (Monster, Spell, Trap, etc.)
+  - Attribute/Type/Level filtering with multi-select
+  - ATK/DEF range sliders
+  - Set/rarity filtering with expansion icons
+  - Ban list status indicators
+- [ ] **Quick Filter Tags**: FaBrary-inspired filter chips
+  - One-click filters for common searches ("Monsters", "Spells", "Owned Cards")
+  - Active filter display with easy removal (X button)
+  - Save custom filter combinations
+- [ ] **Advanced Search Modal**: Power user search interface
+  - Boolean operators (AND, OR, NOT) for complex queries
+  - Card text search within descriptions
+  - Archetype/series grouping
+
+#### 4.4.3 Deck Building Interface Improvements
+- [ ] **Split-Pane Layout**: Left panel for card browser, right for deck construction
+  - Resizable divider between card list and deck builder
+  - Full-screen deck view toggle for focused editing
+  - Sticky deck summary bar showing card counts
+- [ ] **Drag & Drop Enhancement**: Intuitive card management
+  - Visual drag indicators and drop zones
+  - Right-click context menus for add/remove/move
+  - Keyboard shortcuts (Ctrl+click to add, Shift+click for quantities)
+  - Bulk card selection and operations
+- [ ] **Deck Categories**: Organized deck sections like MTG builders
+  - Clear visual separation for Main/Extra/Side deck
+  - Color-coded sections with distinct backgrounds
+  - Individual card count limits per section
+  - Visual overflow warnings when limits exceeded
+
+#### 4.4.4 Professional Visual Design
+- [ ] **Dark Theme Priority**: Modern dark interface like Archidekt/Moxfield
+  - Dark backgrounds with high contrast text (#1a1a1a base, #ffffff text)
+  - Accent colors for important actions (blue for primary, red for remove)
+  - Card image borders and shadows for depth
+  - Subtle gradients and rounded corners for modern feel
+- [ ] **Responsive Button Design**: Small, clear action buttons
+  - Icon-based buttons where possible (+ - ⚙️ 🗑️)
+  - Consistent sizing (32px height standard)
+  - Hover states with subtle animations
+  - Loading states for async operations
+- [ ] **Typography Hierarchy**: Clear information structure
+  - Card names in bold, larger font (16px)
+  - Secondary info (type, level) in smaller, muted text (12px)
+  - Consistent font family (modern sans-serif like Inter/Roboto)
+
+#### 4.4.5 Deck Statistics & Analysis
+- [ ] **Visual Deck Statistics**: Moxfield-inspired analytics
+  - Mana curve chart showing level distribution
+  - Card type pie chart (Monster/Spell/Trap percentages)
+  - Attribute/Type distribution graphs
+  - Average ATK/DEF calculations
+- [ ] **Real-time Validation**: Live deck legality checking
+  - Visual indicators for deck size (40-60 main deck)
+  - Ban list compliance highlighting
+  - Missing card warnings (cards not in binder)
+  - Format validation with clear error messages
+
+#### 4.4.6 User Experience
+- [ ] **Keyboard Navigation**: Power user accessibility
+  - Tab navigation through all interactive elements
+  - Keyboard shortcuts for common actions
+  - Search focus on page load
+  - Escape key to close modals/filters
+
+
+### 4.5 Extra
 - [ ] Add quick-add functionality for favorited cards
 - [ ] Multi user only see binder and decks that user 
 - [ ] Fix UI and take inspiration from other deck builders
 - [ ] Backup data for binders and decks in case something goes wrong
-
-
 
 ---
 
