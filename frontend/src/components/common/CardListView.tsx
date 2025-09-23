@@ -15,6 +15,7 @@ interface CardListViewProps {
     showDeckInfo?: boolean;
     showThumbnails?: boolean;
     className?: string;
+    getCardRestriction?: (cardId: number) => { restriction: string; maxCopies: number; isViolation: boolean };
 }
 
 const CardListView: React.FC<CardListViewProps> = ({
@@ -23,7 +24,8 @@ const CardListView: React.FC<CardListViewProps> = ({
     onCardRightClick,
     showDeckInfo = false,
     showThumbnails = true,
-    className = ''
+    className = '',
+    getCardRestriction
 }) => {
     if (cards.length === 0) {
         return (
@@ -41,6 +43,8 @@ const CardListView: React.FC<CardListViewProps> = ({
                 const isAvailable = (cardData.availableCopies ?? cardData.quantity) > 0;
                 const hasCard = !!cardData.card_details;
                 const card = cardData.card_details;
+                const cardRestriction = getCardRestriction ? getCardRestriction(cardData.cardId) : null;
+                const isViolation = cardRestriction?.isViolation || false;
 
                 return (
                     <div
@@ -103,6 +107,26 @@ const CardListView: React.FC<CardListViewProps> = ({
 
                         {/* Quantity Indicator */}
                         <div className="flex-shrink-0 flex items-center space-x-2">
+                            {/* Banlist Violation Indicator */}
+                            {isViolation && (
+                                <div
+                                    className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center shadow-lg border border-white"
+                                    title={`Banlist Violation: ${cardRestriction?.restriction} (max ${cardRestriction?.maxCopies})`}
+                                >
+                                    <svg
+                                        className="w-4 h-4 text-white font-bold"
+                                        fill="currentColor"
+                                        viewBox="0 0 20 20"
+                                    >
+                                        <path
+                                            fillRule="evenodd"
+                                            d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM10 18a8 8 0 100-16 8 8 0 000 16z"
+                                            clipRule="evenodd"
+                                        />
+                                    </svg>
+                                </div>
+                            )}
+
                             <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2 py-1 rounded-full">
                                 {cardData.quantity}
                             </span>

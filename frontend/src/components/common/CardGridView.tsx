@@ -22,6 +22,8 @@ interface CardGridViewProps {
     // For deck sections - allows cards to be dragged back to binder
     isDeckSection?: boolean;
     sectionType?: 'main' | 'extra' | 'side';
+    // For banlist violation checking
+    getCardRestriction?: (cardId: number) => { restriction: string; maxCopies: number; isViolation: boolean };
 }
 
 const CardGridView: React.FC<CardGridViewProps> = ({
@@ -36,7 +38,8 @@ const CardGridView: React.FC<CardGridViewProps> = ({
     compactPadding = false,
     allowOverlap = false,
     isDeckSection = false,
-    sectionType
+    sectionType,
+    getCardRestriction
 }) => {
     // State for tooltip management
     const [tooltip, setTooltip] = useState<{
@@ -99,6 +102,8 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                 {cards.map((cardData, index) => {
                     const isAvailable = (cardData.availableCopies ?? cardData.quantity) > 0;
                     const hasCard = !!cardData.card_details;
+                    const cardRestriction = getCardRestriction ? getCardRestriction(cardData.cardId) : null;
+                    const isViolation = cardRestriction?.isViolation || false;
 
                     return (
                         <div
@@ -132,20 +137,44 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                         >
                             {/* Card Image */}
                             {hasCard ? (
-                                <CardImage
-                                    card={cardData.card_details!}
-                                    size={imageSize}
-                                    quantity={cardData.quantity}
-                                    showZoom={!disableZoom}
-                                    onClick={isAvailable && onCardClick ? () => onCardClick(cardData.cardId) : undefined}
-                                    onRightClick={onCardRightClick ? (e) => onCardRightClick(e, cardData.cardId) : undefined}
-                                    className={`${isAvailable && onCardClick
-                                        ? 'cursor-pointer'
-                                        : isAvailable
-                                            ? 'cursor-default'
-                                            : 'cursor-not-allowed'
-                                        }`}
-                                />
+                                <>
+                                    <CardImage
+                                        card={cardData.card_details!}
+                                        size={imageSize}
+                                        quantity={cardData.quantity}
+                                        showZoom={!disableZoom}
+                                        onClick={isAvailable && onCardClick ? () => onCardClick(cardData.cardId) : undefined}
+                                        onRightClick={onCardRightClick ? (e) => onCardRightClick(e, cardData.cardId) : undefined}
+                                        className={`${isAvailable && onCardClick
+                                            ? 'cursor-pointer'
+                                            : isAvailable
+                                                ? 'cursor-default'
+                                                : 'cursor-not-allowed'
+                                            }`}
+                                    />
+
+                                    {/* Banlist Violation Indicator */}
+                                    {isViolation && (
+                                        <div className="absolute -top-1 -right-1 z-50">
+                                            <div
+                                                className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white"
+                                                title={`Banlist Violation: ${cardRestriction?.restriction} (max ${cardRestriction?.maxCopies})`}
+                                            >
+                                                <svg
+                                                    className="w-4 h-4 text-white font-bold"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path
+                                                        fillRule="evenodd"
+                                                        d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM10 18a8 8 0 100-16 8 8 0 000 16z"
+                                                        clipRule="evenodd"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 // Placeholder for cards without details
                                 <div className={`${imageSize === 'sm' ? 'w-12 h-16' : imageSize === 'lg' ? 'w-32 h-48' : 'w-16 h-24'} bg-gray-200 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center`}>
@@ -195,6 +224,8 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                 {cards.map((cardData, index) => {
                     const isAvailable = (cardData.availableCopies ?? cardData.quantity) > 0;
                     const hasCard = !!cardData.card_details;
+                    const cardRestriction = getCardRestriction ? getCardRestriction(cardData.cardId) : null;
+                    const isViolation = cardRestriction?.isViolation || false;
 
                     return (
                         <div
@@ -225,24 +256,48 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                         >
                             {/* Card Image */}
                             {hasCard ? (
-                                <CardImage
-                                    card={cardData.card_details!}
-                                    size={imageSize}
-                                    quantity={cardData.quantity}
-                                    showZoom={!disableZoom}
-                                    onClick={isAvailable && onCardClick ? () => {
-                                        onCardClick(cardData.cardId);
-                                    } : undefined}
-                                    onRightClick={onCardRightClick ? (e) => {
-                                        onCardRightClick(e, cardData.cardId);
-                                    } : undefined}
-                                    className={`${isAvailable && onCardClick
-                                        ? 'cursor-pointer'
-                                        : isAvailable
-                                            ? 'cursor-default'
-                                            : 'cursor-not-allowed'
-                                        }`}
-                                />
+                                <>
+                                    <CardImage
+                                        card={cardData.card_details!}
+                                        size={imageSize}
+                                        quantity={cardData.quantity}
+                                        showZoom={!disableZoom}
+                                        onClick={isAvailable && onCardClick ? () => {
+                                            onCardClick(cardData.cardId);
+                                        } : undefined}
+                                        onRightClick={onCardRightClick ? (e) => {
+                                            onCardRightClick(e, cardData.cardId);
+                                        } : undefined}
+                                        className={`${isAvailable && onCardClick
+                                            ? 'cursor-pointer'
+                                            : isAvailable
+                                                ? 'cursor-default'
+                                                : 'cursor-not-allowed'
+                                            }`}
+                                    />
+
+                                    {/* Banlist Violation Indicator */}
+                                    {isViolation && (
+                                        <div className="absolute -top-1 -right-1 z-50">
+                                            <div
+                                                className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white"
+                                                title={`Banlist Violation: ${cardRestriction?.restriction} (max ${cardRestriction?.maxCopies})`}
+                                            >
+                                                <svg
+                                                    className="w-4 h-4 text-white font-bold"
+                                                    fill="currentColor"
+                                                    viewBox="0 0 20 20"
+                                                >
+                                                    <path
+                                                        fillRule="evenodd"
+                                                        d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM10 18a8 8 0 100-16 8 8 0 000 16z"
+                                                        clipRule="evenodd"
+                                                    />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 // Placeholder for cards without details
                                 <div className={`${imageSize === 'sm' ? 'w-12 h-16' : imageSize === 'lg' ? 'w-32 h-48' : 'w-16 h-24'} bg-gray-200 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center`}>

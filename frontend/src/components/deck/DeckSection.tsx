@@ -21,6 +21,7 @@ interface DeckSectionProps {
     onMoveCard?: (cardId: number, fromSection: 'main' | 'extra' | 'side', toSection: 'main' | 'extra' | 'side', quantity?: number) => void;
     onAddToSpecificSection?: (cardId: number, section: 'main' | 'extra' | 'side', quantity?: number) => void;
     allDeckCards?: { mainDeck: DeckCard[]; extraDeck: DeckCard[]; sideDeck: DeckCard[] };
+    getCardRestriction?: (cardId: number) => { restriction: string; maxCopies: number; isViolation: boolean };
 }
 
 const DeckSection: React.FC<DeckSectionProps> = ({
@@ -36,7 +37,8 @@ const DeckSection: React.FC<DeckSectionProps> = ({
     enhanced = false,
     onMoveCard,
     onAddToSpecificSection,
-    allDeckCards
+    allDeckCards,
+    getCardRestriction
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -344,6 +346,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                                 disableZoom={true}
                                 isDeckSection={true}
                                 sectionType={sectionType}
+                                getCardRestriction={getCardRestriction}
                             />
                         ) : (
                             <CardListView
@@ -351,6 +354,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                                 onCardClick={handleCardClick}
                                 onCardRightClick={handleCardRightClick}
                                 showThumbnails={true}
+                                getCardRestriction={getCardRestriction}
                             />
                         )}
                     </div>

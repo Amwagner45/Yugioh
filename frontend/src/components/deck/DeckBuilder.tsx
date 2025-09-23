@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import type { Deck, Binder, Card } from '../../types';
+import type { Deck, Binder, Card, Banlist } from '../../types';
 import DeckSection from './DeckSection';
 import EnhancedBinderCardList from '../binder/EnhancedBinderCardList';
 import CardDetailModal from '../common/CardDetailModal';
 import api, { binderService, cardService } from '../../services/api';
+import { banlistService } from '../../services/banlistService';
 import { storageService } from '../../services/storage';
 import { importExportService } from '../../services/importExport';
 
@@ -42,12 +43,18 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
     const [deckNotes, setDeckNotes] = useState('');
     const [deckTags, setDeckTags] = useState<string[]>([]);
 
+    // Banlist management
+    const [availableBanlists, setAvailableBanlists] = useState<Banlist[]>([]);
+    const [selectedBanlistId, setSelectedBanlistId] = useState<string>('');
+    const [currentBanlist, setCurrentBanlist] = useState<Banlist | null>(null);
+
     // Card detail modal state
     const [selectedCard, setSelectedCard] = useState<Card | null>(null);
     const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
     useEffect(() => {
         loadBinders();
+        loadBanlists();
     }, []);
 
     useEffect(() => {
@@ -79,6 +86,13 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             loadBinder();
         }
     }, [selectedBinderId]);
+
+    useEffect(() => {
+        if (selectedBanlistId) {
+            const banlist = availableBanlists.find(b => (b.uuid || b.id) === selectedBanlistId);
+            setCurrentBanlist(banlist || null);
+        }
+    }, [selectedBanlistId, availableBanlists]);
 
     const loadBinders = async () => {
         try {
@@ -114,6 +128,34 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             }
         } catch (error) {
             console.error('Failed to load binders:', error);
+        }
+    };
+
+    const loadBanlists = async () => {
+        try {
+            console.log('🔍 Loading banlists from backend API...');
+            const response = await banlistService.getAll(false); // Only load active banlists
+            setAvailableBanlists(response.banlists);
+
+            // If no banlist is selected, prioritize favorite banlist first
+            if (!selectedBanlistId && response.banlists.length > 0) {
+                const favoriteBanlistId = storageService.getFavoriteBanlistId();
+                const favoriteBanlist = favoriteBanlistId ?
+                    response.banlists.find(b => b.id === favoriteBanlistId || b.uuid === favoriteBanlistId) : null;
+
+                if (favoriteBanlist) {
+                    setSelectedBanlistId(favoriteBanlist.uuid || favoriteBanlist.id);
+                    setCurrentBanlist(favoriteBanlist);
+                    console.log(`✅ Auto-selected favorite banlist: ${favoriteBanlist.name}`);
+                } else {
+                    // Default to first available banlist
+                    setSelectedBanlistId(response.banlists[0].uuid || response.banlists[0].id);
+                    setCurrentBanlist(response.banlists[0]);
+                    console.log(`✅ Auto-selected first available banlist: ${response.banlists[0].name}`);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load banlists:', error);
         }
     };
 
@@ -154,6 +196,24 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                         console.log(`✅ Auto-selected first available binder for deck: ${availableBinders[0].name}`);
                     }
                 }
+
+                // Set banlist selection - prefer favorite banlist if no specific banlist is set
+                if (!selectedBanlistId && availableBanlists.length > 0) {
+                    const favoriteBanlistId = storageService.getFavoriteBanlistId();
+                    const favoriteBanlist = favoriteBanlistId ?
+                        availableBanlists.find(b => (b.uuid || b.id) === favoriteBanlistId) : null;
+
+                    if (favoriteBanlist) {
+                        setSelectedBanlistId(favoriteBanlist.uuid || favoriteBanlist.id);
+                        setCurrentBanlist(favoriteBanlist);
+                        console.log(`✅ Auto-selected favorite banlist for deck: ${favoriteBanlist.name}`);
+                    } else {
+                        setSelectedBanlistId(availableBanlists[0].uuid || availableBanlists[0].id);
+                        setCurrentBanlist(availableBanlists[0]);
+                        console.log(`✅ Auto-selected first available banlist for deck: ${availableBanlists[0].name}`);
+                    }
+                }
+
                 return;
             }
 
@@ -542,6 +602,30 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
     };
 
+    // Helper function to get card restriction from current banlist
+    const getCardRestriction = (cardId: number): { restriction: string; maxCopies: number; isViolation: boolean } => {
+        if (!currentBanlist) {
+            return { restriction: 'unlimited', maxCopies: 3, isViolation: false };
+        }
+
+        const restriction = banlistService.getCardRestrictionLocal(currentBanlist, cardId);
+
+        // Check if there's a violation in the current deck
+        if (!deck) {
+            return { ...restriction, isViolation: false };
+        }
+
+        // Calculate total quantity of this card across all deck sections
+        const totalQuantity = [...deck.mainDeck, ...deck.extraDeck, ...deck.sideDeck]
+            .filter(card => card.cardId === cardId)
+            .reduce((sum, card) => sum + card.quantity, 0);
+
+        return {
+            ...restriction,
+            isViolation: totalQuantity > restriction.maxCopies
+        };
+    };
+
     const handleAddCardToDeck = async (cardId: number, section: 'main' | 'extra' | 'side', quantity: number = 1) => {
         console.log('handleAddCardToDeck called:', { cardId, section, quantity });
 
@@ -605,14 +689,25 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             }
         }
 
-        // Check Yu-Gi-Oh card limit (max 3 copies total across all sections)
-        if (totalInDeck + quantity > 3) {
-            const canAdd = Math.max(0, 3 - totalInDeck);
+        // Check Yu-Gi-Oh card limit with banlist restrictions
+        const cardRestriction = getCardRestriction(cardId);
+        const maxAllowed = cardRestriction.maxCopies;
+
+        if (totalInDeck + quantity > maxAllowed) {
+            const canAdd = Math.max(0, maxAllowed - totalInDeck);
             if (canAdd <= 0) {
-                alert('Maximum 3 copies of any card allowed in a deck!');
+                if (maxAllowed === 0) {
+                    alert('This card is FORBIDDEN in the selected banlist and cannot be added to the deck!');
+                } else {
+                    const restrictionText = maxAllowed === 1 ? 'LIMITED (max 1)' :
+                        maxAllowed === 2 ? 'SEMI-LIMITED (max 2)' : `LIMITED to ${maxAllowed}`;
+                    alert(`Maximum ${maxAllowed} copy(ies) of this card allowed (${restrictionText} in current banlist)!`);
+                }
                 return;
             } else {
-                alert(`You can only add ${canAdd} more copy(ies) of this card (Yu-Gi-Oh rule: max 3 total)`);
+                const restrictionText = maxAllowed === 1 ? 'LIMITED (max 1)' :
+                    maxAllowed === 2 ? 'SEMI-LIMITED (max 2)' : `LIMITED to ${maxAllowed}`;
+                alert(`You can only add ${canAdd} more copy(ies) of this card (${restrictionText} in current banlist)`);
                 return;
             }
         }
@@ -875,22 +970,35 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
                         <div>
                             <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Format
+                                Banlist
                             </label>
                             <select
-                                value={deckFormat}
+                                value={selectedBanlistId}
                                 onChange={(e) => {
-                                    setDeckFormat(e.target.value);
+                                    setSelectedBanlistId(e.target.value);
                                     markAsUnsaved();
                                 }}
                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             >
-                                <option value="">Select format</option>
-                                <option value="TCG">TCG</option>
-                                <option value="OCG">OCG</option>
-                                <option value="Goat">Goat Format</option>
-                                <option value="Edison">Edison Format</option>
-                                <option value="Custom">Custom</option>
+                                <option value="">Select banlist</option>
+                                {availableBanlists
+                                    .sort((a, b) => {
+                                        // Sort favorite banlist first
+                                        const favoriteId = storageService.getFavoriteBanlistId();
+                                        if ((a.uuid || a.id) === favoriteId && (b.uuid || b.id) !== favoriteId) return -1;
+                                        if ((a.uuid || a.id) !== favoriteId && (b.uuid || b.id) === favoriteId) return 1;
+                                        return a.name.localeCompare(b.name);
+                                    })
+                                    .map((banlist) => {
+                                        const banlistId = banlist.uuid || banlist.id;
+                                        const isFavorite = banlistId === storageService.getFavoriteBanlistId();
+                                        return (
+                                            <option key={banlistId} value={banlistId}>
+                                                {isFavorite ? '⭐ ' : ''}{banlist.name}
+                                                {banlist.is_official ? ' (Official)' : ''}
+                                            </option>
+                                        );
+                                    })}
                             </select>
                         </div>
 
@@ -996,6 +1104,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                         extraDeck: deck.extraDeck,
                                         sideDeck: deck.sideDeck
                                     }}
+                                    getCardRestriction={getCardRestriction}
                                 />
                             </div>
 
@@ -1020,6 +1129,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                             extraDeck: deck.extraDeck,
                                             sideDeck: deck.sideDeck
                                         }}
+                                        getCardRestriction={getCardRestriction}
                                     />
                                 </div>
 
@@ -1042,6 +1152,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                             extraDeck: deck.extraDeck,
                                             sideDeck: deck.sideDeck
                                         }}
+                                        getCardRestriction={getCardRestriction}
                                     />
                                 </div>
                             </div>

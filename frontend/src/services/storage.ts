@@ -19,6 +19,7 @@ export interface AppConfig {
     offlineMode: boolean;
     autoBackup: boolean;
     maxBackups: number;
+    favoriteBanlistId?: string;
 }
 
 export interface SyncStatus {
@@ -301,6 +302,51 @@ export class StorageService {
         } catch (error) {
             console.error('Error deleting binder:', error);
             throw new Error('Failed to delete binder from local storage');
+        }
+    }
+
+    // === Banlist Operations ===
+
+    /**
+     * Set a banlist as favorite
+     */
+    public setFavoriteBanlist(banlistId: string): void {
+        try {
+            this.config.favoriteBanlistId = banlistId;
+            this.saveConfig();
+
+            // Auto-backup if enabled
+            if (this.config.autoBackup) {
+                this.createBackup();
+            }
+        } catch (error) {
+            console.error('Error setting favorite banlist:', error);
+            throw new Error('Failed to set favorite banlist');
+        }
+    }
+
+    /**
+     * Get the current favorite banlist ID
+     */
+    public getFavoriteBanlistId(): string | null {
+        return this.config.favoriteBanlistId || null;
+    }
+
+    /**
+     * Remove favorite status from banlist
+     */
+    public removeFavoriteBanlist(): void {
+        try {
+            this.config.favoriteBanlistId = undefined;
+            this.saveConfig();
+
+            // Auto-backup if enabled
+            if (this.config.autoBackup) {
+                this.createBackup();
+            }
+        } catch (error) {
+            console.error('Error removing favorite banlist:', error);
+            throw new Error('Failed to remove favorite banlist');
         }
     }
 
