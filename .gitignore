@@ -58,3 +58,9 @@ pipfile.lock
 cache.db
 *.cache
 backend/cache/
+
+# Ignore Docker data directory (user-specific persistent data)
+docker-data/
+
+# Ignore Docker environment file (user-specific configuration)
+.env

@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  yugioh-deck-builder:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: yugioh-deck-builder
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persistent data volume for cache, databases, and user data
+      - yugioh_data:/app/data
+      - yugioh_cache:/app/cache
+    environment:
+      # Environment variables for the application
+      - PYTHONPATH=/app
+      - DATA_PATH=/app/data
+      - CACHE_PATH=/app/cache
+      - DATABASE_PATH=/app/data/yugioh_deckbuilder.db
+      - CORS_ORIGINS=http://localhost:8000,http://127.0.0.1:8000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+volumes:
+  # Named volumes for persistent data
+  yugioh_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/app-data
+  yugioh_cache:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./docker-data/cache
+
+networks:
+  default:
+    name: yugioh-network

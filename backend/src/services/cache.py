@@ -17,6 +17,8 @@ try:
 except ImportError:
     REDIS_AVAILABLE = False
 
+from ..config import config
+
 
 class CacheService:
     """
@@ -28,8 +30,7 @@ class CacheService:
 
     def __init__(self):
         self.memory_cache: Dict[str, Dict[str, Any]] = {}
-        self.cache_dir = os.path.join(os.path.dirname(__file__), "..", "..", "cache")
-        os.makedirs(self.cache_dir, exist_ok=True)
+        self.cache_dir = config.cache_directory
 
         # Initialize disk cache
         self.disk_cache = dc.Cache(self.cache_dir)
@@ -37,18 +38,20 @@ class CacheService:
         # Redis connection (will be None if Redis is not available)
         self.redis_client: Optional[aioredis.Redis] = None
 
-        # Cache configuration
-        self.default_ttl = 3600  # 1 hour in seconds
-        self.card_data_ttl = 86400  # 24 hours for card data
-        self.search_results_ttl = 1800  # 30 minutes for search results
+        # Cache configuration from config
+        self.default_ttl = config.default_cache_ttl
+        self.card_data_ttl = config.card_data_ttl
+        self.search_results_ttl = config.search_results_ttl
 
-    async def initialize_redis(self, redis_url: str = "redis://localhost:6379"):
+    async def initialize_redis(self, redis_url: Optional[str] = None):
         """Initialize Redis connection if available"""
+        redis_url = redis_url or config.redis_url
+
         if REDIS_AVAILABLE:
             try:
                 self.redis_client = aioredis.from_url(redis_url)
                 await self.redis_client.ping()
-                print("Redis cache initialized successfully")
+                print(f"Redis cache initialized successfully at {redis_url}")
             except Exception as e:
                 print(f"Redis initialization failed: {e}")
                 self.redis_client = None

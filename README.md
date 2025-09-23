@@ -15,6 +15,30 @@ yugioh-deck-builder/
 
 ## Quick Start
 
+### Option 1: Docker (Recommended for Sharing)
+The easiest way to run and share the application:
+
+**Windows:**
+```bash
+git clone <repository-url>
+cd yugioh-deck-builder
+deploy.bat
+```
+
+**Linux/macOS:**
+```bash
+git clone <repository-url>
+cd yugioh-deck-builder
+chmod +x deploy.sh
+./deploy.sh
+```
+
+Access at: **http://localhost:8000**
+
+See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for detailed Docker instructions.
+
+### Option 2: Development Setup
+
 ### Prerequisites
 - Node.js 18+ and npm
 - Python 3.9+
@@ -89,10 +113,17 @@ pytest                     # Run tests
 alembic upgrade head       # Run database migrations
 ```
 
-## Installation for Friends
+## Sharing with Friends
 
+### Docker Method (Recommended)
+1. Share your repository or the Docker setup files
+2. Friends run `deploy.bat` (Windows) or `./deploy.sh` (Linux/macOS)
+3. Their data is automatically persisted in `docker-data/`
+4. Updates preserve all data (binders, decks, cache, settings)
+
+### Manual Method
 1. Download the latest release
-2. Follow the Quick Start guide above
+2. Follow the Development Setup guide above
 3. The application runs entirely locally - no internet required after setup
 
 ## Contributing
