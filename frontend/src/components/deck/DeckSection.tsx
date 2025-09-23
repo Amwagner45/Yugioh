@@ -28,7 +28,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
-    
+
     const totalCards = cards.reduce((sum, card) => sum + card.quantity, 0);
     const isValidCount = totalCards >= minCards && totalCards <= maxCards;
 
@@ -108,9 +108,8 @@ const DeckSection: React.FC<DeckSectionProps> = ({
 
     return (
         <div
-            className={`bg-white rounded-lg shadow-lg transition-all border-2 ${
-                isDragOver ? `ring-4 ring-opacity-50 ${getSectionColor()}` : 'border-gray-200'
-            }`}
+            className={`bg-white rounded-lg shadow-lg transition-all border-2 ${isDragOver ? `ring-4 ring-opacity-50 ${getSectionColor()}` : 'border-gray-200'
+                }`}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -120,10 +119,9 @@ const DeckSection: React.FC<DeckSectionProps> = ({
             <div className="p-4 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-3">
                     <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                        <span className={`w-3 h-3 rounded-full mr-2 ${
-                            sectionType === 'main' ? 'bg-blue-500' :
-                            sectionType === 'extra' ? 'bg-purple-500' : 'bg-green-500'
-                        }`}></span>
+                        <span className={`w-3 h-3 rounded-full mr-2 ${sectionType === 'main' ? 'bg-blue-500' :
+                                sectionType === 'extra' ? 'bg-purple-500' : 'bg-green-500'
+                            }`}></span>
                         {title}
                     </h2>
                     <div className={`text-sm font-medium ${getCardCountColor()}`}>
@@ -164,13 +162,13 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                 {cards.length === 0 ? (
                     <div className={`text-center py-12 ${isDragOver ? 'text-blue-600' : 'text-gray-500'}`}>
                         <div className="text-6xl mb-4">
-                            {sectionType === 'main' ? '🎯' : 
-                             sectionType === 'extra' ? '⭐' : '📋'}
+                            {sectionType === 'main' ? '🎯' :
+                                sectionType === 'extra' ? '⭐' : '📋'}
                         </div>
                         <p className="text-lg font-medium">No cards in {title}</p>
                         <p className="text-sm">
-                            {isDragOver 
-                                ? 'Drop a card here!' 
+                            {isDragOver
+                                ? 'Drop a card here!'
                                 : 'Drag cards from your binder or click to add'
                             }
                         </p>

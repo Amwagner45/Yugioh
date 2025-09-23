@@ -52,13 +52,12 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                 return (
                     <div
                         key={`${cardData.cardId}-${index}`}
-                        className={`relative group transition-all duration-200 ${
-                            hasCard 
-                                ? isAvailable 
-                                    ? 'hover:scale-105 hover:z-10' 
+                        className={`relative group transition-all duration-200 ${hasCard
+                                ? isAvailable
+                                    ? 'hover:scale-105 hover:z-10'
                                     : 'opacity-60'
                                 : 'opacity-40'
-                        }`}
+                            }`}
                         draggable={isAvailable && hasCard}
                         onDragStart={(e) => {
                             if (!isAvailable || !hasCard) {
@@ -81,13 +80,12 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                 quantity={cardData.quantity}
                                 onClick={isAvailable && onCardClick ? () => onCardClick(cardData.cardId) : undefined}
                                 onRightClick={onCardRightClick ? (e) => onCardRightClick(e, cardData.cardId) : undefined}
-                                className={`${
-                                    isAvailable && onCardClick 
-                                        ? 'cursor-pointer' 
-                                        : isAvailable 
-                                            ? 'cursor-default' 
+                                className={`${isAvailable && onCardClick
+                                        ? 'cursor-pointer'
+                                        : isAvailable
+                                            ? 'cursor-default'
                                             : 'cursor-not-allowed'
-                                }`}
+                                    }`}
                             />
                         ) : (
                             // Placeholder for cards without details

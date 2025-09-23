@@ -45,13 +45,12 @@ const CardListView: React.FC<CardListViewProps> = ({
                 return (
                     <div
                         key={`${cardData.cardId}-${index}`}
-                        className={`flex items-center space-x-3 p-2 rounded-lg border transition-all ${
-                            hasCard
+                        className={`flex items-center space-x-3 p-2 rounded-lg border transition-all ${hasCard
                                 ? isAvailable
                                     ? 'bg-white border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
                                     : 'bg-red-50 border-red-200 cursor-not-allowed opacity-75'
                                 : 'bg-gray-50 border-gray-200 opacity-60'
-                        }`}
+                            }`}
                         onClick={isAvailable && onCardClick ? () => onCardClick(cardData.cardId) : undefined}
                         onContextMenu={onCardRightClick ? (e) => onCardRightClick(e, cardData.cardId) : undefined}
                         draggable={isAvailable && hasCard}
@@ -135,7 +134,7 @@ const CardListView: React.FC<CardListViewProps> = ({
                                 ) : (
                                     <div className="w-3 h-3 bg-red-500 rounded-full" title="Unavailable" />
                                 )}
-                                
+
                                 {onCardClick && isAvailable && (
                                     <div className="text-gray-400 text-xs">
                                         🎯

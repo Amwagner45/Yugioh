@@ -309,7 +309,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                             {filteredCount} of {uniqueCards} unique ({totalCards} total)
                         </div>
                     </div>
-                    
+
                     {/* View Mode Toggle */}
                     <div className="flex items-center justify-between">
                         <div>

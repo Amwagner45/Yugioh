@@ -127,13 +127,12 @@ const CardTableView: React.FC<CardTableViewProps> = ({
                             return (
                                 <tr
                                     key={`${cardData.cardId}-${index}`}
-                                    className={`transition-colors ${
-                                        hasCard
+                                    className={`transition-colors ${hasCard
                                             ? isAvailable
                                                 ? 'hover:bg-blue-50 cursor-pointer'
                                                 : 'bg-red-50 cursor-not-allowed opacity-75'
                                             : 'bg-gray-50 opacity-60'
-                                    }`}
+                                        }`}
                                     onClick={isAvailable && onCardClick ? () => onCardClick(cardData.cardId) : undefined}
                                     onContextMenu={onCardRightClick ? (e) => onCardRightClick(e, cardData.cardId) : undefined}
                                 >

@@ -32,7 +32,7 @@ const CardImage: React.FC<CardImageProps> = ({
     const [imageError, setImageError] = useState(false);
 
     const cardImage = card.card_images?.[0];
-    
+
     if (!cardImage) {
         return (
             <div className={`${sizeClasses[size]} ${className} bg-gray-200 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center`}>
@@ -70,7 +70,7 @@ const CardImage: React.FC<CardImageProps> = ({
 
     return (
         <>
-            <div 
+            <div
                 className={`relative ${sizeClasses[size]} ${className} ${stackOffset}`}
                 style={stackStyle}
                 onClick={handleImageClick}
@@ -90,9 +90,8 @@ const CardImage: React.FC<CardImageProps> = ({
                 <img
                     src={imageError ? cardImage.image_url : cardImage.image_url_small}
                     alt={card.name}
-                    className={`w-full h-full object-cover rounded-lg border border-gray-300 transition-all duration-200 ${
-                        onClick ? 'cursor-pointer hover:border-blue-400 hover:shadow-md' : ''
-                    }`}
+                    className={`w-full h-full object-cover rounded-lg border border-gray-300 transition-all duration-200 ${onClick ? 'cursor-pointer hover:border-blue-400 hover:shadow-md' : ''
+                        }`}
                     onError={handleImageError}
                     loading="lazy"
                 />
@@ -116,7 +115,7 @@ const CardImage: React.FC<CardImageProps> = ({
 
             {/* Zoom Modal */}
             {isZoomed && (
-                <div 
+                <div
                     className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
                     onClick={() => setIsZoomed(false)}
                 >
@@ -127,7 +126,7 @@ const CardImage: React.FC<CardImageProps> = ({
                             className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
                             onClick={(e) => e.stopPropagation()}
                         />
-                        
+
                         {/* Close button */}
                         <button
                             onClick={() => setIsZoomed(false)}
