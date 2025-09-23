@@ -1,23 +1,36 @@
 import React, { useState } from 'react';
 import DeckBuilder from '../components/deck/DeckBuilder';
+import DeckManagementPage from './DeckManagementPage';
 import type { Deck } from '../types';
 
 const DeckBuilderPage: React.FC = () => {
     const [currentDeck, setCurrentDeck] = useState<Deck | null>(null);
     const [showBuilder, setShowBuilder] = useState(false);
+    const [showManagement, setShowManagement] = useState(true);
 
     const handleCreateNewDeck = () => {
         setCurrentDeck(null);
         setShowBuilder(true);
+        setShowManagement(false);
+    };
+
+    const handleEditDeck = (deckId: string) => {
+        // Pass the deck ID to the builder so it can load the specific deck
+        const deckToEdit = { id: deckId } as Deck;
+        setCurrentDeck(deckToEdit);
+        setShowBuilder(true);
+        setShowManagement(false);
     };
 
     const handleSaveDeck = (deck: Deck) => {
         setCurrentDeck(deck);
-        // Could navigate to deck list or stay in builder
+        setShowBuilder(false);
+        setShowManagement(true);
     };
 
     const handleCancel = () => {
         setShowBuilder(false);
+        setShowManagement(true);
         setCurrentDeck(null);
     };
 
@@ -27,6 +40,15 @@ const DeckBuilderPage: React.FC = () => {
                 deckId={currentDeck?.id}
                 onSave={handleSaveDeck}
                 onCancel={handleCancel}
+            />
+        );
+    }
+
+    if (showManagement) {
+        return (
+            <DeckManagementPage
+                onEditDeck={handleEditDeck}
+                onCreateDeck={handleCreateNewDeck}
             />
         );
     }
@@ -54,12 +76,20 @@ const DeckBuilderPage: React.FC = () => {
                         The deck builder ensures you can only use cards from your collection.
                     </p>
 
-                    <button
-                        onClick={handleCreateNewDeck}
-                        className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
-                    >
-                        Create New Deck
-                    </button>
+                    <div className="flex gap-4 justify-center">
+                        <button
+                            onClick={handleCreateNewDeck}
+                            className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                        >
+                            Create New Deck
+                        </button>
+                        <button
+                            onClick={() => setShowManagement(true)}
+                            className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-medium"
+                        >
+                            Manage Existing Decks
+                        </button>
+                    </div>
 
                     <div className="mt-6 space-y-2 text-left max-w-md mx-auto">
                         <div className="flex items-center text-gray-700">
@@ -77,6 +107,10 @@ const DeckBuilderPage: React.FC = () => {
                         <div className="flex items-center text-gray-700">
                             <div className="w-2 h-2 bg-purple-600 rounded-full mr-3"></div>
                             Real-time deck statistics
+                        </div>
+                        <div className="flex items-center text-gray-700">
+                            <div className="w-2 h-2 bg-purple-600 rounded-full mr-3"></div>
+                            Import/Export .ydk files
                         </div>
                     </div>
                 </div>

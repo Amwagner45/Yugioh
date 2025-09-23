@@ -4,6 +4,7 @@ import DeckSection from './DeckSection';
 import DeckStatistics from './DeckStatistics';
 import EnhancedBinderCardList from './EnhancedBinderCardList';
 import api, { binderService, deckService } from '../../services/api';
+import { storageService } from '../../services/storage';
 
 interface DeckBuilderProps {
     deckId?: string;
@@ -90,9 +91,30 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         console.log('Loading deck:', deckId);
         setIsLoading(true);
         try {
+            // First try to load from local storage (for imported decks)
+            const localDeck = storageService.getDeck(deckId);
+            if (localDeck) {
+                console.log('✅ Deck loaded from local storage:', localDeck.name);
+                setDeck(localDeck);
+                setDeckName(localDeck.name);
+                setDeckDescription(localDeck.description || '');
+                setDeckFormat(localDeck.format || '');
+                setDeckNotes(localDeck.notes || '');
+                setDeckTags(localDeck.tags || []);
+
+                // For local decks, default to the first available binder if none is selected
+                if (!selectedBinderId && availableBinders.length > 0) {
+                    setSelectedBinderId(availableBinders[0].id.toString());
+                    setBinder(availableBinders[0]);
+                }
+                return;
+            }
+
+            // If not found in local storage, try the backend API
+            console.log('🔍 Deck not found in local storage, trying backend API...');
             const response = await api.get(`/api/decks/${deckId}`);
             const deckData = response.data;
-            console.log('Deck data received:', deckData);
+            console.log('✅ Deck data received from API:', deckData.name);
 
             const transformedDeck = {
                 id: deckData.uuid,
@@ -158,6 +180,35 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
         setIsLoading(true);
         try {
+            // Check if this is a local storage deck (imported deck)
+            const localDeck = storageService.getDeck(deckId || '');
+
+            if (localDeck) {
+                // Save to local storage for imported decks
+                console.log('💾 Saving imported deck to local storage');
+                const updatedDeck: Deck = {
+                    ...deck,
+                    name: deckName,
+                    description: deckDescription,
+                    format: deckFormat,
+                    tags: deckTags,
+                    notes: deckNotes,
+                    modifiedAt: new Date()
+                };
+
+                storageService.saveDeck(updatedDeck);
+                setDeck(updatedDeck);
+
+                if (onSave) {
+                    onSave(updatedDeck);
+                }
+
+                console.log('Deck saved to local storage:', updatedDeck);
+                return updatedDeck;
+            }
+
+            // Save to backend API for server-side decks
+            console.log('🌐 Saving deck to backend API');
             // Find the selected binder's integer ID
             const selectedBinder = availableBinders.find(b => b.uuid === selectedBinderId);
             const binderIntegerId = selectedBinder ? selectedBinder.id : null;
@@ -303,6 +354,40 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
 
         try {
+            // Check if this is a local storage deck
+            const isLocalDeck = storageService.getDeck(currentDeck.id);
+
+            if (isLocalDeck) {
+                // Handle local storage deck
+                console.log('Updating local storage deck');
+
+                // Optimistic update: Update the deck state locally
+                const updatedDeck = { ...currentDeck };
+                const targetSection = section === 'main' ? updatedDeck.mainDeck :
+                    section === 'extra' ? updatedDeck.extraDeck :
+                        updatedDeck.sideDeck;
+
+                // Find existing card or create new entry
+                const existingCardIndex = targetSection.findIndex(card => card.cardId === cardId);
+                if (existingCardIndex >= 0) {
+                    // Update existing card quantity
+                    targetSection[existingCardIndex].quantity += quantity;
+                } else {
+                    // Add new card to section
+                    targetSection.push({ cardId, quantity });
+                }
+
+                updatedDeck.modifiedAt = new Date();
+
+                // Save to local storage
+                storageService.saveDeck(updatedDeck);
+                setDeck(updatedDeck);
+
+                console.log('Local deck updated successfully');
+                return;
+            }
+
+            // Handle backend API deck
             console.log('Making API call to add card to deck');
             const response = await api.post(`/api/decks/${currentDeck.id}/cards`, null, {
                 params: {
@@ -346,6 +431,43 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         if (!deck?.id) return;
 
         try {
+            // Check if this is a local storage deck
+            const isLocalDeck = storageService.getDeck(deck.id);
+
+            if (isLocalDeck) {
+                // Handle local storage deck
+                console.log('Removing card from local storage deck');
+
+                // Optimistic update: Update the deck state locally
+                const updatedDeck = { ...deck };
+                const targetSection = section === 'main' ? updatedDeck.mainDeck :
+                    section === 'extra' ? updatedDeck.extraDeck :
+                        updatedDeck.sideDeck;
+
+                // Find existing card and update quantity
+                const existingCardIndex = targetSection.findIndex(card => card.cardId === cardId);
+                if (existingCardIndex >= 0) {
+                    const currentCard = targetSection[existingCardIndex];
+                    if (currentCard.quantity <= quantity) {
+                        // Remove card entirely if quantity would be 0 or less
+                        targetSection.splice(existingCardIndex, 1);
+                    } else {
+                        // Decrease quantity
+                        currentCard.quantity -= quantity;
+                    }
+                }
+
+                updatedDeck.modifiedAt = new Date();
+
+                // Save to local storage
+                storageService.saveDeck(updatedDeck);
+                setDeck(updatedDeck);
+
+                console.log('Card removed from local deck successfully');
+                return;
+            }
+
+            // Handle backend API deck
             await api.delete(`/api/decks/${deck.id}/cards/${cardId}`, {
                 params: {
                     section: section,

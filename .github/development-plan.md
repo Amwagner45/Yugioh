@@ -95,22 +95,29 @@
 - [x] Implement basic deck validation (card limits, deck size)
 
 ### 4.2 Enhanced Deck Building
-- [ ] Add real-time deck statistics (card types, levels, etc.)
-- [ ] Implement advanced filtering in deck builder
-- [ ] Create deck search within binder
-- [ ] Add ability to right click a card image to add or remove card from deck (default from card list to main deck)
-- [ ] Add quick-add functionality for favorited cards
-- [ ] Implement deck cloning
+- [x] Add real-time deck statistics (card types, levels, etc.)
+- [x] Implement advanced filtering in deck builder
+- [x] Create deck search within binder
+- [x] Add ability to right click a card image to add or remove card from deck (default from card list to main deck)
+- [x] Implement deck cloning
 
 ### 4.3 Deck Management
-- [ ] Create deck list view and organization
-- [ ] Add deck tagging and categorization
-- [ ] Implement deck notes and descriptions
-- [ ] Create deck validation against ban lists
-- [ ] Add deck sharing functionality
-- [ ] Implement import from .ydk file and export to .ydk file functionality
+- [x] Create deck list view and organization
+- [x] Add deck tagging and categorization
+- [x] Implement deck notes and descriptions
+- [x] Create deck validation against ban lists
+- [x] Add deck sharing functionality
+- [x] Implement import from .ydk file and export to .ydk file functionality
 
 **Deliverable**: Complete deck building system with binder integration
+
+### 4.4 Extra
+- [ ] Add quick-add functionality for favorited cards
+- [ ] Multi user only see binder and decks that user 
+- [ ] Fix UI and take inspiration from other deck builders
+- [ ] Backup data for binders and decks in case something goes wrong
+
+
 
 ---
 
