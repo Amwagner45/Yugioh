@@ -79,14 +79,19 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
     };
 
     const loadDeck = async () => {
-        if (!deckId) return;
+        if (!deckId) {
+            console.log('loadDeck: No deckId provided');
+            return;
+        }
 
+        console.log('Loading deck:', deckId);
         setIsLoading(true);
         try {
             const response = await api.get(`/api/decks/${deckId}`);
             const deckData = response.data;
+            console.log('Deck data received:', deckData);
 
-            setDeck({
+            const transformedDeck = {
                 id: deckData.uuid,
                 name: deckData.name,
                 description: deckData.description || '',
@@ -107,7 +112,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 notes: deckData.notes || '',
                 createdAt: new Date(deckData.created_at),
                 modifiedAt: new Date(deckData.updated_at)
-            });
+            };
+
+            console.log('Setting deck state:', transformedDeck);
+            setDeck(transformedDeck);
 
             // Set form fields
             setDeckName(deckData.name);
@@ -164,7 +172,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             if (deckId) {
                 response = await api.put(`/api/decks/${deckId}`, deckData);
             } else {
-                response = await api.post('/api/decks', deckData);
+                response = await api.post('/api/decks/', deckData);
             }
 
             const savedDeck: Deck = {
@@ -214,7 +222,39 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
     };
 
     const handleAddCardToDeck = async (cardId: number, section: 'main' | 'extra' | 'side', quantity: number = 1) => {
-        if (!deck?.id || !binder) return;
+        console.log('handleAddCardToDeck called:', { cardId, section, quantity });
+
+        if (!binder) {
+            console.log('Missing binder:', { hasBinder: !!binder });
+            return;
+        }
+
+        // If deck doesn't exist yet, create it first
+        if (!deck?.id) {
+            console.log('No deck ID - creating deck first');
+            try {
+                // Set a default name if none exists
+                if (!deckName.trim()) {
+                    const timestamp = new Date().toLocaleString();
+                    setDeckName(`New Deck - ${timestamp}`);
+                    // Wait for state to update
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+
+                await handleSaveDeck();
+                // Wait a moment for the deck to be created and state to update
+                await new Promise(resolve => setTimeout(resolve, 200));
+
+                if (!deck?.id) {
+                    alert('Failed to create deck. Please save the deck first.');
+                    return;
+                }
+            } catch (error) {
+                console.error('Failed to create deck:', error);
+                alert('Failed to create deck. Please try again.');
+                return;
+            }
+        }
 
         // Check if card is available in binder
         const binderCard = binder.cards.find(card => card.cardId === cardId);
@@ -254,16 +294,20 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
 
         try {
-            await api.post(`/api/decks/${deck.id}/cards`, null, {
+            console.log('Making API call to add card to deck');
+            const response = await api.post(`/api/decks/${deck.id}/cards`, null, {
                 params: {
                     card_id: cardId,
                     section: section,
                     quantity: quantity
                 }
             });
+            console.log('API response:', response.data);
 
             // Reload deck to get updated card list
+            console.log('Reloading deck...');
             await loadDeck();
+            console.log('Deck reloaded');
         } catch (error) {
             console.error('Failed to add card to deck:', error);
             alert('Failed to add card to deck. Please try again.');
