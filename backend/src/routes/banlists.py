@@ -450,6 +450,8 @@ def parse_lflist_content(content: str, filename: str) -> Banlist:
             current_section = "limited"
         elif line.startswith("#semi-limited"):
             current_section = "semi_limited"
+        elif line.startswith("#whitelist"):
+            current_section = "whitelist"
         elif line.startswith("#") or line.startswith("--"):
             # Skip other comments and metadata
             continue
