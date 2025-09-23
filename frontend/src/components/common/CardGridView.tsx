@@ -15,6 +15,7 @@ interface CardGridViewProps {
     showDeckInfo?: boolean;
     gridSize?: 'sm' | 'md' | 'lg';
     className?: string;
+    disableZoom?: boolean;
 }
 
 const CardGridView: React.FC<CardGridViewProps> = ({
@@ -23,7 +24,8 @@ const CardGridView: React.FC<CardGridViewProps> = ({
     onCardRightClick,
     showDeckInfo = false,
     gridSize = 'md',
-    className = ''
+    className = '',
+    disableZoom = false
 }) => {
     const gridClasses = {
         sm: 'grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-14',
@@ -53,10 +55,10 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                     <div
                         key={`${cardData.cardId}-${index}`}
                         className={`relative group transition-all duration-200 ${hasCard
-                                ? isAvailable
-                                    ? 'hover:scale-105 hover:z-10'
-                                    : 'opacity-60'
-                                : 'opacity-40'
+                            ? isAvailable
+                                ? 'hover:scale-105 hover:z-10'
+                                : 'opacity-60'
+                            : 'opacity-40'
                             }`}
                         draggable={isAvailable && hasCard}
                         onDragStart={(e) => {
@@ -78,13 +80,14 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                 card={cardData.card_details!}
                                 size={imageSize}
                                 quantity={cardData.quantity}
+                                showZoom={!disableZoom}
                                 onClick={isAvailable && onCardClick ? () => onCardClick(cardData.cardId) : undefined}
                                 onRightClick={onCardRightClick ? (e) => onCardRightClick(e, cardData.cardId) : undefined}
                                 className={`${isAvailable && onCardClick
-                                        ? 'cursor-pointer'
-                                        : isAvailable
-                                            ? 'cursor-default'
-                                            : 'cursor-not-allowed'
+                                    ? 'cursor-pointer'
+                                    : isAvailable
+                                        ? 'cursor-default'
+                                        : 'cursor-not-allowed'
                                     }`}
                             />
                         ) : (

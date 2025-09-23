@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import type { Deck, Binder } from '../../types';
+import type { Deck, Binder, Card } from '../../types';
 import DeckSection from './DeckSection';
 import DeckStatistics from './DeckStatistics';
 import EnhancedBinderCardList from '../binder/EnhancedBinderCardList';
+import CardDetailModal from '../common/CardDetailModal';
 import api, { binderService, deckService } from '../../services/api';
 import { storageService } from '../../services/storage';
 import { importExportService } from '../../services/importExport';
@@ -40,6 +41,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
     const [deckFormat, setDeckFormat] = useState('');
     const [deckNotes, setDeckNotes] = useState('');
     const [deckTags, setDeckTags] = useState<string[]>([]);
+
+    // Card detail modal state
+    const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+    const [isCardModalOpen, setIsCardModalOpen] = useState(false);
 
     useEffect(() => {
         loadBinders();
@@ -623,6 +628,20 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
     };
 
+    // Card detail modal handlers
+    const handleCardPreview = (cardId: number) => {
+        const binderCard = binder?.cards?.find(card => card.cardId === cardId);
+        if (binderCard?.card_details) {
+            setSelectedCard(binderCard.card_details);
+            setIsCardModalOpen(true);
+        }
+    };
+
+    const handleCloseCardModal = () => {
+        setIsCardModalOpen(false);
+        setSelectedCard(null);
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -805,6 +824,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             cards={deck.mainDeck}
                             onAddCard={(cardId: number, quantity: number) => handleAddCardToDeck(cardId, 'main', quantity)}
                             onRemoveCard={(cardId: number, quantity: number) => handleRemoveCardFromDeck(cardId, 'main', quantity)}
+                            onCardClick={handleCardPreview}
                             maxCards={60}
                             minCards={40}
                             sectionType="main"
@@ -816,6 +836,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             cards={deck.extraDeck}
                             onAddCard={(cardId: number, quantity: number) => handleAddCardToDeck(cardId, 'extra', quantity)}
                             onRemoveCard={(cardId: number, quantity: number) => handleRemoveCardFromDeck(cardId, 'extra', quantity)}
+                            onCardClick={handleCardPreview}
                             maxCards={15}
                             minCards={0}
                             sectionType="extra"
@@ -827,6 +848,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             cards={deck.sideDeck}
                             onAddCard={(cardId: number, quantity: number) => handleAddCardToDeck(cardId, 'side', quantity)}
                             onRemoveCard={(cardId: number, quantity: number) => handleRemoveCardFromDeck(cardId, 'side', quantity)}
+                            onCardClick={handleCardPreview}
                             maxCards={15}
                             minCards={0}
                             sectionType="side"
@@ -946,6 +968,13 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                     </div>
                 </div>
             )}
+
+            {/* Card Detail Modal */}
+            <CardDetailModal
+                card={selectedCard}
+                isOpen={isCardModalOpen}
+                onClose={handleCloseCardModal}
+            />
         </div>
     );
 };

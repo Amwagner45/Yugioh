@@ -10,6 +10,7 @@ interface DeckSectionProps {
     cards: DeckCard[];
     onAddCard: (cardId: number, quantity: number) => void;
     onRemoveCard: (cardId: number, quantity: number) => void;
+    onCardClick?: (cardId: number) => void;
     maxCards: number;
     minCards: number;
     sectionType: 'main' | 'extra' | 'side';
@@ -21,6 +22,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
     cards,
     onAddCard,
     onRemoveCard,
+    onCardClick,
     maxCards,
     minCards,
     sectionType,
@@ -83,7 +85,11 @@ const DeckSection: React.FC<DeckSectionProps> = ({
     };
 
     const handleCardClick = (cardId: number) => {
-        onAddCard(cardId, 1);
+        if (onCardClick) {
+            onCardClick(cardId);
+        } else {
+            onAddCard(cardId, 1);
+        }
     };
 
     const handleCardRightClick = (e: React.MouseEvent, cardId: number) => {
@@ -120,7 +126,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                 <div className="flex items-center justify-between mb-3">
                     <h2 className="text-xl font-semibold text-gray-900 flex items-center">
                         <span className={`w-3 h-3 rounded-full mr-2 ${sectionType === 'main' ? 'bg-blue-500' :
-                                sectionType === 'extra' ? 'bg-purple-500' : 'bg-green-500'
+                            sectionType === 'extra' ? 'bg-purple-500' : 'bg-green-500'
                             }`}></span>
                         {title}
                     </h2>
@@ -181,6 +187,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                                 onCardClick={handleCardClick}
                                 onCardRightClick={handleCardRightClick}
                                 gridSize="sm"
+                                disableZoom={true}
                             />
                         ) : (
                             <CardListView
