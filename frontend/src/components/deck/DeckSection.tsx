@@ -210,16 +210,16 @@ const DeckSection: React.FC<DeckSectionProps> = ({
 
     const getSectionColor = () => {
         switch (sectionType) {
-            case 'main': return 'border-blue-500 bg-blue-50';
-            case 'extra': return 'border-purple-500 bg-purple-50';
-            case 'side': return 'border-green-500 bg-green-50';
-            default: return 'border-gray-500 bg-gray-50';
+            case 'main': return 'border-blue-500 bg-blue-50 dark:bg-blue-900/20';
+            case 'extra': return 'border-purple-500 bg-purple-50 dark:bg-purple-900/20';
+            case 'side': return 'border-green-500 bg-green-50 dark:bg-green-900/20';
+            default: return 'border-gray-500 bg-gray-50 dark:bg-gray-900/20';
         }
     };
 
     return (
         <div
-            className={`bg-white rounded-lg shadow-lg transition-all border-2 ${enhanced ? 'flex flex-col h-full overflow-hidden' : ''} ${isDragOver ? `ring-4 ring-opacity-50 ${getSectionColor()}` : 'border-gray-200'
+            className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg transition-all border-2 ${enhanced ? 'flex flex-col h-full overflow-hidden' : ''} ${isDragOver ? `ring-4 ring-opacity-50 ${getSectionColor()}` : 'border-gray-200 dark:border-gray-700'
                 }`}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
@@ -230,13 +230,13 @@ const DeckSection: React.FC<DeckSectionProps> = ({
             }}
         >
             {/* Minimal Header - FaBrary Style */}
-            <div className="px-4 py-2 border-b border-gray-200 bg-gray-50">
+            <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
                         <span className={`w-2 h-2 rounded-full ${sectionType === 'main' ? 'bg-blue-500' :
                             sectionType === 'extra' ? 'bg-purple-500' : 'bg-green-500'
                             }`}></span>
-                        <h2 className="text-sm font-medium text-gray-900">
+                        <h2 className="text-sm font-medium text-gray-900 dark:text-white">
                             {title} ({totalCards}/{maxCards})
                         </h2>
                         {!isValidCount && (

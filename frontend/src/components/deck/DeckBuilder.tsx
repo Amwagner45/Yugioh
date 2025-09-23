@@ -790,12 +790,12 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
     }
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 transition-colors">
             <div className="w-full py-4">
                 {/* Header - More compact */}
-                <div className="bg-white rounded-lg shadow-lg p-4 mb-4 mx-4">
+                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 mb-4 mx-4">
                     <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                        <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
                             {deckId ? 'Edit Deck' : 'Create New Deck'}
                             {hasUnsavedChanges && (
                                 <span className="text-orange-500 text-lg">●</span>
@@ -833,7 +833,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                     {/* Compact Deck Form */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Deck Name *
                             </label>
                             <input
@@ -843,14 +843,14 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     setDeckName(e.target.value);
                                     markAsUnsaved();
                                 }}
-                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 placeholder="Enter deck name"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Format
                             </label>
                             <select
@@ -859,7 +859,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     setDeckFormat(e.target.value);
                                     markAsUnsaved();
                                 }}
-                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             >
                                 <option value="">Select format</option>
                                 <option value="TCG">TCG</option>
@@ -871,7 +871,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Associated Binder
                             </label>
                             <select
@@ -880,7 +880,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     setSelectedBinderId(e.target.value);
                                     markAsUnsaved();
                                 }}
-                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                             >
                                 <option value="">Select binder</option>
                                 {availableBinders
@@ -899,7 +899,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                         </div>
 
                         <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                            <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                                 Description
                             </label>
                             <input
@@ -909,7 +909,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     setDeckDescription(e.target.value);
                                     markAsUnsaved();
                                 }}
-                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                                 placeholder="Enter deck description"
                             />
                         </div>
@@ -917,9 +917,9 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
                     {/* Validation Errors - Compact */}
                     {validationErrors.length > 0 && (
-                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
-                            <h3 className="text-xs font-medium text-red-800 mb-1">Validation Errors:</h3>
-                            <ul className="text-xs text-red-700 space-y-0.5">
+                        <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded">
+                            <h3 className="text-xs font-medium text-red-800 dark:text-red-400 mb-1">Validation Errors:</h3>
+                            <ul className="text-xs text-red-700 dark:text-red-300 space-y-0.5">
                                 {validationErrors.map((error, index) => (
                                     <li key={index}>• {error}</li>
                                 ))}
@@ -933,7 +933,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                     {/* Left Sidebar - Available Cards (25% width with full screen) */}
                     <div className="w-1/4 min-w-[320px] max-w-[450px] flex-shrink-0">
                         {binder && (
-                            <div className="bg-white rounded-lg shadow-lg h-full overflow-hidden">
+                            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg h-full overflow-hidden">
                                 <EnhancedBinderCardList
                                     binder={binder}
                                     onCardClick={handleCardPreview}
@@ -953,7 +953,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                         {/* Deck Sections in a more prominent layout */}
                         <div className="space-y-3">
                             {/* Main Deck - Most prominent, auto height */}
-                            <div className="bg-white rounded-lg shadow-lg">
+                            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
                                 <DeckSection
                                     title="Main Deck"
                                     cards={deck.mainDeck}
@@ -977,7 +977,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
                             {/* Extra Deck and Side Deck - Side by side, auto height */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                                <div className="bg-white rounded-lg shadow-lg">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
                                     <DeckSection
                                         title="Extra Deck"
                                         cards={deck.extraDeck}
@@ -999,7 +999,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     />
                                 </div>
 
-                                <div className="bg-white rounded-lg shadow-lg">
+                                <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg">
                                     <DeckSection
                                         title="Side Deck"
                                         cards={deck.sideDeck}

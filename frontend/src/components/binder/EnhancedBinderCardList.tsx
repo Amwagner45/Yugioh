@@ -331,17 +331,17 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
 
     return (
         <div
-            className={`bg-white rounded-lg shadow-lg h-full flex flex-col transition-all ${isDragOver ? 'ring-4 ring-blue-500 ring-opacity-50 bg-blue-50' : ''}`}
+            className={`bg-white dark:bg-gray-800 rounded-lg shadow-lg h-full flex flex-col transition-all ${isDragOver ? 'ring-4 ring-blue-500 ring-opacity-50 bg-blue-50 dark:bg-blue-900/20' : ''}`}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
         >
             {/* Header */}
-            <div className="flex-shrink-0 p-4 border-b border-gray-200">
+            <div className="flex-shrink-0 p-4 border-b border-gray-200 dark:border-gray-700">
                 <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-                    <div className="text-sm text-gray-600">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">{title}</h2>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
                         {sortedCards.length} of {uniqueCards} cards
                     </div>
                 </div>
@@ -353,8 +353,8 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                         <button
                             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                             className={`px-3 py-2 rounded-lg transition-colors flex items-center space-x-2 ${showAdvancedFilters || getActiveFilterCount() > 0
-                                ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                                : 'bg-gray-100 text-gray-700 border border-gray-300'
+                                ? 'bg-blue-100 text-blue-700 border border-blue-300 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-700'
+                                : 'bg-gray-100 text-gray-700 border border-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
                                 }`}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -371,7 +371,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                         {/* Advanced Search */}
                         <button
                             onClick={() => setShowAdvancedSearch(true)}
-                            className="px-3 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2"
+                            className="px-3 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -382,7 +382,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                         {/* Presets */}
                         <button
                             onClick={() => setShowPresetManager(true)}
-                            className="px-3 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2"
+                            className="px-3 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-600"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -404,24 +404,24 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                     {/* View Controls */}
                     <div className="flex items-center space-x-2">
                         {/* Grid Size Controls */}
-                        <div className="flex items-center space-x-1 border border-gray-300 rounded p-1">
+                        <div className="flex items-center space-x-1 border border-gray-300 dark:border-gray-600 rounded p-1 bg-white dark:bg-gray-700">
                             <button
                                 onClick={() => setGridSize(3)}
-                                className={`px-2 py-1 text-xs rounded ${gridSize === 3 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+                                className={`px-2 py-1 text-xs rounded ${gridSize === 3 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'}`}
                                 title="3x3 Grid"
                             >
                                 3×3
                             </button>
                             <button
                                 onClick={() => setGridSize(4)}
-                                className={`px-2 py-1 text-xs rounded ${gridSize === 4 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+                                className={`px-2 py-1 text-xs rounded ${gridSize === 4 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'}`}
                                 title="4x4 Grid"
                             >
                                 4×4
                             </button>
                             <button
                                 onClick={() => setGridSize(5)}
-                                className={`px-2 py-1 text-xs rounded ${gridSize === 5 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+                                className={`px-2 py-1 text-xs rounded ${gridSize === 5 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300'}`}
                                 title="5x5 Grid"
                             >
                                 5×5
@@ -449,7 +449,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                         placeholder="Search cards..."
                         value={filters.searchTerm}
                         onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
                     />
                 </div>
 
@@ -458,7 +458,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as SortOption)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                     >
                         {Object.entries(SORT_OPTIONS).map(([key, option]) => (
                             <option key={key} value={key} title={option.description}>
@@ -470,12 +470,12 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
 
                 {/* Pagination Controls */}
                 {totalPages > 1 && (
-                    <div className="mt-4 bg-gray-50 p-3 rounded-lg">
+                    <div className="mt-4 bg-gray-50 dark:bg-gray-700 p-3 rounded-lg">
                         <div className="flex items-center justify-center space-x-2">
                             <button
                                 onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                                 disabled={currentPage === 1}
-                                className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 text-sm"
+                                className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 text-sm dark:text-gray-300"
                             >
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -501,8 +501,8 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                                             key={pageNum}
                                             onClick={() => setCurrentPage(pageNum)}
                                             className={`w-7 h-7 rounded flex items-center justify-center text-sm ${currentPage === pageNum
-                                                ? 'bg-blue-600 text-white'
-                                                : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                ? 'bg-blue-600 text-white dark:bg-blue-500'
+                                                : 'bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                                                 }`}
                                         >
                                             {pageNum}
@@ -514,7 +514,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                             <button
                                 onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                                 disabled={currentPage === totalPages}
-                                className="px-2 py-1 bg-white border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 text-sm"
+                                className="px-2 py-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1 text-sm dark:text-gray-300"
                             >
                                 <span>Next</span>
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -527,7 +527,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
 
                 {/* Pagination Info */}
                 {totalPages > 1 && (
-                    <div className="mt-2 text-sm text-gray-600 text-center">
+                    <div className="mt-2 text-sm text-gray-600 dark:text-gray-400 text-center">
                         Page {currentPage} of {totalPages} • Showing {startIndex + 1}-{Math.min(endIndex, sortedCards.length)} of {sortedCards.length} cards
                     </div>
                 )}

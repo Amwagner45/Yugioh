@@ -587,7 +587,7 @@ const BinderPage: React.FC = () => {
     );
 
     return (
-        <div className="min-h-screen bg-gray-100 py-8">
+        <div className="min-h-screen bg-gray-100 dark:bg-gray-900 py-8 transition-colors">
             <div className="max-w-6xl mx-auto px-4">
                 {renderHeader()}
 

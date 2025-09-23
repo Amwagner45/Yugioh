@@ -242,22 +242,22 @@ const FilterPresetManager: React.FC<FilterPresetManagerProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between p-6 border-b border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-900">Filter Presets</h2>
+                <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Filter Presets</h2>
                     <button
                         onClick={onClose}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                     >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 text-gray-600 dark:text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
 
                 {/* Controls */}
-                <div className="p-6 border-b border-gray-200">
+                <div className="p-6 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex flex-col sm:flex-row gap-4 mb-4">
                         {/* Search */}
                         <div className="flex-1">
@@ -266,7 +266,7 @@ const FilterPresetManager: React.FC<FilterPresetManagerProps> = ({
                                 placeholder="Search presets..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400"
                             />
                         </div>
 
@@ -274,7 +274,7 @@ const FilterPresetManager: React.FC<FilterPresetManagerProps> = ({
                         <select
                             value={selectedTag}
                             onChange={(e) => setSelectedTag(e.target.value)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         >
                             <option value="">All Tags</option>
                             {getAllTags().map(tag => (
@@ -286,7 +286,7 @@ const FilterPresetManager: React.FC<FilterPresetManagerProps> = ({
                         <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white"
                         >
                             <option value="name">Name</option>
                             <option value="created">Date Created</option>
@@ -298,12 +298,12 @@ const FilterPresetManager: React.FC<FilterPresetManagerProps> = ({
                     <div className="flex justify-between">
                         <button
                             onClick={() => setShowCreateForm(!showCreateForm)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
                         >
                             {showCreateForm ? 'Cancel' : 'Save Current Filters'}
                         </button>
 
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
                             {filteredPresets.length} of {presets.length} presets
                         </span>
                     </div>
@@ -311,7 +311,7 @@ const FilterPresetManager: React.FC<FilterPresetManagerProps> = ({
 
                 {/* Create Form */}
                 {showCreateForm && (
-                    <div className="p-6 bg-gray-50 border-b border-gray-200">
+                    <div className="p-6 bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
                         <h3 className="text-lg font-medium text-gray-900 mb-4">Save New Preset</h3>
 
                         <div className="space-y-4">
