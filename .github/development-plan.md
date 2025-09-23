@@ -204,17 +204,22 @@
 - [ ] Multi user only see binder and decks that user 
 - [x] Fix UI and take inspiration from other deck builders
 - [ ] Backup data for binders and decks in case something goes wrong
-- [ ] Only Save deck after Save Deck is clicked. Temporary changes to the deck should not be saved
-- [ ] Sort button for deck builder
-- [ ] Right click cards for options (move to Main Deck, Side Deck, Extra Deck, Remove Card, Preview Card, Add 1 more, Remove 1)
+- [x] Only Save deck after Save Deck is clicked. Temporary changes to the deck should not be saved
+- [x] Sort button for deck builder
+- [x] Right click cards for options (move to Main Deck, Side Deck, Extra Deck, Remove Card, Preview Card, Add 1 more, Remove 1)
 - [ ] Available cards section is collapsable
 - [ ] View options for deck to have smaller images and fit all sections onto the screen
 - [ ] Main Deck, Side Deck, and Extra Deck are collapsable
-- [ ] Drag and drop card from Main Deck, Side Deck or Extra Deck to remove 1 copy
+- [x] Drag and drop card from Main Deck, Side Deck or Extra Deck to remove 1 copy
 - [ ] Card preview section should have all the options when right clicking a card and display how many copies of a card are available
 - [ ] If maximum amount of cards available are added to Deck or if 3 copies are in deck, then the search results should add red X overlay over a given card
 - [ ] Add this red X functionality and limited indicator to the card search too. Need to create, modify, and select a banlist and apply to a card search
 - [ ] Run the scripted to cache all yugioh card data on startup of the application for when I deploy to check for any new cards and if the cache is empty.
+- [ ] Change cursor to be a millenium puzzle
+- [ ] Finish implementing dark mode
+- [x] Favorite binder feature
+
+
 
 
 
