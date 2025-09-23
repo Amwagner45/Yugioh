@@ -151,7 +151,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
     };
 
     const handleSaveDeck = async () => {
-        if (!deck) return;
+        if (!deck) return null;
 
         setIsLoading(true);
         try {
@@ -202,8 +202,11 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             if (onSave) {
                 onSave(savedDeck);
             }
+
+            return savedDeck;
         } catch (error) {
             console.error('Failed to save deck:', error);
+            throw error;
         } finally {
             setIsLoading(false);
         }
@@ -229,8 +232,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             return;
         }
 
+        let currentDeck = deck;
+
         // If deck doesn't exist yet, create it first
-        if (!deck?.id) {
+        if (!currentDeck?.id) {
             console.log('No deck ID - creating deck first');
             try {
                 // Set a default name if none exists
@@ -241,14 +246,15 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                     await new Promise(resolve => setTimeout(resolve, 50));
                 }
 
-                await handleSaveDeck();
-                // Wait a moment for the deck to be created and state to update
-                await new Promise(resolve => setTimeout(resolve, 200));
+                const newDeck = await handleSaveDeck();
 
-                if (!deck?.id) {
-                    alert('Failed to create deck. Please save the deck first.');
+                if (!newDeck?.id) {
+                    alert('Failed to create deck. Please try again.');
                     return;
                 }
+
+                currentDeck = newDeck;
+                console.log('Deck created successfully with ID:', newDeck.id);
             } catch (error) {
                 console.error('Failed to create deck:', error);
                 alert('Failed to create deck. Please try again.');
@@ -264,7 +270,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
 
         // Calculate how many copies are already in the deck (across all sections)
-        const currentDeckCards = [...deck.mainDeck, ...deck.extraDeck, ...deck.sideDeck];
+        const currentDeckCards = [...currentDeck.mainDeck, ...currentDeck.extraDeck, ...currentDeck.sideDeck];
         const totalInDeck = currentDeckCards
             .filter(card => card.cardId === cardId)
             .reduce((sum, card) => sum + card.quantity, 0);
@@ -295,7 +301,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
         try {
             console.log('Making API call to add card to deck');
-            const response = await api.post(`/api/decks/${deck.id}/cards`, null, {
+            const response = await api.post(`/api/decks/${currentDeck.id}/cards`, null, {
                 params: {
                     card_id: cardId,
                     section: section,
