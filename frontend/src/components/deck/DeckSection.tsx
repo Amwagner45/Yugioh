@@ -79,7 +79,13 @@ const DeckSection: React.FC<DeckSectionProps> = ({
         const quantityInSide = allDeckCards?.sideDeck.find(c => c.cardId === cardId)?.quantity || 0;
 
         const totalUsed = quantityInMain + quantityInExtra + quantityInSide;
-        const availableCopies = Math.max(0, quantityInBinder - totalUsed);
+        const availableFromBinder = Math.max(0, quantityInBinder - totalUsed);
+
+        // Apply Yu-Gi-Oh 3-copy rule: can't exceed 3 total copies in deck
+        const remainingUnder3CopyRule = Math.max(0, 3 - totalUsed);
+
+        // Return the minimum of available from binder and what's allowed by 3-copy rule
+        const availableCopies = Math.min(availableFromBinder, remainingUnder3CopyRule);
 
         return {
             quantityInBinder,

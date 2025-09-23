@@ -214,10 +214,11 @@
 - [ ] Card preview section should have all the options when right clicking a card and display how many copies of a card are available
 - [ ] If maximum amount of cards available are added to Deck or if 3 copies are in deck, then the search results should add red X overlay over a given card
 - [ ] Add this red X functionality and limited indicator to the card search too. Need to create, modify, and select a banlist and apply to a card search
-- [ ] Run the scripted to cache all yugioh card data on startup of the application for when I deploy to check for any new cards and if the cache is empty.
-- [ ] Change cursor to be a millenium puzzle
+- [x] Change cursor to be a millenium puzzle
 - [ ] Finish implementing dark mode
 - [x] Favorite binder feature
+- [ ] Fix the logo, and title of the webpage, general look and feel UI adjustments.
+
 
 
 

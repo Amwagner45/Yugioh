@@ -88,7 +88,13 @@ const BinderCardList: React.FC<BinderCardListProps> = ({
     const getAvailableCopies = (card: BinderCard) => {
         if (!currentDeck) return card.quantity;
         const usedInDeck = getCardUsageInDeck(card.cardId);
-        return card.quantity - usedInDeck;
+        const availableFromBinder = card.quantity - usedInDeck;
+
+        // Apply Yu-Gi-Oh 3-copy rule: can't exceed 3 total copies in deck
+        const remainingUnder3CopyRule = Math.max(0, 3 - usedInDeck);
+
+        // Return the minimum of available from binder and what's allowed by 3-copy rule
+        return Math.min(availableFromBinder, remainingUnder3CopyRule);
     };
 
     // Apply filters to cards
@@ -312,8 +318,8 @@ const BinderCardList: React.FC<BinderCardListProps> = ({
                         <button
                             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
                             className={`px-3 py-2 rounded-lg transition-colors flex items-center space-x-2 ${showAdvancedFilters || getActiveFilterCount() > 0
-                                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
-                                    : 'bg-gray-100 text-gray-700 border border-gray-300'
+                                ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                                : 'bg-gray-100 text-gray-700 border border-gray-300'
                                 }`}
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

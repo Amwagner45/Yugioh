@@ -112,7 +112,13 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     const getAvailableCopies = (card: BinderCard) => {
         if (!currentDeck) return card.quantity;
         const usedInDeck = getCardUsageInDeck(card.cardId);
-        return card.quantity - usedInDeck;
+        const availableFromBinder = card.quantity - usedInDeck;
+
+        // Apply Yu-Gi-Oh 3-copy rule: can't exceed 3 total copies in deck
+        const remainingUnder3CopyRule = Math.max(0, 3 - usedInDeck);
+
+        // Return the minimum of available from binder and what's allowed by 3-copy rule
+        return Math.min(availableFromBinder, remainingUnder3CopyRule);
     };
 
     // Transform binder cards to the format expected by filters
