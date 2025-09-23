@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { cardService } from '../../services/api';
 import CardDetailModal from '../common/CardDetailModal';
 import BulkAddModal from './BulkAddModal';
-import type { Card, Binder } from '../../types';
+import type { Card, Binder, CardSearchResponse } from '../../types';
 
 interface SetBrowserProps {
     selectedBinder: Binder | null;
@@ -50,6 +50,7 @@ const SetBrowser: React.FC<SetBrowserProps> = ({
 }) => {
     const [selectedSetCode, setSelectedSetCode] = useState<string>('');
     const [setCards, setSetCards] = useState<Card[]>([]);
+    const [setSearchResponse, setSetSearchResponse] = useState<CardSearchResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showDetailModal, setShowDetailModal] = useState(false);
@@ -70,8 +71,10 @@ const SetBrowser: React.FC<SetBrowserProps> = ({
         try {
             const response = await cardService.searchCards({
                 cardset: setCode,
-                limit: 100, // Most sets have fewer than 100 cards
+                limit: 100, // Start with 100, but now we support more
             });
+
+            setSetSearchResponse(response);
 
             if (response.error) {
                 setError(response.error);
@@ -82,6 +85,32 @@ const SetBrowser: React.FC<SetBrowserProps> = ({
         } catch (err) {
             setError('Failed to load set cards. Please try again.');
             setSetCards([]);
+            setSetSearchResponse(null);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const loadMoreCards = async () => {
+        if (!selectedSetCode || !setSearchResponse?.total || setCards.length >= setSearchResponse.total) {
+            return;
+        }
+
+        setIsLoading(true);
+
+        try {
+            const response = await cardService.searchCards({
+                cardset: selectedSetCode,
+                limit: 100,
+                offset: setCards.length, // Load next batch
+            });
+
+            if (response.data) {
+                setSetCards(prev => [...prev, ...response.data]);
+                setSetSearchResponse(response);
+            }
+        } catch (err) {
+            setError('Failed to load more cards. Please try again.');
         } finally {
             setIsLoading(false);
         }
@@ -171,7 +200,7 @@ const SetBrowser: React.FC<SetBrowserProps> = ({
                             </span></div>
                         )}
                         {setCards.length > 0 && (
-                            <div>Cards Found: <span className="font-medium">{setCards.length}</span></div>
+                            <div>Cards Found: <span className="font-medium">{setSearchResponse?.total || setCards.length}</span></div>
                         )}
                     </div>
                 </div>
@@ -347,6 +376,19 @@ const SetBrowser: React.FC<SetBrowserProps> = ({
                             </div>
                         ))}
                     </div>
+
+                    {/* Load More Button */}
+                    {setSearchResponse && setSearchResponse.total && setCards.length < setSearchResponse.total && (
+                        <div className="mt-6 text-center">
+                            <button
+                                onClick={() => loadMoreCards()}
+                                disabled={isLoading}
+                                className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 disabled:opacity-50 font-medium"
+                            >
+                                {isLoading ? 'Loading...' : `Load More (${setCards.length} of ${setSearchResponse.total})`}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
 

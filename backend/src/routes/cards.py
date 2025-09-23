@@ -25,11 +25,32 @@ async def make_ygoprodeck_request(url: str, params: dict = None):
 
     async def _request():
         async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params, timeout=10.0)
+            response = await client.get(
+                url, params=params, timeout=30.0
+            )  # Increased timeout
             response.raise_for_status()
             return response.json()
 
     return await request_queue.execute_request(_request)
+
+
+@router.get("/test-api")
+async def test_api_connection(request: Request):
+    """Test YGOPRODeck API connection with a simple request"""
+    await apply_rate_limit(request, "test_api", is_external_api=True)
+
+    try:
+        # Simple request for a known card
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                "https://db.ygoprodeck.com/api/v7/cardinfo.php?id=89631139",  # Blue-Eyes White Dragon
+                timeout=30.0,
+            )
+            response.raise_for_status()
+            data = response.json()
+            return {"status": "success", "data": data.get("data", [])}
+    except Exception as e:
+        return {"status": "error", "error": str(e)}
 
 
 @router.get("/search", response_model=CardSearchResponse)
@@ -117,16 +138,53 @@ async def search_cards(
 
     # Set and rarity filters
     if cardset:
-        search_params["cardset"] = cardset
+        # For set-based searches, try a different approach
+        # Some APIs might not support direct set filtering
+        # Instead we might need to search broadly and filter client-side
+
+        # First try the standard cardset parameter with mapped name
+        set_code_mapping = {
+            "LOB": "Legend of Blue Eyes White Dragon",
+            "MRD": "Metal Raiders",
+            "SDP": "Starter Deck: Pegasus",
+            "SDK": "Starter Deck: Kaiba",
+            "SDY": "Starter Deck: Yugi",
+            "MRL": "Magic Ruler",
+            "PSV": "Pharaoh's Servant",
+            "LON": "Labyrinth of Nightmare",
+            "LOD": "Legacy of Darkness",
+            "PGD": "Pharaonic Guardian",
+            "MFC": "Magician's Force",
+            "DCR": "Dark Crisis",
+            "IOC": "Invasion of Chaos",
+            "AST": "Ancient Sanctuary",
+            "SOD": "Soul of the Duelist",
+            "RDS": "Rise of Destiny",
+            "FET": "Flaming Eternity",
+            "TLM": "The Lost Millennium",
+            "CRV": "Cybernetic Revolution",
+            "EEN": "Elemental Energy",
+        }
+
+        # Use full set name if mapping exists, otherwise use provided value
+        set_name = set_code_mapping.get(cardset, cardset)
+
+        # Try different parameter names that YGOPRODeck might accept
+        # search_params["cardset"] = set_name
+        # Alternative: try without set filtering and filter results afterwards
+        pass  # Will implement client-side filtering instead
 
     # Text description search
     if description:
         search_params["fname"] = description  # Search in description
 
-    # Pagination
-    if limit and limit <= 100:  # YGOPRODeck limits to 100
-        search_params["num"] = limit
-        search_params["offset"] = offset
+    # For set-based searches, we need to get ALL cards first, then filter and paginate
+    # Don't add pagination params to API request if we're doing set filtering
+    if not cardset:
+        # Only add pagination for non-set searches
+        if limit and limit <= 100:  # YGOPRODeck limits to 100
+            search_params["num"] = limit
+            search_params["offset"] = offset
 
     # Create cache key from all parameters
     cache_key_params = search_params.copy()
@@ -154,6 +212,7 @@ async def search_cards(
 
     # Define the API call function
     async def api_call():
+        print(f"Making API request with params: {search_params}")  # Debug log
         data = await make_ygoprodeck_request(
             "https://db.ygoprodeck.com/api/v7/cardinfo.php", params=search_params
         )
@@ -192,6 +251,45 @@ async def search_cards(
                 )
             ]
 
+        # Set filter (requires checking card_sets)
+        if cardset:
+            set_code_mapping = {
+                "LOB": "Legend of Blue Eyes White Dragon",
+                "MRD": "Metal Raiders",
+                "SDP": "Starter Deck: Pegasus",
+                "SDK": "Starter Deck: Kaiba",
+                "SDY": "Starter Deck: Yugi",
+                "MRL": "Magic Ruler",
+                "PSV": "Pharaoh's Servant",
+                "LON": "Labyrinth of Nightmare",
+                "LOD": "Legacy of Darkness",
+                "PGD": "Pharaonic Guardian",
+                "MFC": "Magician's Force",
+                "DCR": "Dark Crisis",
+                "IOC": "Invasion of Chaos",
+                "AST": "Ancient Sanctuary",
+                "SOD": "Soul of the Duelist",
+                "RDS": "Rise of Destiny",
+                "FET": "Flaming Eternity",
+                "TLM": "The Lost Millennium",
+                "CRV": "Cybernetic Revolution",
+                "EEN": "Elemental Energy",
+            }
+
+            # Get the full set name for comparison
+            full_set_name = set_code_mapping.get(cardset, cardset)
+
+            filtered_data = [
+                card
+                for card in filtered_data
+                if any(
+                    cardset.upper() in card_set.get("set_code", "").upper()
+                    or cardset.lower() in card_set.get("set_name", "").lower()
+                    or full_set_name.lower() in card_set.get("set_name", "").lower()
+                    for card_set in card.get("card_sets", [])
+                )
+            ]
+
         # Rarity filter (requires checking card_sets)
         if rarity:
             filtered_data = [
@@ -211,15 +309,32 @@ async def search_cards(
         except Exception as e:
             error_handler.logger.warning(f"Failed to cache results: {e}")
 
+        # Apply pagination after all filtering
+        total_count = len(filtered_data)
+
+        # Handle pagination for set searches (which fetch all data first)
+        if cardset:
+            start_idx = offset
+            end_idx = min(offset + limit, total_count)
+            paginated_data = filtered_data[start_idx:end_idx]
+        else:
+            # For non-set searches, pagination was handled by the API
+            paginated_data = filtered_data
+
         # Record successful request
         await record_request_success(client_ip, "search", is_external_api=True)
 
         return CardSearchResponse(
-            data=filtered_data, count=len(filtered_data), cached=False
+            data=paginated_data,
+            count=len(paginated_data),
+            total=total_count,
+            cached=False,
         )
 
     except Exception as e:
         await record_request_failure(client_ip, "search", is_external_api=True)
+        print(f"API request failed: {str(e)}")  # Debug log
+        print(f"Search params were: {search_params}")  # Debug log
 
         # Try fallback strategies
         try:

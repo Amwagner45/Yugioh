@@ -71,6 +71,7 @@ class CardSearchResponse(BaseModel):
 
     data: List[Card]
     count: int
+    total: Optional[int] = None  # Total number of results before pagination
     error: Optional[str] = None
     cached: Optional[bool] = False
 

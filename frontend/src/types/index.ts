@@ -102,6 +102,7 @@ export interface CardSearchParams {
 export interface CardSearchResponse {
     data: Card[];
     count: number;
+    total?: number; // Total number of results before pagination
     error?: string;
 }
 

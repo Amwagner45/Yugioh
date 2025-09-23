@@ -17,8 +17,8 @@ class RateLimiter:
 
     def __init__(
         self,
-        requests_per_minute: int = 60,
-        burst_limit: int = 10,
+        requests_per_minute: int = 30,  # Reduced from 60 to be more conservative
+        burst_limit: int = 5,  # Reduced from 10 to be more conservative
         backoff_factor: float = 2.0,
         max_backoff: float = 300.0,  # 5 minutes max
     ):
