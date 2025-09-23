@@ -22,8 +22,8 @@ export default {
                 '20': 'repeat(20, minmax(0, 1fr))',
             },
             cursor: {
-                'yugioh': 'url("./src/assets/yugioh-cursor.png"), auto',
-                'yugioh-pointer': 'url("./src/assets/yugioh-cursor.png"), pointer',
+                'yugioh': 'url("./src/assets/yugioh-cursor-32.png"), auto',
+                'yugioh-pointer': 'url("./src/assets/yugioh-cursor-32.png"), pointer',
             }
         },
     },
