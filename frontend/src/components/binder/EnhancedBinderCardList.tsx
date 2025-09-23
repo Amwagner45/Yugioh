@@ -7,6 +7,7 @@ import FilterPresetManager from '../common/FilterPresetManager';
 import ViewModeToggle, { type ViewMode } from '../common/ViewModeToggle';
 import CardDetailModal from '../common/CardDetailModal';
 import EnhancedCardContextMenu from '../common/EnhancedCardContextMenu';
+import { SORT_OPTIONS, type SortOption } from '../../utils/cardSorting';
 
 interface EnhancedBinderCardListProps {
     binder: Binder;
@@ -58,7 +59,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     });
 
     // Legacy sorting for backwards compatibility
-    const [sortBy, setSortBy] = useState<'name' | 'type' | 'quantity'>('name');
+    const [sortBy, setSortBy] = useState<SortOption>('type-rank-name');
 
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
@@ -208,32 +209,18 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     };
 
     // Filter and sort cards
-    const filteredCards = applyFilters(binder.cards, filters)
-        .sort((a, b) => {
-            switch (sortBy) {
-                case 'quantity':
-                    return b.quantity - a.quantity;
-                case 'type':
-                    if (a.card_details && b.card_details) {
-                        return a.card_details.type.localeCompare(b.card_details.type);
-                    }
-                    return 0;
-                case 'name':
-                default:
-                    if (a.card_details && b.card_details) {
-                        return a.card_details.name.localeCompare(b.card_details.name);
-                    }
-                    return a.cardId - b.cardId;
-            }
-        });
+    const filteredCards = applyFilters(binder.cards, filters);
+
+    // Apply sorting using the new sorting system
+    const sortedCards = SORT_OPTIONS[sortBy].sortFunction(filteredCards);
 
     const uniqueCards = binder.cards.length;
 
     // Pagination calculations
-    const totalPages = Math.ceil(filteredCards.length / cardsPerPage);
+    const totalPages = Math.ceil(sortedCards.length / cardsPerPage);
     const startIndex = (currentPage - 1) * cardsPerPage;
     const endIndex = startIndex + cardsPerPage;
-    const currentPageCards = filteredCards.slice(startIndex, endIndex);
+    const currentPageCards = sortedCards.slice(startIndex, endIndex);
 
     // Reset to page 1 when filters change
     React.useEffect(() => {
@@ -355,7 +342,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
                     <div className="text-sm text-gray-600">
-                        {filteredCards.length} of {uniqueCards} cards
+                        {sortedCards.length} of {uniqueCards} cards
                     </div>
                 </div>
 
@@ -470,12 +457,14 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                 <div className="mt-3">
                     <select
                         value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as 'name' | 'type' | 'quantity')}
+                        onChange={(e) => setSortBy(e.target.value as SortOption)}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                        <option value="name">Sort by Name</option>
-                        <option value="type">Sort by Type</option>
-                        <option value="quantity">Sort by Quantity</option>
+                        {Object.entries(SORT_OPTIONS).map(([key, option]) => (
+                            <option key={key} value={key} title={option.description}>
+                                {option.label}
+                            </option>
+                        ))}
                     </select>
                 </div>
 
@@ -539,7 +528,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                 {/* Pagination Info */}
                 {totalPages > 1 && (
                     <div className="mt-2 text-sm text-gray-600 text-center">
-                        Page {currentPage} of {totalPages} • Showing {startIndex + 1}-{Math.min(endIndex, filteredCards.length)} of {filteredCards.length} cards
+                        Page {currentPage} of {totalPages} • Showing {startIndex + 1}-{Math.min(endIndex, sortedCards.length)} of {sortedCards.length} cards
                     </div>
                 )}
             </div>
@@ -598,7 +587,6 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                                         availableCopies={getAvailableCopies(card)}
                                         usedInDeck={getCardUsageInDeck(card.cardId)}
                                         showDeckInfo={!!currentDeck}
-                                        compact={compact}
                                     />
                                 ))}
                             </div>
@@ -677,7 +665,6 @@ interface BinderCardItemProps {
     availableCopies?: number;
     usedInDeck?: number;
     showDeckInfo?: boolean;
-    compact?: boolean;
 }
 
 const BinderCardItem: React.FC<BinderCardItemProps> = ({
@@ -687,8 +674,7 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
     showQuantity = true,
     availableCopies = 0,
     usedInDeck = 0,
-    showDeckInfo = false,
-    compact = false
+    showDeckInfo = false
 }) => {
     const isAvailable = availableCopies > 0;
     const cardDetails = card.card_details;
