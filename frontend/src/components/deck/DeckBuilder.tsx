@@ -5,6 +5,7 @@ import DeckStatistics from './DeckStatistics';
 import EnhancedBinderCardList from './EnhancedBinderCardList';
 import api, { binderService, deckService } from '../../services/api';
 import { storageService } from '../../services/storage';
+import { importExportService } from '../../services/importExport';
 
 interface DeckBuilderProps {
     deckId?: string;
@@ -28,6 +29,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
     const [deckStats, setDeckStats] = useState<any>(null);
     const [showCloneModal, setShowCloneModal] = useState(false);
     const [availableDecksForCloning, setAvailableDecksForCloning] = useState<any[]>([]);
+    const [exportModal, setExportModal] = useState<{ show: boolean; deck: Deck | null }>({
+        show: false,
+        deck: null,
+    });
 
     // Form fields for deck metadata
     const [deckName, setDeckName] = useState('');
@@ -565,6 +570,59 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
     };
 
+    const handleExportDeck = () => {
+        if (!deck || (!deck.id && !deckName)) {
+            alert('Please save the deck first before exporting.');
+            return;
+        }
+        
+        // Create a temporary deck with current form values for export
+        const deckToExport = {
+            ...deck,
+            name: deckName || deck.name,
+            description: deckDescription || deck.description,
+            format: deckFormat || deck.format,
+            notes: deckNotes || deck.notes,
+            tags: deckTags || deck.tags,
+        };
+        
+        setExportModal({ show: true, deck: deckToExport });
+    };
+
+    const performExport = (format: 'json' | 'ydk' | 'txt' | 'csv') => {
+        if (!exportModal.deck) return;
+
+        try {
+            // For unsaved decks, we need to save them to storage temporarily for export
+            let deckToExport = exportModal.deck;
+            
+            if (!deckToExport.id) {
+                // Create a temporary ID for export
+                const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                deckToExport = { ...deckToExport, id: tempId };
+                
+                // Temporarily save to storage for export
+                storageService.saveDeck(deckToExport);
+            }
+            
+            const content = importExportService.exportDeck(deckToExport.id, { format });
+            const extension = format === 'json' ? 'json' : format === 'ydk' ? 'ydk' : format === 'txt' ? 'txt' : 'csv';
+            const filename = `${deckToExport.name.replace(/[^a-z0-9]/gi, '_')}.${extension}`;
+
+            importExportService.downloadFile(content as string, filename);
+            
+            // Clean up temporary deck if it was created
+            if (!exportModal.deck.id) {
+                storageService.deleteDeck(deckToExport.id);
+            }
+            
+            setExportModal({ show: false, deck: null });
+        } catch (error) {
+            console.error('Export failed:', error);
+            alert('Export failed: ' + error);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -607,6 +665,13 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                 disabled={!deck?.id}
                             >
                                 Validate Deck
+                            </button>
+                            <button
+                                onClick={handleExportDeck}
+                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                disabled={!deck || (!deck.id && !deckName)}
+                            >
+                                Export Deck
                             </button>
                             <button
                                 onClick={handleSaveDeck}
@@ -834,6 +899,52 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                 Cancel
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Export Modal */}
+            {exportModal.show && exportModal.deck && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+                        <h3 className="text-lg font-semibold mb-4">Export Deck: {exportModal.deck.name}</h3>
+                        <p className="text-gray-600 mb-4">Choose export format:</p>
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                            <button
+                                onClick={() => performExport('ydk')}
+                                className="p-3 border border-gray-300 rounded hover:bg-gray-50 text-left"
+                            >
+                                <div className="font-medium">.ydk</div>
+                                <div className="text-sm text-gray-600">YGOPro format</div>
+                            </button>
+                            <button
+                                onClick={() => performExport('json')}
+                                className="p-3 border border-gray-300 rounded hover:bg-gray-50 text-left"
+                            >
+                                <div className="font-medium">.json</div>
+                                <div className="text-sm text-gray-600">Full data backup</div>
+                            </button>
+                            <button
+                                onClick={() => performExport('txt')}
+                                className="p-3 border border-gray-300 rounded hover:bg-gray-50 text-left"
+                            >
+                                <div className="font-medium">.txt</div>
+                                <div className="text-sm text-gray-600">Text deck list</div>
+                            </button>
+                            <button
+                                onClick={() => performExport('csv')}
+                                className="p-3 border border-gray-300 rounded hover:bg-gray-50 text-left"
+                            >
+                                <div className="font-medium">.csv</div>
+                                <div className="text-sm text-gray-600">Spreadsheet format</div>
+                            </button>
+                        </div>
+                        <button
+                            onClick={() => setExportModal({ show: false, deck: null })}
+                            className="w-full px-4 py-2 text-gray-600 border border-gray-300 rounded hover:bg-gray-50"
+                        >
+                            Cancel
+                        </button>
                     </div>
                 </div>
             )}
