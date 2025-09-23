@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Deck, Binder } from '../../types';
 import DeckSection from './DeckSection';
 import DeckStatistics from './DeckStatistics';
-import EnhancedBinderCardList from './EnhancedBinderCardList';
+import EnhancedBinderCardList from '../binder/EnhancedBinderCardList';
 import api, { binderService, deckService } from '../../services/api';
 import { storageService } from '../../services/storage';
 import { importExportService } from '../../services/importExport';
@@ -641,7 +641,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
     return (
         <div className="min-h-screen bg-gray-100">
-            <div className="max-w-7xl mx-auto px-4 py-8">
+            <div className="max-w-[1800px] mx-auto px-8 py-8">
                 {/* Header */}
                 <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
                     <div className="flex items-center justify-between mb-4">
@@ -783,9 +783,23 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 </div>
 
                 {/* Main Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    {/* Deck Sections */}
-                    <div className="lg:col-span-2 space-y-6">
+                <div className="grid grid-cols-12 gap-8">
+                    {/* Left Sidebar - Card Search & Filters */}
+                    <div className="col-span-4">
+                        {binder && (
+                            <EnhancedBinderCardList
+                                binder={binder}
+                                onCardClick={(cardId: number) => handleAddCardToDeck(cardId, 'main', 1)}
+                                showQuantities={true}
+                                title="Available Cards"
+                                currentDeck={deck}
+                            />
+                        )}
+                    </div>
+
+                    {/* Main Content Area - Deck Sections & Statistics */}
+                    <div className="col-span-8 space-y-6">
+                        {/* Deck Sections */}
                         <DeckSection
                             title="Main Deck"
                             cards={deck.mainDeck}
@@ -818,30 +832,14 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             sectionType="side"
                             binderCards={binder?.cards || []}
                         />
-                    </div>
 
-                    {/* Deck Statistics */}
-                    <div className="lg:col-span-1">
-                        <DeckStatistics
-                            deck={deck}
-                            binderCards={binder?.cards || []}
-                        />
-                    </div>
-
-                    {/* Binder Card List */}
-                    <div className="lg:col-span-1">
-                        {binder && (
-                            <EnhancedBinderCardList
-                                binder={binder}
-                                onCardClick={(cardId: number) => handleAddCardToDeck(cardId, 'main', 1)}
-                                onAddToSection={(cardId: number, section: 'main' | 'extra' | 'side', quantity: number = 1) =>
-                                    handleAddCardToDeck(cardId, section, quantity)
-                                }
-                                showQuantities={true}
-                                title="Available Cards"
-                                currentDeck={deck}
+                        {/* Deck Statistics Section */}
+                        <div className="bg-white rounded-lg shadow-lg p-6">
+                            <DeckStatistics
+                                deck={deck}
+                                binderCards={binder?.cards || []}
                             />
-                        )}
+                        </div>
                     </div>
                 </div>
             </div>

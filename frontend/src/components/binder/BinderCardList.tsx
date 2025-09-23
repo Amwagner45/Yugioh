@@ -1,5 +1,33 @@
 import React, { useState } from 'react';
 import type { Binder, BinderCard, DeckCard } from '../../types';
+import AdvancedFilterSidebar, { type AdvancedFilterOptions } from '../common/AdvancedFilterSidebar';
+import QuickFilterChips from '../common/QuickFilterChips';
+import AdvancedSearchModal from '../common/AdvancedSearchModal';
+import FilterPresetManager from '../common/FilterPresetManager';
+import ViewModeToggle, { type ViewMode } from '../common/ViewModeToggle';
+import CardGridView from '../common/CardGridView';
+import CardListView from '../common/CardListView';
+import CardTableView from '../common/CardTableView';
+
+interface BinderCardListProps {
+    binder: Binder;
+    onCardClick?: (cardId: number) => void;
+    showQuantities?: boolean;
+    allowEditing?: boolean;
+    title?: string;
+    currentDeck?: { mainDeck: DeckCard[]; extraDeck: DeckCard[]; sideDeck: DeckCard[] };
+}
+
+import React, { useState } from 'react';
+import type { Binder, BinderCard, DeckCard } from '../../types';
+import AdvancedFilterSidebar, { type AdvancedFilterOptions } from '../common/AdvancedFilterSidebar';
+import QuickFilterChips from '../common/QuickFilterChips';
+import AdvancedSearchModal from '../common/AdvancedSearchModal';
+import FilterPresetManager from '../common/FilterPresetManager';
+import ViewModeToggle, { type ViewMode } from '../common/ViewModeToggle';
+import CardGridView from '../common/CardGridView';
+import CardListView from '../common/CardListView';
+import CardTableView from '../common/CardTableView';
 
 interface BinderCardListProps {
     binder: Binder;
@@ -17,15 +45,35 @@ const BinderCardList: React.FC<BinderCardListProps> = ({
     title = "Cards",
     currentDeck
 }) => {
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortBy, setSortBy] = useState<'name' | 'type' | 'quantity'>('name');
+    // View and display state
+    const [viewMode, setViewMode] = useState<ViewMode>('grid');
+    const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+    const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
+    const [showPresetManager, setShowPresetManager] = useState(false);
 
-    // Debug search term changes
-    React.useEffect(() => {
-        console.log('Search term changed to:', searchTerm);
-        console.log('Binder has', binder.cards.length, 'cards');
-        console.log('Cards with card_details:', binder.cards.filter(c => c.card_details).length);
-    }, [searchTerm, binder.cards]);
+    // Filter state
+    const [filters, setFilters] = useState<AdvancedFilterOptions>({
+        searchTerm: '',
+        cardTypes: [],
+        attributes: [],
+        levels: [],
+        races: [],
+        archetype: '',
+        rarity: '',
+        setCode: '',
+        minAttack: '',
+        maxAttack: '',
+        minDefense: '',
+        maxDefense: '',
+        onlyAvailable: false,
+        selectedBinders: [],
+        banListStatus: '',
+        tags: [],
+        customFilters: []
+    });
+
+    // Legacy sorting for backwards compatibility
+    const [sortBy, setSortBy] = useState<'name' | 'type' | 'quantity'>('name');
 
     // Helper function to get how many copies of a card are used in current deck
     const getCardUsageInDeck = (cardId: number) => {
@@ -43,43 +91,89 @@ const BinderCardList: React.FC<BinderCardListProps> = ({
         return card.quantity - usedInDeck;
     };
 
-    // Filter and sort cards
-    const filteredCards = binder.cards
-        .filter(card => {
-            // Debug card structure
-            console.log('Processing card:', {
-                cardId: card.cardId,
-                hasCardDetails: !!card.card_details,
-                cardName: card.card_details?.name,
-                setCode: card.setCode,
-                rarity: card.rarity,
-                quantity: card.quantity
-            });
-
-            if (!searchTerm) return true;
+    // Apply filters to cards
+    const applyFilters = (cards: BinderCard[], filterOptions: AdvancedFilterOptions): BinderCard[] => {
+        return cards.filter(card => {
             const cardDetails = card.card_details;
-            if (!cardDetails) {
-                console.log('Card missing card_details:', card.cardId);
-                return false;
+            if (!cardDetails) return false;
+
+            // Search term
+            if (filterOptions.searchTerm) {
+                const searchLower = filterOptions.searchTerm.toLowerCase();
+                const matches = (
+                    cardDetails.name.toLowerCase().includes(searchLower) ||
+                    cardDetails.type.toLowerCase().includes(searchLower) ||
+                    (cardDetails.race && cardDetails.race.toLowerCase().includes(searchLower)) ||
+                    (cardDetails.attribute && cardDetails.attribute.toLowerCase().includes(searchLower)) ||
+                    (cardDetails.archetype && cardDetails.archetype.toLowerCase().includes(searchLower)) ||
+                    card.setCode?.toLowerCase().includes(searchLower) ||
+                    card.rarity?.toLowerCase().includes(searchLower)
+                );
+                if (!matches) return false;
             }
 
-            const searchLower = searchTerm.toLowerCase();
-            const matches = (
-                cardDetails.name.toLowerCase().includes(searchLower) ||
-                cardDetails.type.toLowerCase().includes(searchLower) ||
-                (cardDetails.race && cardDetails.race.toLowerCase().includes(searchLower)) ||
-                (cardDetails.attribute && cardDetails.attribute.toLowerCase().includes(searchLower)) ||
-                (cardDetails.archetype && cardDetails.archetype.toLowerCase().includes(searchLower)) ||
-                card.setCode?.toLowerCase().includes(searchLower) ||
-                card.rarity?.toLowerCase().includes(searchLower)
-            );
-
-            if (searchTerm && matches) {
-                console.log('Card matches search:', cardDetails.name, 'for term:', searchTerm);
+            // Card types
+            if (filterOptions.cardTypes.length > 0) {
+                if (!filterOptions.cardTypes.includes(cardDetails.type)) return false;
             }
 
-            return matches;
-        })
+            // Attributes
+            if (filterOptions.attributes.length > 0 && cardDetails.attribute) {
+                if (!filterOptions.attributes.includes(cardDetails.attribute)) return false;
+            }
+
+            // Levels
+            if (filterOptions.levels.length > 0 && cardDetails.level) {
+                if (!filterOptions.levels.includes(cardDetails.level)) return false;
+            }
+
+            // Races
+            if (filterOptions.races.length > 0 && cardDetails.race) {
+                if (!filterOptions.races.includes(cardDetails.race)) return false;
+            }
+
+            // Archetype
+            if (filterOptions.archetype && cardDetails.archetype) {
+                if (!cardDetails.archetype.toLowerCase().includes(filterOptions.archetype.toLowerCase())) return false;
+            }
+
+            // Rarity
+            if (filterOptions.rarity && card.rarity) {
+                if (card.rarity !== filterOptions.rarity) return false;
+            }
+
+            // Set code
+            if (filterOptions.setCode && card.setCode) {
+                if (!card.setCode.toLowerCase().includes(filterOptions.setCode.toLowerCase())) return false;
+            }
+
+            // ATK range
+            if (filterOptions.minAttack && cardDetails.atk !== null) {
+                if (cardDetails.atk < parseInt(filterOptions.minAttack)) return false;
+            }
+            if (filterOptions.maxAttack && cardDetails.atk !== null) {
+                if (cardDetails.atk > parseInt(filterOptions.maxAttack)) return false;
+            }
+
+            // DEF range
+            if (filterOptions.minDefense && cardDetails.def !== null) {
+                if (cardDetails.def < parseInt(filterOptions.minDefense)) return false;
+            }
+            if (filterOptions.maxDefense && cardDetails.def !== null) {
+                if (cardDetails.def > parseInt(filterOptions.maxDefense)) return false;
+            }
+
+            // Only available for deck building
+            if (filterOptions.onlyAvailable && currentDeck) {
+                if (getAvailableCopies(card) <= 0) return false;
+            }
+
+            return true;
+        });
+    };
+
+    // Filter and sort cards
+    const filteredCards = applyFilters(binder.cards, filters)
         .sort((a, b) => {
             switch (sortBy) {
                 case 'quantity':
@@ -100,38 +194,196 @@ const BinderCardList: React.FC<BinderCardListProps> = ({
 
     const totalCards = binder.cards.reduce((sum, card) => sum + card.quantity, 0);
     const uniqueCards = binder.cards.length;
+    const filteredTotal = filteredCards.reduce((sum, card) => sum + card.quantity, 0);
 
-    // Debug filtered cards
-    React.useEffect(() => {
-        console.log('Filtered cards count:', filteredCards.length);
-        if (searchTerm) {
-            console.log('Search results for "' + searchTerm + '":', filteredCards.map(c => c.card_details?.name || c.cardId));
+    // Handle filter updates
+    const handleFilterChange = (newFilters: AdvancedFilterOptions) => {
+        setFilters(newFilters);
+    };
+
+    // Handle quick filter application
+    const handleQuickFilter = (filterName: string, isActive: boolean) => {
+        switch (filterName) {
+            case 'only-available':
+                setFilters(prev => ({ ...prev, onlyAvailable: isActive }));
+                break;
+            case 'monsters':
+                setFilters(prev => ({
+                    ...prev,
+                    cardTypes: isActive
+                        ? ['Normal Monster', 'Effect Monster', 'Fusion Monster', 'Synchro Monster', 'Xyz Monster', 'Link Monster']
+                        : []
+                }));
+                break;
+            case 'spells':
+                setFilters(prev => ({
+                    ...prev,
+                    cardTypes: isActive ? ['Spell Card'] : []
+                }));
+                break;
+            case 'traps':
+                setFilters(prev => ({
+                    ...prev,
+                    cardTypes: isActive ? ['Trap Card'] : []
+                }));
+                break;
         }
-    }, [filteredCards, searchTerm]);
+    };
+
+    // Clear all filters
+    const clearFilters = () => {
+        setFilters({
+            searchTerm: '',
+            cardTypes: [],
+            attributes: [],
+            levels: [],
+            races: [],
+            archetype: '',
+            rarity: '',
+            setCode: '',
+            minAttack: '',
+            maxAttack: '',
+            minDefense: '',
+            maxDefense: '',
+            onlyAvailable: false,
+            selectedBinders: [],
+            banListStatus: '',
+            tags: [],
+            customFilters: []
+        });
+    };
+
+    // Get active filter count
+    const getActiveFilterCount = () => {
+        let count = 0;
+        if (filters.searchTerm) count++;
+        if (filters.cardTypes.length > 0) count++;
+        if (filters.attributes.length > 0) count++;
+        if (filters.levels.length > 0) count++;
+        if (filters.races.length > 0) count++;
+        if (filters.archetype) count++;
+        if (filters.rarity) count++;
+        if (filters.setCode) count++;
+        if (filters.minAttack || filters.maxAttack) count++;
+        if (filters.minDefense || filters.maxDefense) count++;
+        if (filters.onlyAvailable) count++;
+        if (filters.banListStatus) count++;
+        if (filters.tags.length > 0) count++;
+        return count;
+    };
+
+    // Prepare cards for display components
+    const cardsForDisplay = filteredCards.map(card => ({
+        id: card.cardId,
+        name: card.card_details?.name || `Card ${card.cardId}`,
+        type: card.card_details?.type || '',
+        race: card.card_details?.race,
+        attribute: card.card_details?.attribute,
+        level: card.card_details?.level,
+        atk: card.card_details?.atk,
+        def: card.card_details?.def,
+        imageUrl: card.card_details?.card_images?.[0]?.image_url_small || card.card_details?.card_images?.[0]?.image_url,
+        quantity: card.quantity,
+        availableCopies: getAvailableCopies(card),
+        usedInDeck: getCardUsageInDeck(card.cardId),
+        setCode: card.setCode,
+        rarity: card.rarity,
+        condition: card.condition,
+        notes: card.notes,
+        onClick: onCardClick ? () => onCardClick(card.cardId) : undefined,
+        isAvailable: getAvailableCopies(card) > 0
+    }));
 
     return (
-        <div className="bg-white rounded-lg shadow-lg">
-            <div className="p-4 border-b border-gray-200">
+        <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
+            {/* Header */}
+            <div className="flex-shrink-0 p-4 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
                     <div className="text-sm text-gray-600">
-                        {uniqueCards} unique ({totalCards} total)
+                        {filteredCards.length} of {uniqueCards} unique ({filteredTotal} of {totalCards} total)
                     </div>
                 </div>
 
-                {/* Search and Sort */}
-                <div className="space-y-3">
+                {/* Top Controls */}
+                <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                        {/* Filter Toggle */}
+                        <button
+                            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                            className={`px-3 py-2 rounded-lg transition-colors flex items-center space-x-2 ${showAdvancedFilters || getActiveFilterCount() > 0
+                                    ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                                    : 'bg-gray-100 text-gray-700 border border-gray-300'
+                                }`}
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            <span>Filters</span>
+                            {getActiveFilterCount() > 0 && (
+                                <span className="bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                                    {getActiveFilterCount()}
+                                </span>
+                            )}
+                        </button>
+
+                        {/* Advanced Search */}
+                        <button
+                            onClick={() => setShowAdvancedSearch(true)}
+                            className="px-3 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <span>Advanced</span>
+                        </button>
+
+                        {/* Presets */}
+                        <button
+                            onClick={() => setShowPresetManager(true)}
+                            className="px-3 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-200 transition-colors flex items-center space-x-2"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                            </svg>
+                            <span>Presets</span>
+                        </button>
+
+                        {/* Clear Filters */}
+                        {getActiveFilterCount() > 0 && (
+                            <button
+                                onClick={clearFilters}
+                                className="px-3 py-2 bg-red-100 text-red-700 border border-red-300 rounded-lg hover:bg-red-200 transition-colors text-sm"
+                            >
+                                Clear All
+                            </button>
+                        )}
+                    </div>
+
+                    {/* View Mode Toggle */}
+                    <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+                </div>
+
+                {/* Quick Filter Chips */}
+                <QuickFilterChips
+                    onFilterToggle={handleQuickFilter}
+                    onClearAll={clearFilters}
+                    activeFilters={getActiveFilterCount()}
+                />
+
+                {/* Basic Search for backwards compatibility */}
+                <div className="mt-4">
                     <input
                         type="text"
                         placeholder="Search cards..."
-                        value={searchTerm}
-                        onChange={(e) => {
-                            console.log('Search input changed to:', e.target.value);
-                            setSearchTerm(e.target.value);
-                        }}
+                        value={filters.searchTerm}
+                        onChange={(e) => setFilters(prev => ({ ...prev, searchTerm: e.target.value }))}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
+                </div>
 
+                {/* Sort Options */}
+                <div className="mt-3">
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as 'name' | 'type' | 'quantity')}
@@ -144,202 +396,89 @@ const BinderCardList: React.FC<BinderCardListProps> = ({
                 </div>
             </div>
 
-            <div className="max-h-96 overflow-y-auto">
-                {filteredCards.length === 0 ? (
-                    <div className="text-center py-8 text-gray-500">
-                        <div className="text-4xl mb-2">📋</div>
-                        <p>No cards found</p>
-                        {searchTerm && (
-                            <p className="text-sm">Try adjusting your search terms</p>
-                        )}
-                    </div>
-                ) : (
-                    <div className="p-4 space-y-2">
-                        {filteredCards.map((card, index) => (
-                            <BinderCardItem
-                                key={`${card.cardId}-${card.setCode || 'noset'}-${card.rarity || 'norarity'}-${index}`}
-                                card={card}
-                                onClick={onCardClick ? () => onCardClick(card.cardId) : undefined}
-                                showQuantity={showQuantities}
-                                availableCopies={getAvailableCopies(card)}
-                                usedInDeck={getCardUsageInDeck(card.cardId)}
-                                showDeckInfo={!!currentDeck}
-                            />
-                        ))}
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-interface BinderCardItemProps {
-    card: BinderCard;
-    onClick?: () => void;
-    showQuantity?: boolean;
-    availableCopies?: number;
-    usedInDeck?: number;
-    showDeckInfo?: boolean;
-}
-
-const BinderCardItem: React.FC<BinderCardItemProps> = ({
-    card,
-    onClick,
-    showQuantity = true,
-    availableCopies = 0,
-    usedInDeck = 0,
-    showDeckInfo = false
-}) => {
-    const isAvailable = availableCopies > 0;
-    const isFullyUsed = showDeckInfo && usedInDeck >= card.quantity;
-    const cardDetails = card.card_details;
-
-    // Debug card details
-    React.useEffect(() => {
-        if (cardDetails) {
-            console.log('Card details for', cardDetails.name, {
-                hasImages: !!cardDetails.card_images,
-                imageCount: cardDetails.card_images?.length,
-                firstImageUrl: cardDetails.card_images?.[0]?.image_url_small
-            });
-        } else {
-            console.log('No card details for card ID:', card.cardId);
-        }
-    }, [cardDetails, card.cardId]);
-
-    const handleDragStart = (e: React.DragEvent) => {
-        console.log('Drag started for card:', cardDetails?.name || card.cardId, 'Available:', isAvailable);
-
-        if (!isAvailable) {
-            console.log('Preventing drag - card not available');
-            e.preventDefault();
-            return;
-        }
-
-        // Store card data for drop handler
-        const dragData = {
-            cardId: card.cardId,
-            type: 'binder-card'
-        };
-        console.log('Setting drag data:', dragData);
-        e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-        e.dataTransfer.effectAllowed = 'copy';
-    };
-
-    return (
-        <div
-            className={`p-3 rounded-lg border transition-colors ${onClick
-                ? isAvailable
-                    ? 'bg-gray-50 border-gray-200 hover:bg-blue-50 hover:border-blue-300 cursor-pointer'
-                    : 'bg-red-50 border-red-200 cursor-not-allowed opacity-75'
-                : 'bg-gray-50 border-gray-200'
-                }`}
-            onClick={isAvailable ? onClick : undefined}
-            draggable={isAvailable}
-            onDragStart={handleDragStart}
-            style={{ cursor: isAvailable ? (onClick ? 'pointer' : 'grab') : 'not-allowed' }}
-        >
-            <div className="flex items-center space-x-3">
-                {/* Card Image */}
-                {cardDetails?.card_images?.[0] && (
-                    <div className="flex-shrink-0">
-                        <img
-                            src={cardDetails.card_images[0].image_url_small}
-                            alt={cardDetails.name}
-                            className="w-12 h-16 object-cover rounded border"
-                            onError={(e) => {
-                                console.log('Image failed to load:', cardDetails?.card_images?.[0]?.image_url_small);
-                                // Fallback to main image if small image fails
-                                if (cardDetails?.card_images?.[0]) {
-                                    (e.target as HTMLImageElement).src = cardDetails.card_images[0].image_url;
-                                }
-                            }}
-                            onLoad={() => {
-                                console.log('Image loaded successfully:', cardDetails.name);
-                            }}
+            {/* Main Content Area */}
+            <div className="flex-1 flex overflow-hidden">
+                {/* Advanced Filter Sidebar */}
+                {showAdvancedFilters && (
+                    <div className="flex-shrink-0 w-80 border-r border-gray-200">
+                        <AdvancedFilterSidebar
+                            filters={filters}
+                            onFiltersChange={handleFilterChange}
+                            availableBinders={[binder]}
                         />
                     </div>
                 )}
 
-                {/* Card Info */}
-                <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 truncate">
-                        {cardDetails ? cardDetails.name : `Card ID: ${card.cardId}`}
-                    </div>
-
-                    {cardDetails && (
-                        <div className="text-sm text-gray-600">
-                            {cardDetails.type}
-                            {cardDetails.race && cardDetails.race !== cardDetails.type && ` • ${cardDetails.race}`}
-                            {cardDetails.attribute && ` • ${cardDetails.attribute}`}
-                        </div>
-                    )}
-
-                    {cardDetails && (cardDetails.atk !== null || cardDetails.def !== null) && (
-                        <div className="text-sm text-gray-600">
-                            {cardDetails.atk !== null && `ATK: ${cardDetails.atk}`}
-                            {cardDetails.def !== null && ` DEF: ${cardDetails.def}`}
-                            {cardDetails.level && ` • Level: ${cardDetails.level}`}
-                        </div>
-                    )}
-
-                    {card.setCode && (
-                        <div className="text-xs text-gray-500">
-                            {card.setCode}
-                            {card.rarity && ` • ${card.rarity}`}
-                            {card.condition && card.condition !== 'Near Mint' && ` • ${card.condition}`}
-                        </div>
-                    )}
-
-                    {card.notes && (
-                        <div className="text-xs text-gray-500 italic truncate">
-                            {card.notes}
-                        </div>
-                    )}
-                </div>
-
-                {/* Quantity and Status */}
-                <div className="flex-shrink-0 text-right">
-                    {showQuantity && (
-                        <span className="bg-blue-100 text-blue-800 text-sm font-medium px-2 py-1 rounded-full">
-                            {card.quantity}
-                        </span>
-                    )}
-
-                    {showDeckInfo && (
-                        <div className="text-xs mt-1">
-                            {usedInDeck > 0 && (
-                                <div className="text-orange-600 font-medium">
-                                    {usedInDeck} in deck
-                                </div>
-                            )}
-                            <div className={`font-medium ${isAvailable ? 'text-green-600' : 'text-red-600'}`}>
-                                {availableCopies} available
+                {/* Card Display Area */}
+                <div className="flex-1 overflow-hidden">
+                    {filteredCards.length === 0 ? (
+                        <div className="flex items-center justify-center h-full text-gray-500">
+                            <div className="text-center">
+                                <div className="text-4xl mb-2">📋</div>
+                                <p>No cards found</p>
+                                {getActiveFilterCount() > 0 ? (
+                                    <p className="text-sm">Try adjusting your filters</p>
+                                ) : filters.searchTerm ? (
+                                    <p className="text-sm">Try adjusting your search terms</p>
+                                ) : (
+                                    <p className="text-sm">This binder is empty</p>
+                                )}
                             </div>
                         </div>
-                    )}
-
-                    {isAvailable && (
-                        <div className="text-gray-400 text-xs mt-1">
-                            🎯 Drag
+                    ) : (
+                        <div className="h-full">
+                            {viewMode === 'grid' && (
+                                <CardGridView
+                                    cards={cardsForDisplay}
+                                    showQuantities={showQuantities}
+                                    showDeckInfo={!!currentDeck}
+                                />
+                            )}
+                            {viewMode === 'list' && (
+                                <CardListView
+                                    cards={cardsForDisplay}
+                                    showQuantities={showQuantities}
+                                    showDeckInfo={!!currentDeck}
+                                />
+                            )}
+                            {viewMode === 'table' && (
+                                <CardTableView
+                                    cards={cardsForDisplay}
+                                    showQuantities={showQuantities}
+                                    showDeckInfo={!!currentDeck}
+                                />
+                            )}
+                            {viewMode === 'stacked' && (
+                                <CardGridView
+                                    cards={cardsForDisplay}
+                                    showQuantities={showQuantities}
+                                    showDeckInfo={!!currentDeck}
+                                    variant="stacked"
+                                />
+                            )}
                         </div>
                     )}
                 </div>
             </div>
 
-            {onClick && (
-                <div className="mt-2 text-xs">
-                    {isAvailable ? (
-                        <span className="text-blue-600">Click to add to deck • Drag to specific section</span>
-                    ) : (
-                        <span className="text-red-600">
-                            {isFullyUsed ? 'All copies already in deck' : 'No copies available'}
-                        </span>
-                    )}
-                </div>
-            )}
+            {/* Modals */}
+            <AdvancedSearchModal
+                isOpen={showAdvancedSearch}
+                onClose={() => setShowAdvancedSearch(false)}
+                onApplySearch={handleFilterChange}
+                currentFilters={filters}
+            />
+
+            <FilterPresetManager
+                isOpen={showPresetManager}
+                onClose={() => setShowPresetManager(false)}
+                onApplyPreset={handleFilterChange}
+                currentFilters={filters}
+            />
         </div>
     );
 };
+
+export default BinderCardList;
 
 export default BinderCardList;
