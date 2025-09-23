@@ -833,6 +833,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     title="Available Cards"
                                     currentDeck={deck}
                                     compact={true}
+                                    onRemoveFromDeck={handleRemoveCardFromDeck}
                                 />
                             </div>
                         )}

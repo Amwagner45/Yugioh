@@ -19,6 +19,9 @@ interface CardGridViewProps {
     gapSize?: 'sm' | 'md' | 'lg';
     compactPadding?: boolean;
     allowOverlap?: boolean;
+    // For deck sections - allows cards to be dragged back to binder
+    isDeckSection?: boolean;
+    sectionType?: 'main' | 'extra' | 'side';
 }
 
 const CardGridView: React.FC<CardGridViewProps> = ({
@@ -31,7 +34,9 @@ const CardGridView: React.FC<CardGridViewProps> = ({
     disableZoom = false,
     gapSize = 'md',
     compactPadding = false,
-    allowOverlap = false
+    allowOverlap = false,
+    isDeckSection = false,
+    sectionType
 }) => {
     const gridClasses = {
         sm: 'grid-cols-8 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-15 xl:grid-cols-18',
@@ -88,10 +93,11 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                 }
                                 const dragData = {
                                     cardId: cardData.cardId,
-                                    type: 'binder-card'
+                                    type: isDeckSection ? 'deck-card' : 'binder-card',
+                                    sectionType: isDeckSection ? sectionType : undefined
                                 };
                                 e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-                                e.dataTransfer.effectAllowed = 'copy';
+                                e.dataTransfer.effectAllowed = isDeckSection ? 'move' : 'copy';
                             }}
                         >
                             {/* Card Image */}
@@ -182,10 +188,11 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                             }
                             const dragData = {
                                 cardId: cardData.cardId,
-                                type: 'binder-card'
+                                type: isDeckSection ? 'deck-card' : 'binder-card',
+                                sectionType: isDeckSection ? sectionType : undefined
                             };
                             e.dataTransfer.setData('application/json', JSON.stringify(dragData));
-                            e.dataTransfer.effectAllowed = 'copy';
+                            e.dataTransfer.effectAllowed = isDeckSection ? 'move' : 'copy';
                         }}
 
                     >

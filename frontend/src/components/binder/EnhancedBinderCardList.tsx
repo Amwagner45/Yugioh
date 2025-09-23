@@ -17,6 +17,8 @@ interface EnhancedBinderCardListProps {
     title?: string;
     currentDeck?: { mainDeck: DeckCard[]; extraDeck: DeckCard[]; sideDeck: DeckCard[] };
     compact?: boolean; // For sidebar usage
+    // For handling cards dropped from deck sections
+    onRemoveFromDeck?: (cardId: number, section: 'main' | 'extra' | 'side', quantity?: number) => void;
 }
 
 const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
@@ -26,7 +28,8 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     showQuantities = true,
     title = "Cards",
     currentDeck,
-    compact = false
+    compact = false,
+    onRemoveFromDeck
 }) => {
     // View and display state
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -34,6 +37,9 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
     const [showPresetManager, setShowPresetManager] = useState(false);
     const [gridSize, setGridSize] = useState<3 | 4 | 5>(compact ? 4 : 3);
+
+    // Drag and drop state
+    const [isDragOver, setIsDragOver] = useState(false);
 
     // Filter state
     const [filters, setFilters] = useState<AdvancedFilterOptions>({
@@ -294,8 +300,56 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
         setSelectedCard(null);
     };
 
+    // Drag and drop handlers for receiving cards from deck sections
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        const types = e.dataTransfer.types;
+        if (types.includes('application/json')) {
+            e.dataTransfer.dropEffect = 'move';
+            setIsDragOver(true);
+        }
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        const relatedTarget = e.relatedTarget as Element;
+        const currentTarget = e.currentTarget as Element;
+        if (relatedTarget && currentTarget.contains(relatedTarget)) {
+            return;
+        }
+        setIsDragOver(false);
+    };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(true);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+
+        try {
+            const dataString = e.dataTransfer.getData('application/json');
+            const data = JSON.parse(dataString);
+
+            // Only handle cards dropped from deck sections
+            if (data.type === 'deck-card' && data.cardId && data.sectionType && onRemoveFromDeck) {
+                onRemoveFromDeck(data.cardId, data.sectionType, 1);
+            }
+        } catch (error) {
+            console.error('Invalid drag data:', error);
+        }
+    };
+
     return (
-        <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
+        <div
+            className={`bg-white rounded-lg shadow-lg h-full flex flex-col transition-all ${isDragOver ? 'ring-4 ring-blue-500 ring-opacity-50 bg-blue-50' : ''}`}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+        >
             {/* Header */}
             <div className="flex-shrink-0 p-4 border-b border-gray-200">
                 <div className="flex items-center justify-between mb-4">
@@ -501,6 +555,15 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                         onFiltersChange={handleFilterChange}
                         onResetFilters={clearFilters}
                     />
+                </div>
+            )}
+
+            {/* Drag overlay indicator */}
+            {isDragOver && (
+                <div className="flex-shrink-0 p-4 text-center bg-blue-100 border-b border-blue-200">
+                    <div className="text-blue-600 font-medium">
+                        Drop card here to remove from deck
+                    </div>
                 </div>
             )}
 

@@ -18,6 +18,8 @@ interface EnhancedBinderCardListProps {
     currentDeck?: { mainDeck: DeckCard[]; extraDeck: DeckCard[]; sideDeck: DeckCard[] };
     showQuantities?: boolean;
     compact?: boolean;
+    // For handling cards dropped from deck sections
+    onRemoveFromDeck?: (cardId: number, section: 'main' | 'extra' | 'side', quantity?: number) => void;
 }
 
 const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
@@ -28,7 +30,8 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     title = "Available Cards",
     currentDeck,
     showQuantities = true,
-    compact = false
+    compact = false,
+    onRemoveFromDeck
 }) => {
     console.log('🚀 EnhancedBinderCardList MOUNTED/UPDATED with', binder.cards.length, 'cards');
     console.log('🚀 First 5 cards:', binder.cards.slice(0, 5).map(c => c.card_details?.name));
@@ -55,6 +58,9 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
 
     // View mode state
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
+
+    // Drag and drop state
+    const [isDragOver, setIsDragOver] = useState(false);
 
     // Deck-specific filter options
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
@@ -304,8 +310,57 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
         console.log('📋 Context menu should be open now');
     };
 
+    // Drag and drop handlers for receiving cards from deck sections
+    const handleDragOver = (e: React.DragEvent) => {
+        e.preventDefault();
+        const types = e.dataTransfer.types;
+        if (types.includes('application/json')) {
+            e.dataTransfer.dropEffect = 'move';
+            setIsDragOver(true);
+        }
+    };
+
+    const handleDragLeave = (e: React.DragEvent) => {
+        e.preventDefault();
+        const relatedTarget = e.relatedTarget as Element;
+        const currentTarget = e.currentTarget as Element;
+        if (relatedTarget && currentTarget.contains(relatedTarget)) {
+            return;
+        }
+        setIsDragOver(false);
+    };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(true);
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragOver(false);
+
+        try {
+            const dataString = e.dataTransfer.getData('application/json');
+            const data = JSON.parse(dataString);
+
+            // Only handle cards dropped from deck sections
+            if (data.type === 'deck-card' && data.cardId && data.sectionType && onRemoveFromDeck) {
+                console.log('🎯 Card dropped from deck to available cards:', data);
+                onRemoveFromDeck(data.cardId, data.sectionType, 1);
+            }
+        } catch (error) {
+            console.error('Invalid drag data:', error);
+        }
+    };
+
     return (
-        <div className="space-y-4">
+        <div
+            className="space-y-4"
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+        >
             {/* Filters */}
             <BinderFilters
                 cards={transformedCards}
@@ -349,7 +404,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
             )}
 
             {/* Card List */}
-            <div className="bg-white rounded-lg shadow-lg">
+            <div className={`bg-white rounded-lg shadow-lg transition-all ${isDragOver ? 'ring-4 ring-blue-500 ring-opacity-50 bg-blue-50' : ''}`}>
                 <div className="p-4 border-b border-gray-200">
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
@@ -374,6 +429,15 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                         />
                     </div>
                 </div>
+
+                {/* Drag overlay indicator */}
+                {isDragOver && (
+                    <div className="p-4 text-center bg-blue-100 border-t border-blue-200">
+                        <div className="text-blue-600 font-medium">
+                            Drop card here to remove from deck
+                        </div>
+                    </div>
+                )}
 
                 {/* Card Display based on view mode */}
                 <div className={viewMode === 'table' ? '' : 'max-h-96 overflow-y-auto'}>

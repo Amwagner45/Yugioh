@@ -269,6 +269,8 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                                 compactPadding={enhanced}
                                 allowOverlap={enhanced}
                                 disableZoom={true}
+                                isDeckSection={true}
+                                sectionType={sectionType}
                             />
                         ) : (
                             <CardListView
