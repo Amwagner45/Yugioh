@@ -100,38 +100,45 @@ const BinderStats: React.FC<BinderStatsProps> = ({
                 levelStats[level].quantity += binderCard.quantity;
             }
 
-            // Rarity and Set stats
-            if (card.card_sets) {
-                const rarities = new Set<string>();
-                const sets = new Set<string>();
-
-                card.card_sets.forEach(cardSet => {
-                    if (cardSet.set_rarity) {
-                        rarities.add(cardSet.set_rarity);
-                    }
-                    if (cardSet.set_code) {
-                        sets.add(cardSet.set_code);
-                    }
-                });
-
-                // Count each unique rarity once per card
-                rarities.forEach(rarity => {
-                    if (!rarityStats[rarity]) {
-                        rarityStats[rarity] = { count: 0, quantity: 0, percentage: 0 };
-                    }
+            // Rarity and Set stats - use specific rarity/set from binder card
+            if (binderCard.rarity) {
+                const rarity = binderCard.rarity;
+                if (!rarityStats[rarity]) {
+                    rarityStats[rarity] = { count: 0, quantity: 0, percentage: 0 };
+                }
+                rarityStats[rarity].count += 1;
+                rarityStats[rarity].quantity += binderCard.quantity;
+            } else if (card.card_sets && card.card_sets.length > 0) {
+                // Fallback to first available rarity if no specific rarity set
+                const rarity = card.card_sets[0].set_rarity;
+                if (rarity && !rarityStats[rarity]) {
+                    rarityStats[rarity] = { count: 0, quantity: 0, percentage: 0 };
+                }
+                if (rarity) {
                     rarityStats[rarity].count += 1;
                     rarityStats[rarity].quantity += binderCard.quantity;
-                });
+                }
+            }
 
-                // Count each unique set once per card
-                sets.forEach(setCode => {
-                    if (!setStats[setCode]) {
-                        const setName = card.card_sets?.find(s => s.set_code === setCode)?.set_name || setCode;
-                        setStats[setCode] = { setName, count: 0, quantity: 0, percentage: 0 };
-                    }
+            if (binderCard.setCode) {
+                const setCode = binderCard.setCode;
+                if (!setStats[setCode]) {
+                    const setName = card.card_sets?.find(s => s.set_code === setCode)?.set_name || setCode;
+                    setStats[setCode] = { setName, count: 0, quantity: 0, percentage: 0 };
+                }
+                setStats[setCode].count += 1;
+                setStats[setCode].quantity += binderCard.quantity;
+            } else if (card.card_sets && card.card_sets.length > 0) {
+                // Fallback to first available set if no specific set code set
+                const setCode = card.card_sets[0].set_code;
+                if (setCode && !setStats[setCode]) {
+                    const setName = card.card_sets[0].set_name;
+                    setStats[setCode] = { setName, count: 0, quantity: 0, percentage: 0 };
+                }
+                if (setCode) {
                     setStats[setCode].count += 1;
                     setStats[setCode].quantity += binderCard.quantity;
-                });
+                }
             }
         });
 
