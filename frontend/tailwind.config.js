@@ -20,6 +20,10 @@ export default {
                 '15': 'repeat(15, minmax(0, 1fr))',
                 '18': 'repeat(18, minmax(0, 1fr))',
                 '20': 'repeat(20, minmax(0, 1fr))',
+            },
+            cursor: {
+                'yugioh': 'url("./src/assets/yugioh-cursor.png"), auto',
+                'yugioh-pointer': 'url("./src/assets/yugioh-cursor.png"), pointer',
             }
         },
     },

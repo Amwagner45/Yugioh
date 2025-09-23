@@ -89,20 +89,12 @@ class DatabaseManager:
                 schema_sql = f.read()
 
             with self.get_connection() as conn:
-                # Execute schema in chunks (split by semicolon)
-                statements = [
-                    stmt.strip() for stmt in schema_sql.split(";") if stmt.strip()
-                ]
-                for statement in statements:
-                    if statement:  # Only execute non-empty statements
-                        try:
-                            conn.execute(statement)
-                        except Exception as e:
-                            logger.error(
-                                f"Failed to execute statement: {statement[:100]}..."
-                            )
-                            logger.error(f"Error: {e}")
-                            raise
+                # Use executescript for better handling of complex SQL
+                try:
+                    conn.executescript(schema_sql)
+                except Exception as e:
+                    logger.error(f"Failed to execute schema: {e}")
+                    raise
 
                 # Record initial schema version
                 conn.execute(

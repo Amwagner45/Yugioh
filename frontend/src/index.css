@@ -5,6 +5,7 @@
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 min-h-screen;
+    cursor: url('./assets/yugioh-cursor.png'), auto;
   }
 
   /* Dark theme support for specific components */
@@ -169,5 +170,26 @@
 
   .loading-spinner {
     @apply animate-spin rounded-full border-b-2 border-blue-600;
+  }
+
+  /* Cursor Utilities */
+  .cursor-yugioh {
+    cursor: url('./assets/yugioh-cursor.png'), auto !important;
+  }
+
+  .cursor-yugioh-pointer {
+    cursor: url('./assets/yugioh-cursor.png'), pointer !important;
+  }
+
+  /* Interactive elements with custom cursor */
+  button,
+  .btn-primary,
+  .btn-secondary,
+  .btn-icon,
+  a,
+  [role="button"],
+  .card:hover,
+  .clickable {
+    cursor: url('./assets/yugioh-cursor.png'), pointer !important;
   }
 }

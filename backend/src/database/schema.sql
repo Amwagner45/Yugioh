@@ -140,19 +140,9 @@ CREATE INDEX idx_decks_user_id ON decks(user_id);
 CREATE INDEX idx_decks_binder_id ON decks(binder_id);
 
 -- Create triggers for updating timestamps
-CREATE TRIGGER update_binders_timestamp 
-    AFTER UPDATE ON binders
-    FOR EACH ROW
-    BEGIN
-        UPDATE binders SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-    END;
+CREATE TRIGGER update_binders_timestamp AFTER UPDATE ON binders FOR EACH ROW BEGIN UPDATE binders SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
 
-CREATE TRIGGER update_decks_timestamp 
-    AFTER UPDATE ON decks
-    FOR EACH ROW
-    BEGIN
-        UPDATE decks SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
-    END;
+CREATE TRIGGER update_decks_timestamp AFTER UPDATE ON decks FOR EACH ROW BEGIN UPDATE decks SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
 
 -- Insert default user for single-user mode
 INSERT OR IGNORE INTO users (id, username, display_name) 
