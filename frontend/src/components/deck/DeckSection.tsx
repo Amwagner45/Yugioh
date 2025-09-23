@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import CardGridView from '../common/CardGridView';
 import CardListView from '../common/CardListView';
 import ViewModeToggle from '../common/ViewModeToggle';
+import EnhancedCardContextMenu from '../common/EnhancedCardContextMenu';
 import type { ViewMode } from '../common/ViewModeToggle';
 import type { DeckCard, BinderCard } from '../../types';
 
@@ -16,6 +17,9 @@ interface DeckSectionProps {
     sectionType: 'main' | 'extra' | 'side';
     binderCards?: BinderCard[];
     enhanced?: boolean; // For larger card display in FaBrary style
+    onMoveCard?: (cardId: number, fromSection: 'main' | 'extra' | 'side', toSection: 'main' | 'extra' | 'side', quantity?: number) => void;
+    onAddToSpecificSection?: (cardId: number, section: 'main' | 'extra' | 'side', quantity?: number) => void;
+    allDeckCards?: { mainDeck: DeckCard[]; extraDeck: DeckCard[]; sideDeck: DeckCard[] };
 }
 
 const DeckSection: React.FC<DeckSectionProps> = ({
@@ -28,13 +32,54 @@ const DeckSection: React.FC<DeckSectionProps> = ({
     minCards,
     sectionType,
     binderCards = [],
-    enhanced = false
+    enhanced = false,
+    onMoveCard,
+    onAddToSpecificSection,
+    allDeckCards
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
+    const [contextMenu, setContextMenu] = useState<{
+        isOpen: boolean;
+        position: { x: number; y: number };
+        cardId: number | null;
+    }>({
+        isOpen: false,
+        position: { x: 0, y: 0 },
+        cardId: null
+    });
 
     const totalCards = cards.reduce((sum, card) => sum + card.quantity, 0);
     const isValidCount = totalCards >= minCards && totalCards <= maxCards;
+
+    // Helper functions for context menu
+    const getCardQuantities = (cardId: number) => {
+        const binderCard = binderCards.find(bc => bc.cardId === cardId);
+        const quantityInBinder = binderCard?.quantity || 0;
+        
+        const quantityInMain = allDeckCards?.mainDeck.find(c => c.cardId === cardId)?.quantity || 0;
+        const quantityInExtra = allDeckCards?.extraDeck.find(c => c.cardId === cardId)?.quantity || 0;
+        const quantityInSide = allDeckCards?.sideDeck.find(c => c.cardId === cardId)?.quantity || 0;
+        
+        const totalUsed = quantityInMain + quantityInExtra + quantityInSide;
+        const availableCopies = Math.max(0, quantityInBinder - totalUsed);
+        
+        return {
+            quantityInBinder,
+            quantityInMain,
+            quantityInExtra,
+            quantityInSide,
+            availableCopies
+        };
+    };
+
+    const getCardDetails = (cardId: number) => {
+        return binderCards.find(bc => bc.cardId === cardId)?.card_details;
+    };
+
+    const getCurrentSectionQuantity = (cardId: number) => {
+        return cards.find(c => c.cardId === cardId)?.quantity || 0;
+    };
 
     // Transform deck cards to include card details
     const cardsWithDetails = cards.map(deckCard => {
@@ -96,7 +141,50 @@ const DeckSection: React.FC<DeckSectionProps> = ({
 
     const handleCardRightClick = (e: React.MouseEvent, cardId: number) => {
         e.preventDefault();
-        onRemoveCard(cardId, 1);
+        setContextMenu({
+            isOpen: true,
+            position: { x: e.clientX, y: e.clientY },
+            cardId
+        });
+    };
+
+    const handleAddToSection = (cardId: number, section: 'main' | 'extra' | 'side', quantity: number = 1) => {
+        if (section === sectionType) {
+            // Adding to current section
+            onAddCard(cardId, quantity);
+        } else if (onAddToSpecificSection) {
+            // Adding to different section
+            onAddToSpecificSection(cardId, section, quantity);
+        } else {
+            // Fallback: just add to current section
+            onAddCard(cardId, quantity);
+        }
+    };
+
+    const handleMoveToSection = (cardId: number, fromSection: 'main' | 'extra' | 'side', toSection: 'main' | 'extra' | 'side', quantity: number = 1) => {
+        if (onMoveCard) {
+            onMoveCard(cardId, fromSection, toSection, quantity);
+        } else {
+            // Fallback: remove from current section and add to target section
+            onRemoveCard(cardId, quantity);
+            if (onAddToSpecificSection) {
+                onAddToSpecificSection(cardId, toSection, quantity);
+            }
+        }
+    };
+
+    const handleRemoveFromSection = (cardId: number, section: 'main' | 'extra' | 'side', quantity: number = 1) => {
+        if (section === sectionType) {
+            // Removing from current section
+            onRemoveCard(cardId, quantity);
+        }
+        // Note: We can't remove from other sections from this component
+    };
+
+    const handleCardPreview = (cardId: number) => {
+        if (onCardClick) {
+            onCardClick(cardId);
+        }
     };
 
     const getSectionColor = () => {
@@ -189,6 +277,28 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* Enhanced Context Menu */}
+            {contextMenu.cardId && (
+                <EnhancedCardContextMenu
+                    isOpen={contextMenu.isOpen}
+                    onClose={() => setContextMenu({ ...contextMenu, isOpen: false })}
+                    position={contextMenu.position}
+                    cardId={contextMenu.cardId}
+                    cardDetails={getCardDetails(contextMenu.cardId)}
+                    currentLocation={sectionType}
+                    quantityInLocation={getCurrentSectionQuantity(contextMenu.cardId)}
+                    quantityInBinder={getCardQuantities(contextMenu.cardId).quantityInBinder}
+                    quantityInMain={getCardQuantities(contextMenu.cardId).quantityInMain}
+                    quantityInExtra={getCardQuantities(contextMenu.cardId).quantityInExtra}
+                    quantityInSide={getCardQuantities(contextMenu.cardId).quantityInSide}
+                    availableCopies={getCardQuantities(contextMenu.cardId).availableCopies}
+                    onAddToSection={handleAddToSection}
+                    onMoveToSection={handleMoveToSection}
+                    onRemoveFromSection={handleRemoveFromSection}
+                    onCardPreview={handleCardPreview}
+                />
+            )}
         </div>
     );
 };

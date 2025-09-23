@@ -209,6 +209,12 @@
 - [ ] Right click cards for options (move to Main Deck, Side Deck, Extra Deck, Remove Card, Preview Card, Add 1 more, Remove 1)
 - [ ] Available cards section is collapsable
 - [ ] View options for deck to have smaller images and fit all sections onto the screen
+- [ ] Main Deck, Side Deck, and Extra Deck are collapsable
+- [ ] Drag and drop card from Main Deck, Side Deck or Extra Deck to remove 1 copy
+- [ ] Card preview section should have all the options when right clicking a card and display how many copies of a card are available
+- [ ] If maximum amount of cards available are added to Deck or if 3 copies are in deck, then the search results should add red X overlay over a given card
+- [ ] Add this red X functionality and limited indicator to the card search too. Need to create, modify, and select a banlist and apply to a card search
+
 
 
 <!-- No. You made the change to include images and numbers at the top right which I appreciate, but we need to work on this UI much more. 

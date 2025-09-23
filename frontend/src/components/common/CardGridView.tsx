@@ -187,6 +187,7 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                             e.dataTransfer.setData('application/json', JSON.stringify(dragData));
                             e.dataTransfer.effectAllowed = 'copy';
                         }}
+
                     >
                         {/* Card Image */}
                         {hasCard ? (
@@ -195,8 +196,14 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                 size={imageSize}
                                 quantity={cardData.quantity}
                                 showZoom={!disableZoom}
-                                onClick={isAvailable && onCardClick ? () => onCardClick(cardData.cardId) : undefined}
-                                onRightClick={onCardRightClick ? (e) => onCardRightClick(e, cardData.cardId) : undefined}
+                                onClick={isAvailable && onCardClick ? () => {
+                                    console.log('🎯 CardGridView onClick for card:', cardData.card_details!.name);
+                                    onCardClick(cardData.cardId);
+                                } : undefined}
+                                onRightClick={onCardRightClick ? (e) => {
+                                    console.log('🎯 CardGridView onRightClick for card:', cardData.card_details!.name);
+                                    onCardRightClick(e, cardData.cardId);
+                                } : undefined}
                                 className={`${isAvailable && onCardClick
                                     ? 'cursor-pointer'
                                     : isAvailable

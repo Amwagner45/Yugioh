@@ -516,6 +516,24 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
     };
 
+    const handleMoveCardBetweenSections = async (cardId: number, fromSection: 'main' | 'extra' | 'side', toSection: 'main' | 'extra' | 'side', quantity: number = 1) => {
+        if (!deck?.id || fromSection === toSection) return;
+
+        try {
+            // First remove from source section
+            await handleRemoveCardFromDeck(cardId, fromSection, quantity);
+            
+            // Then add to target section
+            await handleAddCardToDeck(cardId, toSection, quantity);
+        } catch (error) {
+            console.error('Failed to move card between sections:', error);
+            alert('Failed to move card between sections. Please try again.');
+            
+            // On error, reload deck to ensure consistency
+            await loadDeck();
+        }
+    };
+
     const loadAvailableDecks = async () => {
         try {
             const decks = await deckService.getDecks();
@@ -809,7 +827,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             <div className="bg-white rounded-lg shadow-lg h-full overflow-hidden">
                                 <EnhancedBinderCardList
                                     binder={binder}
-                                    onCardClick={(cardId: number) => handleAddCardToDeck(cardId, 'main', 1)}
+                                    onCardClick={handleCardPreview}
+                                    onAddToSection={handleAddCardToDeck}
                                     showQuantities={true}
                                     title="Available Cards"
                                     currentDeck={deck}
@@ -836,6 +855,13 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     sectionType="main"
                                     binderCards={binder?.cards || []}
                                     enhanced={true}
+                                    onMoveCard={handleMoveCardBetweenSections}
+                                    onAddToSpecificSection={handleAddCardToDeck}
+                                    allDeckCards={{
+                                        mainDeck: deck.mainDeck,
+                                        extraDeck: deck.extraDeck,
+                                        sideDeck: deck.sideDeck
+                                    }}
                                 />
                             </div>
 
@@ -853,6 +879,13 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                         sectionType="extra"
                                         binderCards={binder?.cards || []}
                                         enhanced={true}
+                                        onMoveCard={handleMoveCardBetweenSections}
+                                        onAddToSpecificSection={handleAddCardToDeck}
+                                        allDeckCards={{
+                                            mainDeck: deck.mainDeck,
+                                            extraDeck: deck.extraDeck,
+                                            sideDeck: deck.sideDeck
+                                        }}
                                     />
                                 </div>
 
@@ -868,6 +901,13 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                         sectionType="side"
                                         binderCards={binder?.cards || []}
                                         enhanced={true}
+                                        onMoveCard={handleMoveCardBetweenSections}
+                                        onAddToSpecificSection={handleAddCardToDeck}
+                                        allDeckCards={{
+                                            mainDeck: deck.mainDeck,
+                                            extraDeck: deck.extraDeck,
+                                            sideDeck: deck.sideDeck
+                                        }}
                                     />
                                 </div>
                             </div>

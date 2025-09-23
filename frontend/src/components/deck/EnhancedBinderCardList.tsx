@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { Binder, BinderCard, DeckCard } from '../../types';
 import BinderFilters from '../binder/BinderFilters';
 import type { BinderFilterOptions, BinderSortOption } from '../binder/BinderFilters';
-import CardContextMenu from '../common/CardContextMenu';
+import EnhancedCardContextMenu from '../common/EnhancedCardContextMenu';
 import CardGridView from '../common/CardGridView';
 import CardListView from '../common/CardListView';
 import CardTableView from '../common/CardTableView';
@@ -16,15 +16,24 @@ interface EnhancedBinderCardListProps {
     allowEditing?: boolean;
     title?: string;
     currentDeck?: { mainDeck: DeckCard[]; extraDeck: DeckCard[]; sideDeck: DeckCard[] };
+    showQuantities?: boolean;
+    compact?: boolean;
 }
 
 const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     binder,
     onCardClick,
     onAddToSection,
+    allowEditing,
     title = "Available Cards",
-    currentDeck
+    currentDeck,
+    showQuantities = true,
+    compact = false
 }) => {
+    console.log('🚀 EnhancedBinderCardList MOUNTED/UPDATED with', binder.cards.length, 'cards');
+    console.log('🚀 First 5 cards:', binder.cards.slice(0, 5).map(c => c.card_details?.name));
+    console.log('🚀 Looking for 8-Claws:', binder.cards.find(c => c.card_details?.name?.includes('8-Claws')));
+
     // Filter and sort state
     const [filters, setFilters] = useState<BinderFilterOptions>({
         searchTerm: '',
@@ -71,6 +80,28 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
             .reduce((sum, card) => sum + card.quantity, 0);
     };
 
+    // Helper functions for individual deck sections
+    const getCardUsageInMain = (cardId: number) => {
+        if (!currentDeck) return 0;
+        return currentDeck.mainDeck
+            .filter(card => card.cardId === cardId)
+            .reduce((sum, card) => sum + card.quantity, 0);
+    };
+
+    const getCardUsageInExtra = (cardId: number) => {
+        if (!currentDeck) return 0;
+        return currentDeck.extraDeck
+            .filter(card => card.cardId === cardId)
+            .reduce((sum, card) => sum + card.quantity, 0);
+    };
+
+    const getCardUsageInSide = (cardId: number) => {
+        if (!currentDeck) return 0;
+        return currentDeck.sideDeck
+            .filter(card => card.cardId === cardId)
+            .reduce((sum, card) => sum + card.quantity, 0);
+    };
+
     // Helper function to get available copies for deck building
     const getAvailableCopies = (card: BinderCard) => {
         if (!currentDeck) return card.quantity;
@@ -80,12 +111,19 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
 
     // Transform binder cards to the format expected by filters
     const transformedCards = useMemo(() => {
-        return binder.cards.map(card => ({
+        const transformed = binder.cards.map(card => ({
             cardId: card.cardId,
             card: card.card_details,
             quantity: card.quantity,
             binderCard: card
         }));
+        
+        console.log('🔍 BINDER RAW CARDS:', transformed.length, 'total cards');
+        console.log('🔍 Looking for 8-Claws Scorpion in binder:', 
+            transformed.find(c => c.card?.name?.includes('8-Claws') || c.card?.name?.includes('Scorpion')));
+        console.log('🔍 First 5 binder cards:', transformed.slice(0, 5).map(c => c.card?.name));
+        
+        return transformed;
     }, [binder.cards]);
 
     // Apply filters and sorting
@@ -224,7 +262,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
 
     // Transform cards for the new view components
     const transformedCardsForView = useMemo(() => {
-        return filteredAndSortedCards.map(({ binderCard }) => ({
+        const transformed = filteredAndSortedCards.map(({ binderCard }) => ({
             cardId: binderCard.cardId,
             quantity: binderCard.quantity,
             card_details: binderCard.card_details,
@@ -234,6 +272,12 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
             rarity: binderCard.rarity,
             tags: binderCard.tags
         }));
+        
+        console.log('🔍 Available Cards being passed to view:', transformed.map(c => c.card_details?.name).slice(0, 10));
+        console.log('🔍 Total cards for view:', transformed.length);
+        console.log('🔍 Looking for 8-Claws Scorpion:', transformed.find(c => c.card_details?.name?.includes('8-Claws')));
+        
+        return transformed;
     }, [filteredAndSortedCards]);
 
     const totalCards = binder.cards.reduce((sum, card) => sum + card.quantity, 0);
@@ -242,18 +286,22 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     const availableCards = currentDeck ? binder.cards.filter(card => getAvailableCopies(card) > 0).length : uniqueCards;
 
     const handleCardClick = (cardId: number) => {
+        console.log('👆 EnhancedBinderCardList handleCardClick called for card:', cardId);
         if (onCardClick) {
             onCardClick(cardId);
         }
     };
 
     const handleCardRightClick = (e: React.MouseEvent, cardId: number) => {
+        console.log('🎯 EnhancedBinderCardList handleCardRightClick called for card:', cardId);
         e.preventDefault();
+        e.stopPropagation();
         setContextMenu({
             isOpen: true,
             position: { x: e.clientX, y: e.clientY },
             cardId: cardId
         });
+        console.log('📋 Context menu should be open now');
     };
 
     return (
@@ -365,39 +413,31 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                                     showDeckInfo={!!currentDeck}
                                 />
                             )}
+                            {console.log('🎮 Current view mode:', viewMode, 'with', transformedCardsForView.length, 'cards')}
                         </>
                     )}
                 </div>
             </div>
 
-            {/* Context Menu */}
-            <CardContextMenu
-                isOpen={contextMenu.isOpen}
-                onClose={() => setContextMenu({ ...contextMenu, isOpen: false })}
-                position={contextMenu.position}
-                options={contextMenu.cardId ? [
-                    {
-                        label: 'Add to Main Deck',
-                        onClick: () => onAddToSection?.(contextMenu.cardId!, 'main', 1),
-                        disabled: !onAddToSection || getAvailableCopies(binder.cards.find(c => c.cardId === contextMenu.cardId)!) <= 0,
-                        icon: '🎯'
-                    },
-                    {
-                        label: 'Add to Extra Deck',
-                        onClick: () => onAddToSection?.(contextMenu.cardId!, 'extra', 1),
-                        disabled: !onAddToSection || getAvailableCopies(binder.cards.find(c => c.cardId === contextMenu.cardId)!) <= 0,
-                        icon: '⭐'
-                    },
-                    {
-                        label: 'Add to Side Deck',
-                        onClick: () => onAddToSection?.(contextMenu.cardId!, 'side', 1),
-                        disabled: !onAddToSection || getAvailableCopies(binder.cards.find(c => c.cardId === contextMenu.cardId)!) <= 0,
-                        icon: '📋'
-                    },
-                ] : []}
-            />
+            {/* Enhanced Context Menu - Fixed positioning */}
+            {contextMenu.cardId && (
+                <EnhancedCardContextMenu
+                    isOpen={contextMenu.isOpen}
+                    onClose={() => setContextMenu({ ...contextMenu, isOpen: false })}
+                    position={contextMenu.position}
+                    cardId={contextMenu.cardId}
+                    cardDetails={binder.cards.find(c => c.cardId === contextMenu.cardId)?.card_details}
+                    currentLocation="binder"
+                    quantityInLocation={0}
+                    quantityInBinder={binder.cards.find(c => c.cardId === contextMenu.cardId)?.quantity || 0}
+                    quantityInMain={contextMenu.cardId ? getCardUsageInMain(contextMenu.cardId) : 0}
+                    quantityInExtra={contextMenu.cardId ? getCardUsageInExtra(contextMenu.cardId) : 0}
+                    quantityInSide={contextMenu.cardId ? getCardUsageInSide(contextMenu.cardId) : 0}
+                    availableCopies={getAvailableCopies(binder.cards.find(c => c.cardId === contextMenu.cardId)!)}
+                    onAddToSection={onAddToSection}
+                    onCardPreview={onCardClick}
+                />
+            )}
         </div>
     );
 };
-
-export default EnhancedBinderCardList;

@@ -28,6 +28,13 @@ const CardImage: React.FC<CardImageProps> = ({
     onClick,
     onRightClick
 }) => {
+    console.log('🔧 CardImage props:', { 
+        cardName: card.name, 
+        hasOnClick: !!onClick, 
+        hasOnRightClick: !!onRightClick,
+        showZoom 
+    });
+    
     const [isZoomed, setIsZoomed] = useState(false);
     const [imageError, setImageError] = useState(false);
 
@@ -48,18 +55,31 @@ const CardImage: React.FC<CardImageProps> = ({
         setImageError(true);
     };
 
-    const handleImageClick = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (showZoom) {
-            setIsZoomed(true);
+    const handleMouseUp = (e: React.MouseEvent) => {
+        console.log('🖱️ CardImage handleMouseUp - button:', e.button, 'type:', e.type);
+        
+        if (e.button === 0) {
+            // Left click only
+            console.log('👆 Left click detected - triggering onClick');
+            e.stopPropagation();
+            
+            // Only auto-zoom if we don't have a right-click handler AND showZoom is enabled
+            if (showZoom && !onRightClick) {
+                setIsZoomed(true);
+            }
+            
+            // Only call onClick if this is actually a left click
+            onClick?.();
+        } else if (e.button === 2) {
+            // Right click only
+            console.log('👆 Right click detected - triggering onRightClick');
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Don't call onClick for right clicks
+            onRightClick?.(e);
+            return; // Early return to prevent any other handling
         }
-        onClick?.();
-    };
-
-    const handleContextMenu = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onRightClick?.(e);
     };
 
     // Create stacked effect for quantities > 1
@@ -73,8 +93,26 @@ const CardImage: React.FC<CardImageProps> = ({
             <div
                 className={`relative ${sizeClasses[size]} ${className} ${stackOffset}`}
                 style={stackStyle}
-                onClick={handleImageClick}
-                onContextMenu={handleContextMenu}
+                onMouseUp={handleMouseUp}
+                onContextMenu={(e) => {
+                    console.log('🖼️ DIV onContextMenu triggered for:', card.name);
+                    e.preventDefault();
+                    if (onRightClick) {
+                        console.log('🖼️ Calling onRightClick from onContextMenu');
+                        onRightClick(e);
+                    }
+                }}
+                onMouseDown={(e) => {
+                    if (e.button === 2) { // Right click
+                        console.log('🖼️ DIV onMouseDown RIGHT CLICK for:', card.name);
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (onRightClick) {
+                            console.log('🖼️ Calling onRightClick from onMouseDown');
+                            onRightClick(e);
+                        }
+                    }
+                }}
             >
                 {/* Stack effect for multiple quantities */}
                 {quantity && quantity > 1 && (
@@ -94,6 +132,19 @@ const CardImage: React.FC<CardImageProps> = ({
                         }`}
                     onError={handleImageError}
                     loading="lazy"
+                    onMouseUp={(e) => {
+                        console.log('🖼️ Image onMouseUp:', e.button);
+                        if (e.button === 2) {
+                            console.log('🖼️ Right-click on image element!');
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onRightClick?.(e);
+                        }
+                    }}
+                    onContextMenu={(e) => {
+                        console.log('🖼️ Image onContextMenu triggered');
+                        e.preventDefault();
+                    }}
                 />
 
                 {/* Quantity indicator overlay - Top left inside card */}

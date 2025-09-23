@@ -6,10 +6,12 @@ import AdvancedSearchModal from '../common/AdvancedSearchModal';
 import FilterPresetManager from '../common/FilterPresetManager';
 import ViewModeToggle, { type ViewMode } from '../common/ViewModeToggle';
 import CardDetailModal from '../common/CardDetailModal';
+import EnhancedCardContextMenu from '../common/EnhancedCardContextMenu';
 
 interface EnhancedBinderCardListProps {
     binder: Binder;
     onCardClick?: (cardId: number) => void;
+    onAddToSection?: (cardId: number, section: 'main' | 'extra' | 'side', quantity?: number) => void;
     showQuantities?: boolean;
     allowEditing?: boolean;
     title?: string;
@@ -20,11 +22,14 @@ interface EnhancedBinderCardListProps {
 const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     binder,
     onCardClick,
+    onAddToSection,
     showQuantities = true,
     title = "Cards",
     currentDeck,
     compact = false
 }) => {
+    console.log('🚀 CORRECT EnhancedBinderCardList MOUNTED with', binder.cards.length, 'cards');
+    console.log('🚀 Has onAddToSection:', !!onAddToSection);
     // View and display state
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -59,6 +64,17 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     const [selectedCard, setSelectedCard] = useState<BinderCard | null>(null);
     const [showCardModal, setShowCardModal] = useState(false);
 
+    // Context menu state
+    const [contextMenu, setContextMenu] = useState<{
+        isOpen: boolean;
+        position: { x: number; y: number };
+        cardId: number | null;
+    }>({
+        isOpen: false,
+        position: { x: 0, y: 0 },
+        cardId: null
+    });
+
     // Helper function to get how many copies of a card are used in current deck
     const getCardUsageInDeck = (cardId: number) => {
         if (!currentDeck) return 0;
@@ -73,6 +89,28 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
         if (!currentDeck) return card.quantity;
         const usedInDeck = getCardUsageInDeck(card.cardId);
         return card.quantity - usedInDeck;
+    };
+
+    // Helper functions for individual deck sections
+    const getCardUsageInMain = (cardId: number) => {
+        if (!currentDeck) return 0;
+        return currentDeck.mainDeck
+            .filter(card => card.cardId === cardId)
+            .reduce((sum, card) => sum + card.quantity, 0);
+    };
+
+    const getCardUsageInExtra = (cardId: number) => {
+        if (!currentDeck) return 0;
+        return currentDeck.extraDeck
+            .filter(card => card.cardId === cardId)
+            .reduce((sum, card) => sum + card.quantity, 0);
+    };
+
+    const getCardUsageInSide = (cardId: number) => {
+        if (!currentDeck) return 0;
+        return currentDeck.sideDeck
+            .filter(card => card.cardId === cardId)
+            .reduce((sum, card) => sum + card.quantity, 0);
     };
 
     // Apply filters to cards
@@ -243,11 +281,15 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
         setShowCardModal(true);
     };
 
-    const handleCardRightClick = (card: BinderCard) => {
-        // Call the original onCardClick for deck building functionality
-        if (onCardClick) {
-            onCardClick(card.cardId);
-        }
+    const handleCardRightClick = (e: React.MouseEvent, card: BinderCard) => {
+        console.log('🎯 BINDER Right-click on card:', card.cardId, card.card_details?.name);
+        e.preventDefault();
+        e.stopPropagation();
+        setContextMenu({
+            isOpen: true,
+            position: { x: e.clientX, y: e.clientY },
+            cardId: card.cardId
+        });
     };
 
     const handleCloseModal = () => {
@@ -491,7 +533,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                                         key={`${card.cardId}-${card.setCode || 'noset'}-${card.rarity || 'norarity'}-${index}`}
                                         card={card}
                                         onClick={() => handleCardClick(card)}
-                                        onRightClick={() => handleCardRightClick(card)}
+                                        onRightClick={(e, card) => handleCardRightClick(e, card)}
                                         showQuantity={showQuantities}
                                         availableCopies={getAvailableCopies(card)}
                                         usedInDeck={getCardUsageInDeck(card.cardId)}
@@ -542,6 +584,26 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                     onClose={handleCloseModal}
                 />
             )}
+
+            {/* Enhanced Context Menu */}
+            {contextMenu.cardId && (
+                <EnhancedCardContextMenu
+                    isOpen={contextMenu.isOpen}
+                    onClose={() => setContextMenu({ ...contextMenu, isOpen: false })}
+                    position={contextMenu.position}
+                    cardId={contextMenu.cardId}
+                    cardDetails={binder.cards.find(c => c.cardId === contextMenu.cardId)?.card_details}
+                    currentLocation="binder"
+                    quantityInLocation={0}
+                    quantityInBinder={binder.cards.find(c => c.cardId === contextMenu.cardId)?.quantity || 0}
+                    quantityInMain={contextMenu.cardId ? getCardUsageInMain(contextMenu.cardId) : 0}
+                    quantityInExtra={contextMenu.cardId ? getCardUsageInExtra(contextMenu.cardId) : 0}
+                    quantityInSide={contextMenu.cardId ? getCardUsageInSide(contextMenu.cardId) : 0}
+                    availableCopies={binder.cards.find(c => c.cardId === contextMenu.cardId) ? getAvailableCopies(binder.cards.find(c => c.cardId === contextMenu.cardId)!) : 0}
+                    onAddToSection={onAddToSection}
+                    onCardPreview={onCardClick}
+                />
+            )}
         </div>
     );
 };
@@ -550,7 +612,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
 interface BinderCardItemProps {
     card: BinderCard;
     onClick?: () => void; // Left click - show card details
-    onRightClick?: () => void; // Right click - add/remove from deck
+    onRightClick?: (e: React.MouseEvent, card: BinderCard) => void; // Right click - context menu
     showQuantity?: boolean;
     availableCopies?: number;
     usedInDeck?: number;
@@ -595,7 +657,7 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
     const handleRightClick = (e: React.MouseEvent) => {
         e.preventDefault();
         if (onRightClick && isAvailable) {
-            onRightClick();
+            onRightClick(e, card);
         }
     };
 
