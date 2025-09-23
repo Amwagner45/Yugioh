@@ -172,9 +172,10 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                                 cards={cardsWithDetails}
                                 onCardClick={handleCardClick}
                                 onCardRightClick={handleCardRightClick}
-                                gridSize={enhanced ? (sectionType === 'main' ? "lg" : "md") : "sm"}
-                                gapSize={enhanced ? (sectionType === 'main' ? "sm" : "md") : "md"}
-                                compactPadding={enhanced && sectionType === 'main'}
+                                gridSize={enhanced ? "lg" : "sm"}
+                                gapSize={enhanced ? "sm" : "md"}
+                                compactPadding={enhanced}
+                                allowOverlap={enhanced}
                                 disableZoom={true}
                             />
                         ) : (

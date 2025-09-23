@@ -96,9 +96,9 @@ const CardImage: React.FC<CardImageProps> = ({
                     loading="lazy"
                 />
 
-                {/* Quantity indicator overlay */}
+                {/* Quantity indicator overlay - Top left with orange background */}
                 {quantity && quantity > 1 && (
-                    <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-sm">
+                    <div className="absolute -top-1 -left-1 bg-orange-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-sm">
                         {quantity > 99 ? '99+' : quantity}
                     </div>
                 )}
