@@ -366,68 +366,161 @@ export class BinderExportService {
             }
 
             const headers = this.parseCSVRow(lines[0]);
-            const cardIdIndex = headers.findIndex(h => h.toLowerCase().includes('card id'));
-            const quantityIndex = headers.findIndex(h => h.toLowerCase().includes('quantity'));
 
-            if (cardIdIndex === -1 || quantityIndex === -1) {
-                result.errors.push('CSV must have "Card ID" and "Quantity" columns');
-                return result;
+            // Check for the new format first (cardname, cardq, cardid, etc.)
+            const isNewFormat = this.isNewCSVFormat(headers);
+
+            if (isNewFormat) {
+                return this.importFromNewCSVFormat(lines, result);
+            } else {
+                return this.importFromLegacyCSVFormat(lines, result);
             }
-
-            const setCodeIndex = headers.findIndex(h => h.toLowerCase().includes('set'));
-            const rarityIndex = headers.findIndex(h => h.toLowerCase().includes('rarity'));
-            const tagsIndex = headers.findIndex(h => h.toLowerCase().includes('tags'));
-            const notesIndex = headers.findIndex(h => h.toLowerCase().includes('notes'));
-
-            const binder: Binder = {
-                id: `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-                name: 'Imported Binder',
-                description: 'Imported from CSV file',
-                cards: [],
-                createdAt: new Date(),
-                modifiedAt: new Date(),
-            };
-
-            for (let i = 1; i < lines.length; i++) {
-                const row = this.parseCSVRow(lines[i]);
-
-                if (row.length <= Math.max(cardIdIndex, quantityIndex)) {
-                    result.warnings.push(`Row ${i + 1}: Insufficient columns`);
-                    continue;
-                }
-
-                const cardId = parseInt(row[cardIdIndex]);
-                const quantity = parseInt(row[quantityIndex]);
-
-                if (isNaN(cardId) || isNaN(quantity) || quantity < 1) {
-                    result.warnings.push(`Row ${i + 1}: Invalid card ID or quantity`);
-                    continue;
-                }
-
-                const binderCard: BinderCard = {
-                    cardId,
-                    quantity,
-                    setCode: setCodeIndex >= 0 && row[setCodeIndex] ? row[setCodeIndex] : undefined,
-                    rarity: rarityIndex >= 0 && row[rarityIndex] ? row[rarityIndex] : undefined,
-                    tags: tagsIndex >= 0 && row[tagsIndex] ? row[tagsIndex].split(';').map(t => t.trim()).filter(Boolean) : undefined,
-                    notes: notesIndex >= 0 && row[notesIndex] ? row[notesIndex] : undefined,
-                };
-
-                binder.cards.push(binderCard);
-            }
-
-            result.success = true;
-            result.binder = binder;
-
-            if (result.warnings.length > 0) {
-                result.warnings.push(`Successfully imported ${binder.cards.length} cards with ${result.warnings.length} warnings`);
-            }
-
-            return result;
         } catch (error) {
             result.errors.push(`Failed to parse CSV: ${error instanceof Error ? error.message : 'Unknown error'}`);
             return result;
         }
+    }
+
+    /**
+     * Check if CSV uses the new format (cardname, cardq, cardid, etc.)
+     */
+    private isNewCSVFormat(headers: string[]): boolean {
+        const lowerHeaders = headers.map(h => h.toLowerCase().trim());
+        return lowerHeaders.includes('cardname') &&
+            lowerHeaders.includes('cardq') &&
+            lowerHeaders.includes('cardid');
+    }
+
+    /**
+     * Import from new CSV format (cardname, cardq, cardid, cardrarity, cardcondition, card_edition, cardset, cardcode)
+     */
+    private importFromNewCSVFormat(lines: string[], result: ImportResult): ImportResult {
+        const headers = this.parseCSVRow(lines[0]);
+        const lowerHeaders = headers.map(h => h.toLowerCase().trim());
+
+        // Find column indices for the new format
+        const quantityIndex = lowerHeaders.indexOf('cardq');
+        const cardIdIndex = lowerHeaders.indexOf('cardid');
+        const rarityIndex = lowerHeaders.indexOf('cardrarity');
+        const conditionIndex = lowerHeaders.indexOf('cardcondition');
+        const editionIndex = lowerHeaders.indexOf('card_edition');
+        const setCodeIndex = lowerHeaders.indexOf('cardcode');
+
+        if (cardIdIndex === -1 || quantityIndex === -1) {
+            result.errors.push('CSV must have "cardid" and "cardq" columns');
+            return result;
+        }
+
+        const binder: Binder = {
+            id: `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: 'Imported Binder',
+            description: 'Imported from CSV file',
+            cards: [],
+            createdAt: new Date(),
+            modifiedAt: new Date(),
+        };
+
+        for (let i = 1; i < lines.length; i++) {
+            const row = this.parseCSVRow(lines[i]);
+
+            if (row.length <= Math.max(cardIdIndex, quantityIndex)) {
+                result.warnings.push(`Row ${i + 1}: Insufficient columns`);
+                continue;
+            }
+
+            const cardId = parseInt(row[cardIdIndex]);
+            const quantity = parseInt(row[quantityIndex]);
+
+            if (isNaN(cardId) || isNaN(quantity) || quantity < 1) {
+                result.warnings.push(`Row ${i + 1}: Invalid card ID or quantity`);
+                continue;
+            }
+
+            const binderCard: BinderCard = {
+                cardId,
+                quantity,
+                setCode: setCodeIndex >= 0 && row[setCodeIndex] ? row[setCodeIndex] : undefined,
+                rarity: rarityIndex >= 0 && row[rarityIndex] ? row[rarityIndex] : undefined,
+                condition: conditionIndex >= 0 && row[conditionIndex] ? row[conditionIndex] : undefined,
+                edition: editionIndex >= 0 && row[editionIndex] ? row[editionIndex] : undefined,
+            };
+
+            binder.cards.push(binderCard);
+        }
+
+        result.success = true;
+        result.binder = binder;
+
+        if (result.warnings.length > 0) {
+            result.warnings.push(`Successfully imported ${binder.cards.length} cards with ${result.warnings.length} warnings`);
+        }
+
+        return result;
+    }
+
+    /**
+     * Import from legacy CSV format (Card ID, Quantity, etc.)
+     */
+    private importFromLegacyCSVFormat(lines: string[], result: ImportResult): ImportResult {
+        const headers = this.parseCSVRow(lines[0]);
+        const cardIdIndex = headers.findIndex(h => h.toLowerCase().includes('card id'));
+        const quantityIndex = headers.findIndex(h => h.toLowerCase().includes('quantity'));
+
+        if (cardIdIndex === -1 || quantityIndex === -1) {
+            result.errors.push('CSV must have "Card ID" and "Quantity" columns');
+            return result;
+        }
+
+        const setCodeIndex = headers.findIndex(h => h.toLowerCase().includes('set'));
+        const rarityIndex = headers.findIndex(h => h.toLowerCase().includes('rarity'));
+        const tagsIndex = headers.findIndex(h => h.toLowerCase().includes('tags'));
+        const notesIndex = headers.findIndex(h => h.toLowerCase().includes('notes'));
+
+        const binder: Binder = {
+            id: `imported-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+            name: 'Imported Binder',
+            description: 'Imported from CSV file',
+            cards: [],
+            createdAt: new Date(),
+            modifiedAt: new Date(),
+        };
+
+        for (let i = 1; i < lines.length; i++) {
+            const row = this.parseCSVRow(lines[i]);
+
+            if (row.length <= Math.max(cardIdIndex, quantityIndex)) {
+                result.warnings.push(`Row ${i + 1}: Insufficient columns`);
+                continue;
+            }
+
+            const cardId = parseInt(row[cardIdIndex]);
+            const quantity = parseInt(row[quantityIndex]);
+
+            if (isNaN(cardId) || isNaN(quantity) || quantity < 1) {
+                result.warnings.push(`Row ${i + 1}: Invalid card ID or quantity`);
+                continue;
+            }
+
+            const binderCard: BinderCard = {
+                cardId,
+                quantity,
+                setCode: setCodeIndex >= 0 && row[setCodeIndex] ? row[setCodeIndex] : undefined,
+                rarity: rarityIndex >= 0 && row[rarityIndex] ? row[rarityIndex] : undefined,
+                tags: tagsIndex >= 0 && row[tagsIndex] ? row[tagsIndex].split(';').map(t => t.trim()).filter(Boolean) : undefined,
+                notes: notesIndex >= 0 && row[notesIndex] ? row[notesIndex] : undefined,
+            };
+
+            binder.cards.push(binderCard);
+        }
+
+        result.success = true;
+        result.binder = binder;
+
+        if (result.warnings.length > 0) {
+            result.warnings.push(`Successfully imported ${binder.cards.length} cards with ${result.warnings.length} warnings`);
+        }
+
+        return result;
     }
 
     /**

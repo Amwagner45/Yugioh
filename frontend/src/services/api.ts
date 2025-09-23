@@ -104,7 +104,16 @@ export const binderService = {
 
     async createBinder(binder: Omit<import('../types').Binder, 'id' | 'cards' | 'createdAt' | 'modifiedAt'>) {
         try {
-            const response = await api.post('/api/binders', binder);
+            const formData = new FormData();
+            formData.append('name', binder.name);
+            if (binder.description) formData.append('description', binder.description);
+            if (binder.tags) formData.append('tags', binder.tags.join(','));
+
+            const response = await api.post('/api/binders', formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             return response.data;
         } catch (error) {
             console.error('Error creating binder:', error);
@@ -112,9 +121,18 @@ export const binderService = {
         }
     },
 
-    async updateBinder(id: string, binder: Partial<import('../types').Binder>) {
+    async updateBinder(uuid: string, binder: Partial<import('../types').Binder>) {
         try {
-            const response = await api.put(`/api/binders/${id}`, binder);
+            const formData = new FormData();
+            if (binder.name) formData.append('name', binder.name);
+            if (binder.description) formData.append('description', binder.description);
+            if (binder.tags) formData.append('tags', binder.tags.join(','));
+
+            const response = await api.put(`/api/binders/${uuid}`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             return response.data;
         } catch (error) {
             console.error('Error updating binder:', error);
@@ -122,9 +140,9 @@ export const binderService = {
         }
     },
 
-    async deleteBinder(id: string) {
+    async deleteBinder(uuid: string) {
         try {
-            const response = await api.delete(`/api/binders/${id}`);
+            const response = await api.delete(`/api/binders/${uuid}`);
             return response.data;
         } catch (error) {
             console.error('Error deleting binder:', error);
@@ -132,12 +150,68 @@ export const binderService = {
         }
     },
 
-    async getBinder(id: string) {
+    async getBinder(uuid: string) {
         try {
-            const response = await api.get(`/api/binders/${id}`);
+            const response = await api.get(`/api/binders/${uuid}`);
             return response.data;
         } catch (error) {
             console.error('Error fetching binder:', error);
+            return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async importCSV(binderUuid: string, file: File, createNew: boolean = false, binderName?: string) {
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('create_new', createNew.toString());
+            if (binderName) formData.append('binder_name', binderName);
+
+            const response = await api.post(`/api/binders/${binderUuid}/import-csv`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error importing CSV:', error);
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : 'Unknown error',
+                errors: [],
+                warnings: [],
+            };
+        }
+    },
+
+    async addCard(
+        binderUuid: string,
+        cardId: number,
+        quantity: number = 1,
+        setCode?: string,
+        rarity?: string,
+        condition: string = 'Near Mint',
+        edition?: string,
+        notes?: string
+    ) {
+        try {
+            const formData = new FormData();
+            formData.append('card_id', cardId.toString());
+            formData.append('quantity', quantity.toString());
+            formData.append('condition', condition);
+            if (setCode) formData.append('set_code', setCode);
+            if (rarity) formData.append('rarity', rarity);
+            if (edition) formData.append('edition', edition);
+            if (notes) formData.append('notes', notes);
+
+            const response = await api.post(`/api/binders/${binderUuid}/cards`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error adding card to binder:', error);
             return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     },

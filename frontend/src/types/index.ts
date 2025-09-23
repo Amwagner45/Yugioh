@@ -42,6 +42,7 @@ export interface BinderCard {
     setCode?: string;
     rarity?: string;
     condition?: string;
+    edition?: string;  // New field for card edition
     notes?: string;
     tags?: string[];
     dateAdded?: Date;

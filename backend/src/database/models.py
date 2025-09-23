@@ -378,6 +378,7 @@ class Binder:
         set_code: str = None,
         rarity: str = None,
         condition: str = "Near Mint",
+        edition: str = None,
         notes: str = None,
     ) -> "BinderCard":
         """Add a card to this binder"""
@@ -391,6 +392,7 @@ class Binder:
             set_code=set_code,
             rarity=rarity,
             condition=condition,
+            edition=edition,
             notes=notes,
         )
         return binder_card.save()
@@ -452,6 +454,9 @@ class BinderCard:
     set_code: Optional[str] = None
     rarity: Optional[str] = None
     condition: str = "Near Mint"
+    edition: Optional[str] = (
+        None  # New field for card edition (1st Edition, Unlimited, etc.)
+    )
     notes: Optional[str] = None
     date_added: Optional[datetime] = None
 
@@ -472,6 +477,9 @@ class BinderCard:
             set_code=row["set_code"],
             rarity=row["rarity"],
             condition=row["condition"],
+            edition=(
+                row["edition"] if "edition" in row.keys() else None
+            ),  # Handle potential missing column
             notes=row["notes"],
             date_added=(
                 datetime.fromisoformat(row["date_added"]) if row["date_added"] else None
@@ -493,7 +501,7 @@ class BinderCard:
                 conn.execute(
                     """
                     UPDATE binder_cards SET quantity = ?, set_code = ?, 
-                           rarity = ?, condition = ?, notes = ?
+                           rarity = ?, condition = ?, edition = ?, notes = ?
                     WHERE id = ?
                 """,
                     (
@@ -501,6 +509,7 @@ class BinderCard:
                         self.set_code,
                         self.rarity,
                         self.condition,
+                        self.edition,
                         self.notes,
                         self.id,
                     ),
@@ -512,9 +521,16 @@ class BinderCard:
                     SELECT id, quantity FROM binder_cards 
                     WHERE binder_id = ? AND card_id = ? AND 
                           COALESCE(set_code, '') = COALESCE(?, '') AND 
-                          COALESCE(rarity, '') = COALESCE(?, '')
+                          COALESCE(rarity, '') = COALESCE(?, '') AND
+                          COALESCE(edition, '') = COALESCE(?, '')
                 """,
-                    (self.binder_id, self.card_id, self.set_code, self.rarity),
+                    (
+                        self.binder_id,
+                        self.card_id,
+                        self.set_code,
+                        self.rarity,
+                        self.edition,
+                    ),
                 )
                 existing = cursor.fetchone()
 
@@ -524,17 +540,23 @@ class BinderCard:
                     self.quantity += existing[1]
                     conn.execute(
                         """
-                        UPDATE binder_cards SET quantity = ?, condition = ?, notes = ?
+                        UPDATE binder_cards SET quantity = ?, condition = ?, edition = ?, notes = ?
                         WHERE id = ?
                     """,
-                        (self.quantity, self.condition, self.notes, self.id),
+                        (
+                            self.quantity,
+                            self.condition,
+                            self.edition,
+                            self.notes,
+                            self.id,
+                        ),
                     )
                 else:
                     # Insert new entry
                     cursor = conn.execute(
                         """
-                        INSERT INTO binder_cards (binder_id, card_id, quantity, set_code, rarity, condition, notes)
-                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        INSERT INTO binder_cards (binder_id, card_id, quantity, set_code, rarity, condition, edition, notes)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                         (
                             self.binder_id,
@@ -543,6 +565,7 @@ class BinderCard:
                             self.set_code,
                             self.rarity,
                             self.condition,
+                            self.edition,
                             self.notes,
                         ),
                     )
@@ -569,6 +592,11 @@ class BinderCard:
         )
         errors.extend(
             ModelValidator.validate_string_length(self.rarity, "Rarity", max_length=50)
+        )
+        errors.extend(
+            ModelValidator.validate_string_length(
+                self.edition, "Edition", max_length=50
+            )
         )
         errors.extend(
             ModelValidator.validate_string_length(self.notes, "Notes", max_length=500)
@@ -1265,11 +1293,11 @@ class Card:
         """Fetch card data from YGOPRODeck API and cache it"""
         try:
             import requests
-            from ..services.cache import cache_manager
+            from ..services.cache import cache_service as cache_manager
 
-            # Check rate limiting
-            if not cache_manager.can_make_request():
-                return None
+            # TODO: Add rate limiting
+            # if not cache_manager.can_make_request():
+            #     return None
 
             response = requests.get(
                 f"https://db.ygoprodeck.com/api/v7/cardinfo.php?id={card_id}"
@@ -1293,10 +1321,11 @@ class Card:
         """Fetch multiple cards from API by name query"""
         try:
             import requests
-            from ..services.cache import cache_manager
+            from ..services.cache import cache_service as cache_manager
 
-            if not cache_manager.can_make_request():
-                return []
+            # TODO: Add rate limiting
+            # if not cache_manager.can_make_request():
+            #     return []
 
             url = "https://db.ygoprodeck.com/api/v7/cardinfo.php"
             params = {}
@@ -1474,7 +1503,7 @@ class Card:
         """Refresh old cached cards from API"""
         try:
             import requests
-            from ..services.cache import cache_manager
+            from ..services.cache import cache_service as cache_manager
 
             cutoff_date = datetime.now() - timedelta(days=max_age_days)
 
@@ -1487,12 +1516,13 @@ class Card:
 
             refreshed_count = 0
             for card_row in old_cards:
-                if cache_manager.can_make_request():
-                    card = Card.fetch_from_api(card_row[0])
-                    if card:
-                        refreshed_count += 1
-                else:
-                    break  # Rate limit reached
+                # TODO: Add rate limiting check
+                # if cache_manager.can_make_request():
+                card = Card.fetch_from_api(card_row[0])
+                if card:
+                    refreshed_count += 1
+                # else:
+                #     break  # Rate limit reached
 
             return refreshed_count
 
