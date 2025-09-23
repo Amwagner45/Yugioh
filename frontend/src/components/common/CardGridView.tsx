@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import CardImage from './CardImage';
 import type { Card } from '../../types';
 
@@ -38,6 +38,34 @@ const CardGridView: React.FC<CardGridViewProps> = ({
     isDeckSection = false,
     sectionType
 }) => {
+    // State for tooltip management
+    const [tooltip, setTooltip] = useState<{
+        visible: boolean;
+        cardName: string;
+        x: number;
+        y: number;
+    }>({
+        visible: false,
+        cardName: '',
+        x: 0,
+        y: 0
+    });
+
+    // Tooltip event handlers
+    const handleMouseEnter = (e: React.MouseEvent, cardName: string) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        setTooltip({
+            visible: true,
+            cardName: cardName,
+            x: rect.left + rect.width / 2,
+            y: rect.bottom + 8 // 8px below the card
+        });
+    };
+
+    const handleMouseLeave = () => {
+        setTooltip(prev => ({ ...prev, visible: false }));
+    };
+
     const gridClasses = {
         sm: 'grid-cols-8 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-15 xl:grid-cols-18',
         md: 'grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15',
@@ -77,7 +105,7 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                             key={`${cardData.cardId}-${index}`}
                             className={`relative group transition-all duration-200 ${hasCard
                                 ? isAvailable
-                                    ? 'hover:scale-105 hover:z-20'
+                                    ? 'hover:scale-105 hover:z-[100]'
                                     : 'opacity-60'
                                 : 'opacity-40'
                                 }`}
@@ -86,6 +114,8 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                 zIndex: index
                             }}
                             draggable={isAvailable && hasCard}
+                            onMouseEnter={hasCard ? (e) => handleMouseEnter(e, cardData.card_details!.name) : undefined}
+                            onMouseLeave={hasCard ? handleMouseLeave : undefined}
                             onDragStart={(e) => {
                                 if (!isAvailable || !hasCard) {
                                     e.preventDefault();
@@ -152,12 +182,6 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                 </div>
                             )}
 
-                            {/* Card name tooltip on hover */}
-                            {hasCard && (
-                                <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none whitespace-nowrap">
-                                    {cardData.card_details!.name}
-                                </div>
-                            )}
                         </div>
                     );
                 })}
@@ -166,6 +190,7 @@ const CardGridView: React.FC<CardGridViewProps> = ({
     }
 
     return (
+        <>
         <div className={`grid ${gridClasses[gridSize]} ${actualGapClass} ${compactPadding ? 'p-2' : 'p-4'} ${className}`}>
             {cards.map((cardData, index) => {
                 const isAvailable = (cardData.availableCopies ?? cardData.quantity) > 0;
@@ -176,11 +201,13 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                         key={`${cardData.cardId}-${index}`}
                         className={`relative group transition-all duration-200 ${hasCard
                             ? isAvailable
-                                ? 'hover:scale-105 hover:z-10'
+                                ? 'hover:scale-105 hover:z-[100]'
                                 : 'opacity-60'
                             : 'opacity-40'
                             }`}
                         draggable={isAvailable && hasCard}
+                        onMouseEnter={hasCard ? (e) => handleMouseEnter(e, cardData.card_details!.name) : undefined}
+                        onMouseLeave={hasCard ? handleMouseLeave : undefined}
                         onDragStart={(e) => {
                             if (!isAvailable || !hasCard) {
                                 e.preventDefault();
@@ -252,16 +279,24 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                             </div>
                         )}
 
-                        {/* Card name tooltip on hover */}
-                        {hasCard && (
-                            <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-20 pointer-events-none whitespace-nowrap">
-                                {cardData.card_details!.name}
-                            </div>
-                        )}
                     </div>
                 );
             })}
         </div>
+        
+        {/* Global tooltip positioned relative to viewport */}
+        {tooltip.visible && (
+            <div
+                className="fixed bg-black text-white text-xs px-2 py-1 rounded pointer-events-none whitespace-nowrap z-[9999] transform -translate-x-1/2"
+                style={{
+                    left: `${tooltip.x}px`,
+                    top: `${tooltip.y}px`
+                }}
+            >
+                {tooltip.cardName}
+            </div>
+        )}
+        </>
     );
 };
 
