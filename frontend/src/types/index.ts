@@ -139,3 +139,52 @@ export interface ViewMode {
     type: 'grid' | 'list';
     cardSize: 'small' | 'medium' | 'large';
 }
+
+// Banlist types
+export interface Banlist {
+    id: string;
+    uuid: string;
+    name: string;
+    description?: string;
+    start_date?: string;
+    end_date?: string;
+    format_type: string;
+    is_official: boolean;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+    forbidden_cards: number[];
+    limited_cards: number[];
+    semi_limited_cards: number[];
+    whitelist_cards: number[];
+}
+
+export interface BanlistCard {
+    cardId: number;
+    restriction: 'forbidden' | 'limited' | 'semi_limited' | 'whitelist' | 'unlimited';
+    maxCopies: number;
+}
+
+export interface BanlistValidationResult {
+    is_valid: boolean;
+    violations: BanlistViolation[];
+    banlist_name: string;
+}
+
+export interface BanlistViolation {
+    card_id: number;
+    card_name: string;
+    current_quantity: number;
+    max_allowed: number;
+    restriction: string;
+}
+
+export interface BanlistSection {
+    title: string;
+    type: 'forbidden' | 'limited' | 'semi_limited' | 'whitelist';
+    cards: number[];
+    maxCopies: number;
+    color: string;
+    bgColor: string;
+    borderColor: string;
+}

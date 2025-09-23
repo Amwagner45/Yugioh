@@ -12,6 +12,7 @@ const Navigation: React.FC = () => {
         { path: '/', label: 'Home', icon: '🏠' },
         { path: '/binder', label: 'Binder', icon: '📚' },
         { path: '/deck-builder', label: 'Deck Builder', icon: '🃏' },
+        { path: '/banlist-manager', label: 'Banlists', icon: '📋' },
     ];
 
     return (

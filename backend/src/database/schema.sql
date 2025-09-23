@@ -125,6 +125,34 @@ CREATE TABLE binder_set_progress (
     UNIQUE(binder_id, set_code)
 );
 
+-- Banlists table - stores banlist metadata
+CREATE TABLE banlists (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid VARCHAR(36) UNIQUE NOT NULL, -- For external references
+    user_id INTEGER NOT NULL DEFAULT 1,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    start_date DATE, -- When this banlist becomes effective
+    end_date DATE, -- When this banlist expires (optional)
+    format_type VARCHAR(50) NOT NULL DEFAULT 'TCG', -- TCG, OCG, Custom, GOAT, Edison, etc.
+    is_official BOOLEAN DEFAULT FALSE, -- Official banlist vs user-created
+    is_active BOOLEAN DEFAULT TRUE, -- Whether the banlist is currently active
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- Banlist cards - junction table for cards in banlists with restrictions
+CREATE TABLE banlist_cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    banlist_id INTEGER NOT NULL,
+    card_id INTEGER NOT NULL,
+    restriction_type VARCHAR(20) NOT NULL CHECK (restriction_type IN ('forbidden', 'limited', 'semi_limited', 'whitelist')),
+    FOREIGN KEY (banlist_id) REFERENCES banlists(id) ON DELETE CASCADE,
+    FOREIGN KEY (card_id) REFERENCES card_cache(id),
+    UNIQUE(banlist_id, card_id) -- Prevent duplicate entries for same card in same banlist
+);
+
 -- Create indexes for better performance
 CREATE INDEX idx_binder_cards_binder_id ON binder_cards(binder_id);
 CREATE INDEX idx_binder_cards_card_id ON binder_cards(card_id);
@@ -138,11 +166,19 @@ CREATE INDEX idx_card_cache_attribute ON card_cache(attribute);
 CREATE INDEX idx_binders_user_id ON binders(user_id);
 CREATE INDEX idx_decks_user_id ON decks(user_id);
 CREATE INDEX idx_decks_binder_id ON decks(binder_id);
+CREATE INDEX idx_banlists_user_id ON banlists(user_id);
+CREATE INDEX idx_banlists_format_type ON banlists(format_type);
+CREATE INDEX idx_banlists_is_active ON banlists(is_active);
+CREATE INDEX idx_banlist_cards_banlist_id ON banlist_cards(banlist_id);
+CREATE INDEX idx_banlist_cards_card_id ON banlist_cards(card_id);
+CREATE INDEX idx_banlist_cards_restriction ON banlist_cards(restriction_type);
 
 -- Create triggers for updating timestamps
 CREATE TRIGGER update_binders_timestamp AFTER UPDATE ON binders FOR EACH ROW BEGIN UPDATE binders SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
 
 CREATE TRIGGER update_decks_timestamp AFTER UPDATE ON decks FOR EACH ROW BEGIN UPDATE decks SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
+
+CREATE TRIGGER update_banlists_timestamp AFTER UPDATE ON banlists FOR EACH ROW BEGIN UPDATE banlists SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; END;
 
 -- Insert default user for single-user mode
 INSERT OR IGNORE INTO users (id, username, display_name) 

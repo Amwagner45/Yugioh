@@ -5,6 +5,8 @@ import Navigation from './components/common/Navigation';
 import HomePage from './pages/HomePage';
 import BinderPage from './pages/BinderPage';
 import DeckBuilderPage from './pages/DeckBuilderPage';
+import BanlistManagerPage from './pages/BanlistManagerPage';
+import BanlistBuilderPage from './pages/BanlistBuilderPage';
 import './App.css';
 
 function App() {
@@ -33,6 +35,9 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/binder" element={<BinderPage />} />
               <Route path="/deck-builder" element={<DeckBuilderPage />} />
+              <Route path="/banlist-manager" element={<BanlistManagerPage />} />
+              <Route path="/banlist-builder" element={<BanlistBuilderPage />} />
+              <Route path="/banlist-builder/:banlistId" element={<BanlistBuilderPage />} />
             </Routes>
           </main>
         </div>
