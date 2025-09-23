@@ -804,18 +804,20 @@ async def get_cards_batch(
     client_ip = await apply_rate_limit(request, "batch_cards", is_external_api=False)
 
     if len(card_ids) > 1000:  # Reasonable limit for batch requests
-        raise HTTPException(status_code=400, detail="Too many card IDs requested (max 1000)")
+        raise HTTPException(
+            status_code=400, detail="Too many card IDs requested (max 1000)"
+        )
 
     try:
         from ..database.models import Card
-        
+
         cards_data = []
         missing_cards = []
-        
+
         for card_id in card_ids:
             # Get from database cache only (no external API calls)
             card = Card.get_by_id(card_id, fetch_if_missing=False)
-            
+
             if card:
                 card_data = {
                     "id": card.id,
@@ -845,11 +847,13 @@ async def get_cards_batch(
             "data": cards_data,
             "count": len(cards_data),
             "missing_cards": missing_cards,
-            "cached": True
+            "cached": True,
         }
-        
+
         if missing_cards:
-            response["warning"] = f"{len(missing_cards)} cards not found in cache. Please run card sync to update the database."
+            response["warning"] = (
+                f"{len(missing_cards)} cards not found in cache. Please run card sync to update the database."
+            )
 
         return response
 

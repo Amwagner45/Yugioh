@@ -170,11 +170,11 @@ const BinderPage: React.FC = () => {
     const loadBinders = async () => {
         try {
             setIsLoading(true);
-            
+
             // Load binders from local storage (primary source)
             const savedBinders = storageService.getBinders();
             setBinders(savedBinders);
-            
+
             console.log(`Loaded ${savedBinders.length} binders from local storage`);
         } catch (err) {
             setError('Failed to load binders');
@@ -377,7 +377,7 @@ const BinderPage: React.FC = () => {
                 if (cardIdsNeeded.length > 0) {
                     console.log(`Loading ${cardIdsNeeded.length} cards from cache...`);
                     console.log('First 10 card IDs:', cardIdsNeeded.slice(0, 10));
-                    
+
                     try {
                         // Use the batch endpoint to get all cards at once from database cache
                         const response = await fetch('http://localhost:8000/api/cards/batch', {
@@ -387,20 +387,20 @@ const BinderPage: React.FC = () => {
                             },
                             body: JSON.stringify(cardIdsNeeded),
                         });
-                        
+
                         console.log('Batch API response status:', response.status);
-                        
+
                         if (response.ok) {
                             const result = await response.json();
                             console.log('Batch API result:', result);
-                            
+
                             if (result.data && result.data.length > 0) {
                                 const newCardCache = new Map(cardCache);
                                 result.data.forEach((card: any) => {
                                     newCardCache.set(card.id, card);
                                 });
                                 setCardCache(newCardCache);
-                                
+
                                 console.log(`Successfully loaded ${result.data.length} cards from cache`);
                                 if (result.missing_cards && result.missing_cards.length > 0) {
                                     console.warn(`${result.missing_cards.length} cards not found in cache:`, result.missing_cards.slice(0, 10));

@@ -14,7 +14,7 @@ async def get_binders(include_card_details: bool = True):
     try:
         binders = Binder.get_by_user(user_id=1)
         result = []
-        
+
         for binder in binders:
             binder_data = {
                 "id": binder.id,
@@ -32,18 +32,20 @@ async def get_binders(include_card_details: bool = True):
                 "card_count": binder.get_card_count(),
                 "total_quantity": binder.get_total_card_quantity(),
             }
-            
+
             # Include card details if requested
             if include_card_details:
                 from ..database.models import Card
-                
+
                 cards = binder.get_cards()
                 binder_data["cards"] = []
-                
+
                 for binder_card in cards:
                     # Get card details from database cache (no external API calls)
-                    card_details = Card.get_by_id(binder_card.card_id, fetch_if_missing=False)
-                    
+                    card_details = Card.get_by_id(
+                        binder_card.card_id, fetch_if_missing=False
+                    )
+
                     card_entry = {
                         "id": binder_card.id,
                         "card_id": binder_card.card_id,
@@ -55,10 +57,12 @@ async def get_binders(include_card_details: bool = True):
                         "edition": binder_card.edition,
                         "notes": binder_card.notes,
                         "date_added": (
-                            binder_card.date_added.isoformat() if binder_card.date_added else None
+                            binder_card.date_added.isoformat()
+                            if binder_card.date_added
+                            else None
                         ),
                     }
-                    
+
                     # Include full card details if available in cache
                     if card_details:
                         card_entry["card_details"] = {
@@ -79,11 +83,11 @@ async def get_binders(include_card_details: bool = True):
                             "card_sets": card_details.card_sets,
                             "banlist_info": card_details.banlist_info,
                         }
-                    
+
                     binder_data["cards"].append(card_entry)
-            
+
             result.append(binder_data)
-            
+
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -150,12 +154,14 @@ async def get_binder(binder_uuid: str, include_card_details: bool = False):
         # If card details are requested, fetch them from the database cache
         if include_card_details:
             from ..database.models import Card
-            
+
             for binder_card in cards:
                 try:
                     # Get card details from database cache (no external API calls)
-                    card_details = Card.get_by_id(binder_card.card_id, fetch_if_missing=False)
-                    
+                    card_details = Card.get_by_id(
+                        binder_card.card_id, fetch_if_missing=False
+                    )
+
                     card_entry = {
                         "id": binder_card.id,
                         "card_id": binder_card.card_id,
@@ -167,10 +173,12 @@ async def get_binder(binder_uuid: str, include_card_details: bool = False):
                         "edition": binder_card.edition,
                         "notes": binder_card.notes,
                         "date_added": (
-                            binder_card.date_added.isoformat() if binder_card.date_added else None
+                            binder_card.date_added.isoformat()
+                            if binder_card.date_added
+                            else None
                         ),
                     }
-                    
+
                     # Include full card details if available in cache
                     if card_details:
                         card_entry["card_details"] = {
@@ -191,9 +199,9 @@ async def get_binder(binder_uuid: str, include_card_details: bool = False):
                             "card_sets": card_details.card_sets,
                             "banlist_info": card_details.banlist_info,
                         }
-                    
+
                     response["cards"].append(card_entry)
-                    
+
                 except Exception as card_error:
                     print(f"Error processing card {binder_card.card_id}: {card_error}")
                     # Still include the basic card info even if details fail
@@ -208,7 +216,9 @@ async def get_binder(binder_uuid: str, include_card_details: bool = False):
                         "edition": binder_card.edition,
                         "notes": binder_card.notes,
                         "date_added": (
-                            binder_card.date_added.isoformat() if binder_card.date_added else None
+                            binder_card.date_added.isoformat()
+                            if binder_card.date_added
+                            else None
                         ),
                     }
                     response["cards"].append(card_entry)
@@ -236,6 +246,7 @@ async def get_binder(binder_uuid: str, include_card_details: bool = False):
     except Exception as e:
         print(f"Error in get_binder: {e}")
         import traceback
+
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
