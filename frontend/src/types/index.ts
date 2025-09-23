@@ -49,13 +49,17 @@ export interface BinderCard {
 }
 
 export interface Binder {
-    id: string;
+    id: number;        // Integer database ID
+    uuid: string;      // UUID for API calls
     name: string;
     description?: string;
     cards: BinderCard[];
     createdAt: Date;
     modifiedAt: Date;
     tags?: string[];
+    is_default?: boolean;
+    card_count?: number;
+    total_quantity?: number;
 }
 
 export interface DeckCard {

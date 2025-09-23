@@ -22,6 +22,7 @@ def create_app() -> FastAPI:
         description="API for managing Yu-Gi-Oh card collections and deck building",
         version="1.0.0",
         lifespan=lifespan,
+        redirect_slashes=False,
     )
 
     # Enable CORS for frontend development

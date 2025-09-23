@@ -9,6 +9,7 @@ router = APIRouter()
 
 
 @router.get("/", response_model=List[dict])
+@router.get("", response_model=List[dict])
 async def get_binders(include_card_details: bool = True):
     """Get all binders for the default user with optional card details"""
     try:

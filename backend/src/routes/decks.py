@@ -43,6 +43,7 @@ class DeckResponse(BaseModel):
 
 
 @router.get("/", response_model=List[DeckResponse])
+@router.get("", response_model=List[DeckResponse])
 async def get_decks():
     """Get all decks for the user"""
     try:

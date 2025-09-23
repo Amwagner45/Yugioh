@@ -34,9 +34,13 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
     useEffect(() => {
         loadBinders();
-        if (deckId) {
+    }, []);
+
+    useEffect(() => {
+        // Load deck after binders are loaded so we can map binder_id to UUID
+        if (deckId && availableBinders.length > 0) {
             loadDeck();
-        } else {
+        } else if (!deckId) {
             // Initialize empty deck
             setDeck({
                 id: '',
@@ -52,7 +56,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 modifiedAt: new Date()
             });
         }
-    }, [deckId]);
+    }, [deckId, availableBinders]);
 
     useEffect(() => {
         if (selectedBinderId) {
@@ -62,12 +66,12 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
     const loadBinders = async () => {
         try {
-            const response = await api.get('/binders');
+            const response = await api.get('/api/binders');
             setAvailableBinders(response.data);
 
             // If no binder is selected, use the first available binder
             if (!selectedBinderId && response.data.length > 0) {
-                setSelectedBinderId(response.data[0].id);
+                setSelectedBinderId(response.data[0].uuid);
             }
         } catch (error) {
             console.error('Failed to load binders:', error);
@@ -79,7 +83,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
         setIsLoading(true);
         try {
-            const response = await api.get(`/decks/${deckId}`);
+            const response = await api.get(`/api/decks/${deckId}`);
             const deckData = response.data;
 
             setDeck({
@@ -113,9 +117,12 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             setDeckTags(deckData.tags || []);
             setValidationErrors(deckData.validation_errors || []);
 
-            // Set associated binder
-            if (deckData.binder_id) {
-                setSelectedBinderId(deckData.binder_id.toString());
+            // Set associated binder (convert binder_id to UUID)
+            if (deckData.binder_id && availableBinders.length > 0) {
+                const associatedBinder = availableBinders.find(b => b.id === deckData.binder_id);
+                if (associatedBinder) {
+                    setSelectedBinderId(associatedBinder.uuid);
+                }
             }
         } catch (error) {
             console.error('Failed to load deck:', error);
@@ -128,7 +135,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         if (!selectedBinderId) return;
 
         try {
-            const response = await api.get(`/binders/${selectedBinderId}`);
+            const response = await api.get(`/api/binders/${selectedBinderId}`);
             setBinder(response.data);
         } catch (error) {
             console.error('Failed to load binder:', error);
@@ -140,20 +147,24 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
         setIsLoading(true);
         try {
+            // Find the selected binder's integer ID
+            const selectedBinder = availableBinders.find(b => b.uuid === selectedBinderId);
+            const binderIntegerId = selectedBinder ? selectedBinder.id : null;
+            
             const deckData = {
                 name: deckName,
                 description: deckDescription,
                 format: deckFormat,
-                binder_id: selectedBinderId ? parseInt(selectedBinderId) : null,
+                binder_id: binderIntegerId,
                 tags: deckTags,
                 notes: deckNotes
             };
 
             let response;
             if (deckId) {
-                response = await api.put(`/decks/${deckId}`, deckData);
+                response = await api.put(`/api/decks/${deckId}`, deckData);
             } else {
-                response = await api.post('/decks', deckData);
+                response = await api.post('/api/decks', deckData);
             }
 
             const savedDeck: Deck = {
@@ -194,7 +205,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         if (!deck?.id) return;
 
         try {
-            const response = await api.post(`/decks/${deck.id}/validate`);
+            const response = await api.post(`/api/decks/${deck.id}/validate`);
             setValidationErrors(response.data.validation_errors || []);
             setDeckStats(response.data.statistics || null);
         } catch (error) {
@@ -243,7 +254,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
 
         try {
-            await api.post(`/decks/${deck.id}/cards`, null, {
+            await api.post(`/api/decks/${deck.id}/cards`, null, {
                 params: {
                     card_id: cardId,
                     section: section,
@@ -263,7 +274,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         if (!deck?.id) return;
 
         try {
-            await api.delete(`/decks/${deck.id}/cards/${cardId}`, {
+            await api.delete(`/api/decks/${deck.id}/cards/${cardId}`, {
                 params: {
                     section: section,
                     quantity: quantity
@@ -373,7 +384,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             >
                                 <option value="">Select binder</option>
                                 {availableBinders.map((binder) => (
-                                    <option key={binder.id} value={binder.id}>
+                                    <option key={binder.uuid} value={binder.uuid}>
                                         {binder.name}
                                     </option>
                                 ))}
