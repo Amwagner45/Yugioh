@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { Deck, Binder } from '../../types';
 import DeckSection from './DeckSection';
-import BinderCardList from '../binder/BinderCardList';
-import api, { binderService } from '../../services/api';
+import DeckStatistics from './DeckStatistics';
+import EnhancedBinderCardList from './EnhancedBinderCardList';
+import api, { binderService, deckService } from '../../services/api';
 
 interface DeckBuilderProps {
     deckId?: string;
@@ -24,6 +25,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
     const [isLoading, setIsLoading] = useState(false);
     const [validationErrors, setValidationErrors] = useState<string[]>([]);
     const [deckStats, setDeckStats] = useState<any>(null);
+    const [showCloneModal, setShowCloneModal] = useState(false);
+    const [availableDecksForCloning, setAvailableDecksForCloning] = useState<any[]>([]);
 
     // Form fields for deck metadata
     const [deckName, setDeckName] = useState('');
@@ -381,6 +384,65 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
     };
 
+    const loadAvailableDecks = async () => {
+        try {
+            const decks = await deckService.getDecks();
+            setAvailableDecksForCloning(decks.data || []);
+        } catch (error) {
+            console.error('Failed to load available decks:', error);
+        }
+    };
+
+    const handleCloneDeck = async (sourceDeckId: string) => {
+        try {
+            // Load the source deck
+            const response = await api.get(`/api/decks/${sourceDeckId}`);
+            const sourceDeck = response.data;
+
+            // Create a new deck based on the source
+            const clonedDeck = {
+                id: '',
+                name: `${sourceDeck.name} (Copy)`,
+                description: sourceDeck.description || '',
+                format: sourceDeck.format || '',
+                mainDeck: sourceDeck.main_deck.map((card: any) => ({
+                    cardId: card.card_id,
+                    quantity: card.quantity
+                })),
+                extraDeck: sourceDeck.extra_deck.map((card: any) => ({
+                    cardId: card.card_id,
+                    quantity: card.quantity
+                })),
+                sideDeck: sourceDeck.side_deck.map((card: any) => ({
+                    cardId: card.card_id,
+                    quantity: card.quantity
+                })),
+                tags: sourceDeck.tags || [],
+                notes: sourceDeck.notes || '',
+                createdAt: new Date(),
+                modifiedAt: new Date()
+            };
+
+            // Set the cloned deck as current deck
+            setDeck(clonedDeck);
+
+            // Set form fields
+            setDeckName(clonedDeck.name);
+            setDeckDescription(clonedDeck.description);
+            setDeckFormat(clonedDeck.format);
+            setDeckNotes(clonedDeck.notes);
+            setDeckTags(clonedDeck.tags);
+
+            // Close the clone modal
+            setShowCloneModal(false);
+
+            console.log('Deck cloned successfully');
+        } catch (error) {
+            console.error('Failed to clone deck:', error);
+            alert('Failed to clone deck. Please try again.');
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -407,6 +469,16 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             {deckId ? 'Edit Deck' : 'Create New Deck'}
                         </h1>
                         <div className="flex space-x-3">
+                            <button
+                                onClick={() => {
+                                    setShowCloneModal(true);
+                                    loadAvailableDecks();
+                                }}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                                disabled={isLoading}
+                            >
+                                Clone Deck
+                            </button>
                             <button
                                 onClick={handleValidateDeck}
                                 className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
@@ -524,7 +596,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 </div>
 
                 {/* Main Content */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
                     {/* Deck Sections */}
                     <div className="lg:col-span-2 space-y-6">
                         <DeckSection
@@ -561,12 +633,23 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                         />
                     </div>
 
+                    {/* Deck Statistics */}
+                    <div className="lg:col-span-1">
+                        <DeckStatistics
+                            deck={deck}
+                            binderCards={binder?.cards || []}
+                        />
+                    </div>
+
                     {/* Binder Card List */}
                     <div className="lg:col-span-1">
                         {binder && (
-                            <BinderCardList
+                            <EnhancedBinderCardList
                                 binder={binder}
                                 onCardClick={(cardId: number) => handleAddCardToDeck(cardId, 'main', 1)}
+                                onAddToSection={(cardId: number, section: 'main' | 'extra' | 'side', quantity: number = 1) =>
+                                    handleAddCardToDeck(cardId, section, quantity)
+                                }
                                 showQuantities={true}
                                 title="Available Cards"
                                 currentDeck={deck}
@@ -575,6 +658,63 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                     </div>
                 </div>
             </div>
+
+            {/* Clone Deck Modal */}
+            {showCloneModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full mx-4">
+                        <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-lg font-semibold text-gray-900">Clone Deck</h3>
+                            <button
+                                onClick={() => setShowCloneModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        <p className="text-sm text-gray-600 mb-4">
+                            Select a deck to clone. This will copy all cards and settings from the selected deck.
+                        </p>
+
+                        <div className="max-h-64 overflow-y-auto space-y-2">
+                            {availableDecksForCloning.length === 0 ? (
+                                <div className="text-center py-8 text-gray-500">
+                                    <p>No decks available to clone</p>
+                                </div>
+                            ) : (
+                                availableDecksForCloning.map((deck) => (
+                                    <div
+                                        key={deck.uuid}
+                                        className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                                        onClick={() => handleCloneDeck(deck.uuid)}
+                                    >
+                                        <div className="font-medium text-gray-900">{deck.name}</div>
+                                        {deck.description && (
+                                            <div className="text-sm text-gray-600">{deck.description}</div>
+                                        )}
+                                        <div className="text-xs text-gray-500 mt-1">
+                                            Format: {deck.format || 'Not specified'} •
+                                            Modified: {new Date(deck.updated_at).toLocaleDateString()}
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+
+                        <div className="mt-6 flex justify-end">
+                            <button
+                                onClick={() => setShowCloneModal(false)}
+                                className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
