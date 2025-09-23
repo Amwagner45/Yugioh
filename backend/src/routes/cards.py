@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-from typing import Optional
+from typing import Optional, List
 import httpx
 from ..models import Card, CardSearchResponse
 from ..services.cache import get_cache_service, CacheService
@@ -789,6 +789,74 @@ async def get_random_cards(
                 error=error_handler.create_standardized_error(e, "random")["message"],
                 cached=False,
             )
+
+
+@router.post("/batch")
+async def get_cards_batch(
+    request: Request,
+    card_ids: List[int],
+    cache_service: CacheService = Depends(get_cache_service),
+):
+    """
+    Get multiple cards by their IDs in a single request to avoid rate limiting
+    """
+    # Apply rate limiting (database operation, not external API)
+    client_ip = await apply_rate_limit(request, "batch_cards", is_external_api=False)
+
+    if len(card_ids) > 1000:  # Reasonable limit for batch requests
+        raise HTTPException(status_code=400, detail="Too many card IDs requested (max 1000)")
+
+    try:
+        from ..database.models import Card
+        
+        cards_data = []
+        missing_cards = []
+        
+        for card_id in card_ids:
+            # Get from database cache only (no external API calls)
+            card = Card.get_by_id(card_id, fetch_if_missing=False)
+            
+            if card:
+                card_data = {
+                    "id": card.id,
+                    "name": card.name,
+                    "type": card.type,
+                    "desc": card.description,
+                    "atk": card.atk,
+                    "def": card.def_,
+                    "level": card.level,
+                    "race": card.race,
+                    "attribute": card.attribute,
+                    "archetype": card.archetype,
+                    "scale": card.scale,
+                    "linkval": card.linkval,
+                    "linkmarkers": card.linkmarkers,
+                    "card_images": card.card_images,
+                    "card_sets": card.card_sets,
+                    "banlist_info": card.banlist_info,
+                }
+                cards_data.append(card_data)
+            else:
+                missing_cards.append(card_id)
+
+        await record_request_success(client_ip, "batch_cards", is_external_api=False)
+
+        response = {
+            "data": cards_data,
+            "count": len(cards_data),
+            "missing_cards": missing_cards,
+            "cached": True
+        }
+        
+        if missing_cards:
+            response["warning"] = f"{len(missing_cards)} cards not found in cache. Please run card sync to update the database."
+
+        return response
+
+    except Exception as e:
+        await record_request_failure(client_ip, "batch_cards", is_external_api=False)
+        error_handler.logger.error(f"Batch card lookup failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch cards: {str(e)}")
 
 
 @router.get("/{card_id}")

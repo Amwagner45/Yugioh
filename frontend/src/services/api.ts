@@ -71,6 +71,19 @@ export const cardService = {
     },
 
     /**
+     * Get multiple cards by their IDs in a single batch request
+     */
+    async getCardsBatch(cardIds: number[]): Promise<{ data: Card[]; missing_cards: number[]; warning?: string }> {
+        try {
+            const response = await api.post('/api/cards/batch', cardIds);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching cards batch:', error);
+            return { data: [], missing_cards: cardIds };
+        }
+    },
+
+    /**
      * Get random cards for testing/discovery
      */
     async getRandomCards(count = 10): Promise<CardSearchResponse> {
@@ -150,9 +163,10 @@ export const binderService = {
         }
     },
 
-    async getBinder(uuid: string) {
+    async getBinder(uuid: string, includeCardDetails: boolean = true) {
         try {
-            const response = await api.get(`/api/binders/${uuid}`);
+            const params = includeCardDetails ? { include_card_details: 'true' } : {};
+            const response = await api.get(`/api/binders/${uuid}`, { params });
             return response.data;
         } catch (error) {
             console.error('Error fetching binder:', error);

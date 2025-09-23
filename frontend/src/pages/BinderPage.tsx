@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { storageService } from '../services/storage';
-import { cardService } from '../services/api';
 import BinderForm from '../components/binder/BinderForm';
 import BinderList from '../components/binder/BinderList';
 import CardSearch from '../components/binder/CardSearch';
@@ -171,8 +170,12 @@ const BinderPage: React.FC = () => {
     const loadBinders = async () => {
         try {
             setIsLoading(true);
+            
+            // Load binders from local storage (primary source)
             const savedBinders = storageService.getBinders();
             setBinders(savedBinders);
+            
+            console.log(`Loaded ${savedBinders.length} binders from local storage`);
         } catch (err) {
             setError('Failed to load binders');
             console.error('Error loading binders:', err);
@@ -286,14 +289,6 @@ const BinderPage: React.FC = () => {
             setIsAddingCard(true);
             setError(null);
 
-            // Load card details if not cached
-            if (!cardCache.has(cardId)) {
-                const card = await cardService.getCardById(cardId);
-                if (card) {
-                    setCardCache(prev => new Map(prev.set(cardId, card)));
-                }
-            }
-
             const updatedBinder = { ...selectedBinder };
             const existingCardIndex = updatedBinder.cards.findIndex(c => c.cardId === cardId);
 
@@ -371,32 +366,63 @@ const BinderPage: React.FC = () => {
         }
     };
 
-    // Load card details for cards in viewed binder
+    // Load card details from backend database cache for cards in viewed binder
     useEffect(() => {
         if (selectedBinder && currentView === 'view') {
-            const loadCardDetails = async () => {
-                const uncachedCardIds = selectedBinder.cards
+            const loadCardDetailsFromCache = async () => {
+                const cardIdsNeeded = selectedBinder.cards
                     .map(bc => bc.cardId)
                     .filter(cardId => !cardCache.has(cardId));
 
-                if (uncachedCardIds.length > 0) {
-                    // Load cards in batches to avoid overwhelming the API
-                    for (const cardId of uncachedCardIds) {
-                        try {
-                            const card = await cardService.getCardById(cardId);
-                            if (card) {
-                                setCardCache(prev => new Map(prev.set(cardId, card)));
+                if (cardIdsNeeded.length > 0) {
+                    console.log(`Loading ${cardIdsNeeded.length} cards from cache...`);
+                    console.log('First 10 card IDs:', cardIdsNeeded.slice(0, 10));
+                    
+                    try {
+                        // Use the batch endpoint to get all cards at once from database cache
+                        const response = await fetch('http://localhost:8000/api/cards/batch', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify(cardIdsNeeded),
+                        });
+                        
+                        console.log('Batch API response status:', response.status);
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            console.log('Batch API result:', result);
+                            
+                            if (result.data && result.data.length > 0) {
+                                const newCardCache = new Map(cardCache);
+                                result.data.forEach((card: any) => {
+                                    newCardCache.set(card.id, card);
+                                });
+                                setCardCache(newCardCache);
+                                
+                                console.log(`Successfully loaded ${result.data.length} cards from cache`);
+                                if (result.missing_cards && result.missing_cards.length > 0) {
+                                    console.warn(`${result.missing_cards.length} cards not found in cache:`, result.missing_cards.slice(0, 10));
+                                }
+                            } else {
+                                console.warn('No card data returned from batch endpoint');
                             }
-                        } catch (err) {
-                            console.error(`Failed to load card ${cardId}:`, err);
+                        } else {
+                            const errorText = await response.text();
+                            console.error('Batch API failed:', response.status, errorText);
                         }
+                    } catch (err) {
+                        console.error('Error loading cards from cache:', err);
                     }
+                } else {
+                    console.log('All cards already in cache');
                 }
             };
 
-            loadCardDetails();
+            loadCardDetailsFromCache();
         }
-    }, [selectedBinder, currentView, cardCache]);
+    }, [selectedBinder, currentView]);
 
     const renderHeader = () => (
         <div className="mb-8">

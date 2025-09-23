@@ -73,12 +73,12 @@
 - [x] Add set-based organization for cards
 
 ### 3.3 Advanced Binder Features
-- [ ] Implement advanced filtering and sorting
-- [ ] Add custom tags for cards
-- [ ] Create binder statistics and summaries
-- [ ] Add card rarity and set tracking
-- [ ] Implement binder sharing/export functionality
-- [ ] Implement import from csv and export to csv functionality
+- [x] Implement advanced filtering and sorting
+- [x] Add custom tags for cards
+- [x] Create binder statistics and summaries
+- [x] Add card rarity and set tracking
+- [x] Implement binder sharing/export functionality
+- [x] Implement import from csv and export to csv functionality
 
 **Deliverable**: Fully functional binder management system
 
