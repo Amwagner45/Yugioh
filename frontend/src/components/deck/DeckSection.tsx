@@ -37,8 +37,26 @@ const DeckSection: React.FC<DeckSectionProps> = ({
 
     const handleDragLeave = (e: React.DragEvent) => {
         e.preventDefault();
+
+        // Check if we're leaving to go to a child element or truly leaving the drop zone
+        const relatedTarget = e.relatedTarget as Element;
+        const currentTarget = e.currentTarget as Element;
+
+        // If the related target is a child of the current target, don't trigger leave
+        if (relatedTarget && currentTarget.contains(relatedTarget)) {
+            return;
+        }
+
         console.log('Drag leave', title);
         setIsDragOver(false);
+    };
+
+    const handleDragEnter = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        // Always set drag over when entering to ensure we capture the state
+        console.log('Drag enter', title);
+        setIsDragOver(true);
     };
 
     const handleDrop = (e: React.DragEvent) => {
@@ -89,6 +107,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
         <div
             className={`bg-white rounded-lg shadow-lg transition-all ${isDragOver ? 'ring-2 ring-blue-500 bg-blue-50' : ''
                 }`}
+            onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}

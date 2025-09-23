@@ -98,6 +98,7 @@
 - [ ] Add real-time deck statistics (card types, levels, etc.)
 - [ ] Implement advanced filtering in deck builder
 - [ ] Create deck search within binder
+- [ ] Add ability to right click a card image to add or remove card from deck (default from card list to main deck)
 - [ ] Add quick-add functionality for favorited cards
 - [ ] Implement deck cloning
 
