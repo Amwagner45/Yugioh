@@ -823,8 +823,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                     <div className="flex-1 min-w-0">
                         {/* Deck Sections in a more prominent layout */}
                         <div className="space-y-3">
-                            {/* Main Deck - Most prominent with max height */}
-                            <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ maxHeight: '55vh' }}>
+                            {/* Main Deck - Most prominent, auto height */}
+                            <div className="bg-white rounded-lg shadow-lg">
                                 <DeckSection
                                     title="Main Deck"
                                     cards={deck.mainDeck}
@@ -839,9 +839,9 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                 />
                             </div>
 
-                            {/* Extra Deck and Side Deck - Side by side with max height */}
+                            {/* Extra Deck and Side Deck - Side by side, auto height */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                                <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ maxHeight: '40vh' }}>
+                                <div className="bg-white rounded-lg shadow-lg">
                                     <DeckSection
                                         title="Extra Deck"
                                         cards={deck.extraDeck}
@@ -856,7 +856,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     />
                                 </div>
 
-                                <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ maxHeight: '40vh' }}>
+                                <div className="bg-white rounded-lg shadow-lg">
                                     <DeckSection
                                         title="Side Deck"
                                         cards={deck.sideDeck}

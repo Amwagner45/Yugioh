@@ -150,7 +150,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
             </div>
 
             {/* Content */}
-            <div className={`${enhanced ? 'overflow-y-auto flex-1' : 'min-h-[200px]'}`}>
+            <div className={`${enhanced ? 'flex-1' : 'min-h-[200px]'}`}>
                 {cards.length === 0 ? (
                     <div className={`text-center py-8 ${isDragOver ? 'text-blue-600' : 'text-gray-500'}`}>
                         <div className="text-4xl mb-2">

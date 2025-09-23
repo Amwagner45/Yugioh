@@ -205,6 +205,11 @@
 - [ ] Fix UI and take inspiration from other deck builders
 - [ ] Backup data for binders and decks in case something goes wrong
 - [ ] Only Save deck after Save Deck is clicked. Temporary changes to the deck should not be saved
+- [ ] Sort button for deck builder
+- [ ] Right click cards for options (move to Main Deck, Side Deck, Extra Deck, Remove Card, Preview Card, Add 1 more, Remove 1)
+- [ ] Available cards section is collapsable
+- [ ] View options for deck to have smaller images and fit all sections onto the screen
+
 
 <!-- No. You made the change to include images and numbers at the top right which I appreciate, but we need to work on this UI much more. 
 
