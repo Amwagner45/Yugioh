@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Cursor Test</title>
+    <style>
+        body {
+            cursor: url('/red-cursor.png'), auto;
+            background: #f0f0f0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+        }
+
+        .test-area {
+            background: white;
+            padding: 50px;
+            border: 2px solid #333;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .crosshair-test {
+            cursor: crosshair;
+            background: yellow;
+            padding: 20px;
+            margin: 10px;
+        }
+
+        .pointer-test {
+            cursor: pointer;
+            background: lightblue;
+            padding: 20px;
+            margin: 10px;
+        }
+
+        .yugioh-png-test {
+            cursor: url('/yugioh-cursor.png'), auto;
+            background: lightgreen;
+            padding: 20px;
+            margin: 10px;
+        }
+
+        .yugioh-ico-test {
+            cursor: url('/yugioh-cursor.ico'), auto;
+            background: lightcoral;
+            padding: 20px;
+            margin: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Cursor Test Page</h1>
+
+    <div class="test-area">
+        <h2>Red Cursor Test (Simple)</h2>
+        <p>Should show red square cursor</p>
+    </div>
+
+    <div class="crosshair-test">
+        <h3>Crosshair Test</h3>
+        <p>Should show crosshair cursor here</p>
+    </div>
+
+    <div class="pointer-test">
+        <h3>Pointer Test</h3>
+        <p>Should show pointer cursor here</p>
+    </div>
+
+    <div class="yugioh-png-test">
+        <h3>Yu-Gi-Oh PNG Test</h3>
+        <p>Should show Yu-Gi-Oh cursor (PNG)</p>
+    </div>
+
+    <div class="yugioh-ico-test">
+        <h3>Yu-Gi-Oh ICO Test</h3>
+        <p>Should show Yu-Gi-Oh cursor (ICO)</p>
+    </div>
+
+    <script>
+        console.log('Testing cursor image at:', '/yugioh-cursor.png');
+
+        // Test if image exists
+        const img = new Image();
+        img.onload = function () {
+            console.log('✅ Cursor image loaded successfully');
+            console.log('Image dimensions:', this.width, 'x', this.height);
+        };
+        img.onerror = function () {
+            console.error('❌ Cursor image failed to load');
+        };
+        img.src = '/yugioh-cursor.png';
+
+        // Force cursor via JavaScript
+        document.body.style.cursor = "url('/yugioh-cursor.png'), auto";
+        document.documentElement.style.cursor = "url('/yugioh-cursor.png'), auto";
+
+        // Log current cursor styles
+        console.log('Body cursor style:', document.body.style.cursor);
+        console.log('HTML cursor style:', document.documentElement.style.cursor);
+    </script>
+</body>
+
+</html>

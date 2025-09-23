@@ -2,10 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CURSOR OVERRIDE - Applied after Tailwind to ensure precedence */
+* {
+  cursor: url('/yugioh-cursor.png'), auto !important;
+}
+
+html {
+  cursor: url('/yugioh-cursor.png'), auto !important;
+}
+
+body {
+  cursor: url('/yugioh-cursor.png'), auto !important;
+}
+
+/* Interactive elements get pointer variant */
+button,
+a,
+[role="button"],
+.clickable,
+input[type="button"],
+input[type="submit"],
+select {
+  cursor: url('/yugioh-cursor.png'), pointer !important;
+}
+
+/* Text inputs get text cursor variant */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="search"],
+textarea {
+  cursor: url('/yugioh-cursor.png'), text !important;
+}
+
 @layer base {
   body {
     @apply bg-gray-50 text-gray-900 min-h-screen;
-    cursor: url('./assets/yugioh-cursor-24.png'), auto;
   }
 
   /* Dark theme support for specific components */
@@ -33,17 +65,5 @@
 
   .btn-secondary {
     @apply bg-gray-200 text-gray-800 px-4 py-2 rounded-md hover:bg-gray-300 transition-colors;
-  }
-
-  /* Interactive elements with custom cursor */
-  button,
-  .btn-primary,
-  .btn-secondary,
-  .btn-icon,
-  a,
-  [role="button"],
-  .card:hover,
-  .clickable {
-    cursor: url('./assets/yugioh-cursor-32-hamming.png'), pointer !important;
   }
 }

@@ -1,4 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navigation from './components/common/Navigation';
 import HomePage from './pages/HomePage';
@@ -7,6 +8,21 @@ import DeckBuilderPage from './pages/DeckBuilderPage';
 import './App.css';
 
 function App() {
+  useEffect(() => {
+    // Simple cursor enforcement - no complex utilities
+    const enforceCursor = () => {
+      document.body.style.cursor = "url('/yugioh-cursor.png'), auto";
+      document.documentElement.style.cursor = "url('/yugioh-cursor.png'), auto";
+    };
+
+    enforceCursor();
+
+    // Re-enforce periodically to handle any overrides
+    const interval = setInterval(enforceCursor, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <ThemeProvider>
       <Router>
