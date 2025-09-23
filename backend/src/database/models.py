@@ -1789,14 +1789,18 @@ class Banlist:
 
         # Map all card lists to correct IDs
         print("Mapping card IDs to database...")
-        print(f"Input counts - Forbidden: {len(self.forbidden_cards)}, Limited: {len(self.limited_cards)}, Semi-limited: {len(self.semi_limited_cards)}, Whitelist: {len(self.whitelist_cards)}")
-        
+        print(
+            f"Input counts - Forbidden: {len(self.forbidden_cards)}, Limited: {len(self.limited_cards)}, Semi-limited: {len(self.semi_limited_cards)}, Whitelist: {len(self.whitelist_cards)}"
+        )
+
         mapped_forbidden = map_card_list(self.forbidden_cards)
         mapped_limited = map_card_list(self.limited_cards)
         mapped_semi_limited = map_card_list(self.semi_limited_cards)
         mapped_whitelist = map_card_list(self.whitelist_cards)
 
-        print(f"Mapped counts - Forbidden: {len(mapped_forbidden)}, Limited: {len(mapped_limited)}, Semi-limited: {len(mapped_semi_limited)}, Whitelist: {len(mapped_whitelist)}")
+        print(
+            f"Mapped counts - Forbidden: {len(mapped_forbidden)}, Limited: {len(mapped_limited)}, Semi-limited: {len(mapped_semi_limited)}, Whitelist: {len(mapped_whitelist)}"
+        )
 
         # Insert new entries with mapped IDs
         card_entries = []
