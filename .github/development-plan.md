@@ -204,6 +204,17 @@
 - [ ] Multi user only see binder and decks that user 
 - [ ] Fix UI and take inspiration from other deck builders
 - [ ] Backup data for binders and decks in case something goes wrong
+- [ ] Only Save deck after Save Deck is clicked. Temporary changes to the deck should not be saved
+
+<!-- No. You made the change to include images and numbers at the top right which I appreciate, but we need to work on this UI much more. 
+
+Card images are way too small, I can barely make them out
+
+Card images in search are overlapping eachother and I cant tell when I am looking at
+
+The Deck Statististics is in an awkward spot lets make it its own section above and give it the space it deserves, make it collapsable -->
+
+
 
 ---
 
