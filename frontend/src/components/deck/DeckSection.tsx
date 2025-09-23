@@ -15,6 +15,7 @@ interface DeckSectionProps {
     minCards: number;
     sectionType: 'main' | 'extra' | 'side';
     binderCards?: BinderCard[];
+    enhanced?: boolean; // For larger card display in FaBrary style
 }
 
 const DeckSection: React.FC<DeckSectionProps> = ({
@@ -26,7 +27,8 @@ const DeckSection: React.FC<DeckSectionProps> = ({
     maxCards,
     minCards,
     sectionType,
-    binderCards = []
+    binderCards = [],
+    enhanced = false
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -97,12 +99,6 @@ const DeckSection: React.FC<DeckSectionProps> = ({
         onRemoveCard(cardId, 1);
     };
 
-    const getCardCountColor = () => {
-        if (totalCards < minCards) return 'text-red-600';
-        if (totalCards > maxCards) return 'text-red-600';
-        return 'text-green-600';
-    };
-
     const getSectionColor = () => {
         switch (sectionType) {
             case 'main': return 'border-blue-500 bg-blue-50';
@@ -121,44 +117,34 @@ const DeckSection: React.FC<DeckSectionProps> = ({
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
         >
-            {/* Header */}
-            <div className="p-4 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-xl font-semibold text-gray-900 flex items-center">
-                        <span className={`w-3 h-3 rounded-full mr-2 ${sectionType === 'main' ? 'bg-blue-500' :
+            {/* Minimal Header - FaBrary Style */}
+            <div className="px-4 py-2 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                        <span className={`w-2 h-2 rounded-full ${sectionType === 'main' ? 'bg-blue-500' :
                             sectionType === 'extra' ? 'bg-purple-500' : 'bg-green-500'
                             }`}></span>
-                        {title}
-                    </h2>
-                    <div className={`text-sm font-medium ${getCardCountColor()}`}>
-                        {totalCards}/{maxCards} cards
-                        {minCards > 0 && ` (min: ${minCards})`}
+                        <h2 className="text-sm font-medium text-gray-900">
+                            {title} ({totalCards}/{maxCards})
+                        </h2>
                         {!isValidCount && (
-                            <span className="ml-2 text-red-600">
-                                {totalCards < minCards ? '⚠️ Too few' : '⚠️ Too many'}
+                            <span className="text-xs text-red-600">
+                                {totalCards < minCards ? '⚠️' : '⚠️'}
                             </span>
                         )}
                     </div>
-                </div>
-
-                {/* View Mode Toggle */}
-                <div className="flex items-center justify-between">
-                    <div className="text-sm text-gray-600">
-                        {cards.length} unique cards
+                    <div className="flex items-center space-x-2">
+                        <ViewModeToggle
+                            currentMode={viewMode}
+                            onModeChange={setViewMode}
+                            availableModes={['grid', 'list']}
+                        />
                     </div>
-                    <ViewModeToggle
-                        currentMode={viewMode}
-                        onModeChange={setViewMode}
-                        availableModes={['grid', 'list']}
-                    />
                 </div>
 
                 {isDragOver && (
-                    <div className="mt-3 text-sm text-blue-600 font-medium text-center">
-                        <div className="flex items-center justify-center space-x-2">
-                            <span>📎</span>
-                            <span>Drop card here to add to {title}</span>
-                        </div>
+                    <div className="mt-2 text-xs text-blue-600 text-center">
+                        Drop card here to add to {title}
                     </div>
                 )}
             </div>
@@ -166,13 +152,13 @@ const DeckSection: React.FC<DeckSectionProps> = ({
             {/* Content */}
             <div className="min-h-[200px]">
                 {cards.length === 0 ? (
-                    <div className={`text-center py-12 ${isDragOver ? 'text-blue-600' : 'text-gray-500'}`}>
-                        <div className="text-6xl mb-4">
+                    <div className={`text-center py-8 ${isDragOver ? 'text-blue-600' : 'text-gray-500'}`}>
+                        <div className="text-4xl mb-2">
                             {sectionType === 'main' ? '🎯' :
                                 sectionType === 'extra' ? '⭐' : '📋'}
                         </div>
-                        <p className="text-lg font-medium">No cards in {title}</p>
-                        <p className="text-sm">
+                        <p className="text-sm font-medium">No cards in {title}</p>
+                        <p className="text-xs">
                             {isDragOver
                                 ? 'Drop a card here!'
                                 : 'Drag cards from your binder or click to add'
@@ -180,13 +166,13 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                         </p>
                     </div>
                 ) : (
-                    <div className="p-4">
+                    <div className="p-3">
                         {viewMode === 'grid' ? (
                             <CardGridView
                                 cards={cardsWithDetails}
                                 onCardClick={handleCardClick}
                                 onCardRightClick={handleCardRightClick}
-                                gridSize="sm"
+                                gridSize={enhanced ? (sectionType === 'main' ? "lg" : "md") : "sm"}
                                 disableZoom={true}
                             />
                         ) : (

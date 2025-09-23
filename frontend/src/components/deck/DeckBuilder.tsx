@@ -660,49 +660,49 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
     return (
         <div className="min-h-screen bg-gray-100">
-            <div className="max-w-[1800px] mx-auto px-8 py-8">
-                {/* Header */}
-                <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
-                    <div className="flex items-center justify-between mb-4">
-                        <h1 className="text-3xl font-bold text-gray-900">
+            <div className="w-full py-4">
+                {/* Header - More compact */}
+                <div className="bg-white rounded-lg shadow-lg p-4 mb-4 mx-4">
+                    <div className="flex items-center justify-between mb-3">
+                        <h1 className="text-2xl font-bold text-gray-900">
                             {deckId ? 'Edit Deck' : 'Create New Deck'}
                         </h1>
-                        <div className="flex space-x-3">
+                        <div className="flex space-x-2">
                             <button
                                 onClick={() => {
                                     setShowCloneModal(true);
                                     loadAvailableDecks();
                                 }}
-                                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                                className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
                                 disabled={isLoading}
                             >
-                                Clone Deck
+                                Clone
                             </button>
                             <button
                                 onClick={handleValidateDeck}
-                                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors"
+                                className="px-3 py-1.5 text-sm bg-yellow-600 text-white rounded hover:bg-yellow-700 transition-colors"
                                 disabled={!deck?.id}
                             >
-                                Validate Deck
+                                Validate
                             </button>
                             <button
                                 onClick={handleExportDeck}
-                                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                                className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
                                 disabled={!deck || (!deck.id && !deckName)}
                             >
-                                Export Deck
+                                Export
                             </button>
                             <button
                                 onClick={handleSaveDeck}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
                                 disabled={isLoading}
                             >
-                                {isLoading ? 'Saving...' : 'Save Deck'}
+                                {isLoading ? 'Saving...' : 'Save'}
                             </button>
                             {onCancel && (
                                 <button
                                     onClick={onCancel}
-                                    className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                                    className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
                                 >
                                     Cancel
                                 </button>
@@ -710,30 +710,30 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                         </div>
                     </div>
 
-                    {/* Deck Form */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Compact Deck Form */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Deck Name *
                             </label>
                             <input
                                 type="text"
                                 value={deckName}
                                 onChange={(e) => setDeckName(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Enter deck name"
                                 required
                             />
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Format
                             </label>
                             <select
                                 value={deckFormat}
                                 onChange={(e) => setDeckFormat(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">Select format</option>
                                 <option value="TCG">TCG</option>
@@ -745,13 +745,13 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Associated Binder
                             </label>
                             <select
                                 value={selectedBinderId}
                                 onChange={(e) => setSelectedBinderId(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">Select binder</option>
                                 {availableBinders.map((binder) => (
@@ -763,24 +763,24 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
                                 Description
                             </label>
                             <input
                                 type="text"
                                 value={deckDescription}
                                 onChange={(e) => setDeckDescription(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Enter deck description"
                             />
                         </div>
                     </div>
 
-                    {/* Validation Errors */}
+                    {/* Validation Errors - Compact */}
                     {validationErrors.length > 0 && (
-                        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <h3 className="text-sm font-medium text-red-800 mb-2">Validation Errors:</h3>
-                            <ul className="text-sm text-red-700 space-y-1">
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded">
+                            <h3 className="text-xs font-medium text-red-800 mb-1">Validation Errors:</h3>
+                            <ul className="text-xs text-red-700 space-y-0.5">
                                 {validationErrors.map((error, index) => (
                                     <li key={index}>• {error}</li>
                                 ))}
@@ -788,79 +788,98 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                         </div>
                     )}
 
-                    {/* Deck Statistics */}
+                    {/* Deck Statistics - Compact */}
                     {deckStats && (
-                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                            <h3 className="text-sm font-medium text-blue-800 mb-2">Deck Statistics:</h3>
-                            <div className="grid grid-cols-3 gap-4 text-sm text-blue-700">
-                                <div>Main Deck: {deckStats.main_deck_count}/40-60</div>
-                                <div>Extra Deck: {deckStats.extra_deck_count}/15</div>
-                                <div>Side Deck: {deckStats.side_deck_count}/15</div>
+                        <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+                            <h3 className="text-xs font-medium text-blue-800 mb-1">Deck Statistics:</h3>
+                            <div className="grid grid-cols-3 gap-3 text-xs text-blue-700">
+                                <div>Main: {deckStats.main_deck_count}/40-60</div>
+                                <div>Extra: {deckStats.extra_deck_count}/15</div>
+                                <div>Side: {deckStats.side_deck_count}/15</div>
                             </div>
                         </div>
                     )}
                 </div>
 
-                {/* Main Content */}
-                <div className="grid grid-cols-12 gap-8">
-                    {/* Left Sidebar - Card Search & Filters */}
-                    <div className="col-span-4">
+                {/* Main Content - FaBrary Style Layout */}
+                <div className="flex gap-4 min-h-[800px] mx-4">
+                    {/* Left Sidebar - Available Cards (25% width with full screen) */}
+                    <div className="w-1/4 min-w-[320px] max-w-[450px] flex-shrink-0">
                         {binder && (
-                            <EnhancedBinderCardList
-                                binder={binder}
-                                onCardClick={(cardId: number) => handleAddCardToDeck(cardId, 'main', 1)}
-                                showQuantities={true}
-                                title="Available Cards"
-                                currentDeck={deck}
-                            />
+                            <div className="bg-white rounded-lg shadow-lg h-full overflow-hidden">
+                                <EnhancedBinderCardList
+                                    binder={binder}
+                                    onCardClick={(cardId: number) => handleAddCardToDeck(cardId, 'main', 1)}
+                                    showQuantities={true}
+                                    title="Available Cards"
+                                    currentDeck={deck}
+                                />
+                            </div>
                         )}
                     </div>
 
-                    {/* Main Content Area - Deck Sections & Statistics */}
-                    <div className="col-span-8 space-y-6">
-                        {/* Deck Sections */}
-                        <DeckSection
-                            title="Main Deck"
-                            cards={deck.mainDeck}
-                            onAddCard={(cardId: number, quantity: number) => handleAddCardToDeck(cardId, 'main', quantity)}
-                            onRemoveCard={(cardId: number, quantity: number) => handleRemoveCardFromDeck(cardId, 'main', quantity)}
-                            onCardClick={handleCardPreview}
-                            maxCards={60}
-                            minCards={40}
-                            sectionType="main"
-                            binderCards={binder?.cards || []}
-                        />
+                    {/* Main Content Area - Deck Sections (80% width) */}
+                    <div className="flex-1 min-w-0">
+                        {/* Deck Sections in a more prominent layout */}
+                        <div className="space-y-4">
+                            {/* Main Deck - Most prominent */}
+                            <div className="bg-white rounded-lg shadow-lg">
+                                <DeckSection
+                                    title="Main Deck"
+                                    cards={deck.mainDeck}
+                                    onAddCard={(cardId: number, quantity: number) => handleAddCardToDeck(cardId, 'main', quantity)}
+                                    onRemoveCard={(cardId: number, quantity: number) => handleRemoveCardFromDeck(cardId, 'main', quantity)}
+                                    onCardClick={handleCardPreview}
+                                    maxCards={60}
+                                    minCards={40}
+                                    sectionType="main"
+                                    binderCards={binder?.cards || []}
+                                    enhanced={true}
+                                />
+                            </div>
 
-                        <DeckSection
-                            title="Extra Deck"
-                            cards={deck.extraDeck}
-                            onAddCard={(cardId: number, quantity: number) => handleAddCardToDeck(cardId, 'extra', quantity)}
-                            onRemoveCard={(cardId: number, quantity: number) => handleRemoveCardFromDeck(cardId, 'extra', quantity)}
-                            onCardClick={handleCardPreview}
-                            maxCards={15}
-                            minCards={0}
-                            sectionType="extra"
-                            binderCards={binder?.cards || []}
-                        />
+                            {/* Extra Deck and Side Deck - Side by side */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                <div className="bg-white rounded-lg shadow-lg">
+                                    <DeckSection
+                                        title="Extra Deck"
+                                        cards={deck.extraDeck}
+                                        onAddCard={(cardId: number, quantity: number) => handleAddCardToDeck(cardId, 'extra', quantity)}
+                                        onRemoveCard={(cardId: number, quantity: number) => handleRemoveCardFromDeck(cardId, 'extra', quantity)}
+                                        onCardClick={handleCardPreview}
+                                        maxCards={15}
+                                        minCards={0}
+                                        sectionType="extra"
+                                        binderCards={binder?.cards || []}
+                                        enhanced={true}
+                                    />
+                                </div>
 
-                        <DeckSection
-                            title="Side Deck"
-                            cards={deck.sideDeck}
-                            onAddCard={(cardId: number, quantity: number) => handleAddCardToDeck(cardId, 'side', quantity)}
-                            onRemoveCard={(cardId: number, quantity: number) => handleRemoveCardFromDeck(cardId, 'side', quantity)}
-                            onCardClick={handleCardPreview}
-                            maxCards={15}
-                            minCards={0}
-                            sectionType="side"
-                            binderCards={binder?.cards || []}
-                        />
+                                <div className="bg-white rounded-lg shadow-lg">
+                                    <DeckSection
+                                        title="Side Deck"
+                                        cards={deck.sideDeck}
+                                        onAddCard={(cardId: number, quantity: number) => handleAddCardToDeck(cardId, 'side', quantity)}
+                                        onRemoveCard={(cardId: number, quantity: number) => handleRemoveCardFromDeck(cardId, 'side', quantity)}
+                                        onCardClick={handleCardPreview}
+                                        maxCards={15}
+                                        minCards={0}
+                                        sectionType="side"
+                                        binderCards={binder?.cards || []}
+                                        enhanced={true}
+                                    />
+                                </div>
+                            </div>
 
-                        {/* Deck Statistics Section */}
-                        <div className="bg-white rounded-lg shadow-lg p-6">
-                            <DeckStatistics
-                                deck={deck}
-                                binderCards={binder?.cards || []}
-                            />
+                            {/* Deck Statistics Section - More compact */}
+                            <div className="bg-white rounded-lg shadow-lg">
+                                <div className="p-4">
+                                    <DeckStatistics
+                                        deck={deck}
+                                        binderCards={binder?.cards || []}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

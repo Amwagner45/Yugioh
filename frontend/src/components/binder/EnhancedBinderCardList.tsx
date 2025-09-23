@@ -452,9 +452,9 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                     </div>
                 ) : (
                     <div className="h-full flex flex-col">
-                        {/* Card Grid - 3 wide FaBrary style */}
-                        <div className="flex-1 p-4 overflow-y-auto">
-                            <div className="grid grid-cols-3 gap-4">
+                        {/* Card Grid - Compact sidebar style */}
+                        <div className="flex-1 p-3 overflow-y-auto">
+                            <div className="grid grid-cols-4 gap-2">
                                 {currentPageCards.map((card, index) => (
                                     <BinderCardItem
                                         key={`${card.cardId}-${card.setCode || 'noset'}-${card.rarity || 'norarity'}-${index}`}
@@ -595,8 +595,8 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
 
             {/* Quantity Badge - Top Right */}
             {showQuantity && (
-                <div className="absolute top-2 right-2">
-                    <span className="bg-blue-600 text-white text-sm font-bold px-2 py-1 rounded-full shadow-lg">
+                <div className="absolute top-1 right-1">
+                    <span className="bg-blue-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg">
                         {card.quantity}
                     </span>
                 </div>
@@ -604,8 +604,8 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
 
             {/* Deck Usage Badge - Top Left */}
             {showDeckInfo && usedInDeck > 0 && (
-                <div className="absolute top-2 left-2">
-                    <span className="bg-orange-600 text-white text-sm font-bold px-2 py-1 rounded-full shadow-lg">
+                <div className="absolute top-1 left-1">
+                    <span className="bg-orange-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg">
                         {usedInDeck}
                     </span>
                 </div>
