@@ -6,6 +6,8 @@ interface BinderListProps {
     onViewBinder: (binder: Binder) => void;
     onEditBinder: (binder: Binder) => void;
     onDeleteBinder: (binder: Binder) => void;
+    onSetFavorite: (binder: Binder) => void;
+    onRemoveFavorite: (binder: Binder) => void;
     isLoading?: boolean;
 }
 
@@ -14,6 +16,8 @@ interface BinderCardProps {
     onView: () => void;
     onEdit: () => void;
     onDelete: () => void;
+    onSetFavorite: () => void;
+    onRemoveFavorite: () => void;
 }
 
 const BinderCard: React.FC<BinderCardProps> = ({
@@ -21,17 +25,31 @@ const BinderCard: React.FC<BinderCardProps> = ({
     onView,
     onEdit,
     onDelete,
+    onSetFavorite,
+    onRemoveFavorite,
 }) => {
     const cardCount = binder.cards.reduce((total, card) => total + card.quantity, 0);
     const uniqueCardCount = binder.cards.length;
 
     return (
-        <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-6">
+        <div className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-6 relative">
+            {/* Favorite indicator */}
+            {binder.isFavorite && (
+                <div className="absolute top-3 right-3 text-yellow-400" title="Favorite Binder">
+                    <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                    </svg>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex justify-between items-start mb-4">
-                <div className="flex-1">
+                <div className="flex-1 pr-8">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
                         {binder.name}
+                        {binder.isFavorite && (
+                            <span className="ml-2 text-yellow-500 text-sm font-normal">(Favorite)</span>
+                        )}
                     </h3>
                     {binder.description && (
                         <p className="text-gray-600 text-sm line-clamp-2">
@@ -42,6 +60,20 @@ const BinderCard: React.FC<BinderCardProps> = ({
 
                 {/* Action Dropdown */}
                 <div className="flex items-center space-x-2">
+                    {/* Favorite toggle button */}
+                    <button
+                        onClick={binder.isFavorite ? onRemoveFavorite : onSetFavorite}
+                        className={`p-2 rounded-full transition-colors ${binder.isFavorite
+                                ? 'text-yellow-500 hover:text-yellow-600 hover:bg-yellow-50'
+                                : 'text-gray-400 hover:text-yellow-500 hover:bg-yellow-50'
+                            }`}
+                        title={binder.isFavorite ? "Remove from favorites" : "Set as favorite"}
+                    >
+                        <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                    </button>
+
                     <button
                         onClick={onView}
                         className="p-2 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
@@ -142,6 +174,8 @@ const BinderList: React.FC<BinderListProps> = ({
     onViewBinder,
     onEditBinder,
     onDeleteBinder,
+    onSetFavorite,
+    onRemoveFavorite,
     isLoading = false,
 }) => {
     if (isLoading) {
@@ -194,6 +228,8 @@ const BinderList: React.FC<BinderListProps> = ({
                     onView={() => onViewBinder(binder)}
                     onEdit={() => onEditBinder(binder)}
                     onDelete={() => onDeleteBinder(binder)}
+                    onSetFavorite={() => onSetFavorite(binder)}
+                    onRemoveFavorite={() => onRemoveFavorite(binder)}
                 />
             ))}
         </div>

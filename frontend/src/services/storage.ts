@@ -218,6 +218,75 @@ export class StorageService {
     }
 
     /**
+     * Set a binder as favorite (only one binder can be favorite at a time)
+     */
+    public setFavoriteBinder(binderId: string): void {
+        try {
+            const binders = this.getBinders();
+
+            // Remove favorite status from all binders
+            binders.forEach(binder => {
+                binder.isFavorite = false;
+            });
+
+            // Set the specified binder as favorite
+            const targetBinder = binders.find(b => b.id === binderId);
+            if (targetBinder) {
+                targetBinder.isFavorite = true;
+                targetBinder.modifiedAt = new Date();
+            }
+
+            localStorage.setItem(STORAGE_KEYS.BINDERS, JSON.stringify(binders));
+
+            // Track pending changes for sync
+            this.markForSync('binder', binderId);
+
+            // Auto-backup if enabled
+            if (this.config.autoBackup) {
+                this.createBackup();
+            }
+        } catch (error) {
+            console.error('Error setting favorite binder:', error);
+            throw new Error('Failed to set favorite binder');
+        }
+    }
+
+    /**
+     * Remove favorite status from a binder
+     */
+    public removeFavoriteBinder(binderId: string): void {
+        try {
+            const binders = this.getBinders();
+            const targetBinder = binders.find(b => b.id === binderId);
+
+            if (targetBinder) {
+                targetBinder.isFavorite = false;
+                targetBinder.modifiedAt = new Date();
+                localStorage.setItem(STORAGE_KEYS.BINDERS, JSON.stringify(binders));
+
+                // Track pending changes for sync
+                this.markForSync('binder', binderId);
+
+                // Auto-backup if enabled
+                if (this.config.autoBackup) {
+                    this.createBackup();
+                }
+            }
+        } catch (error) {
+            console.error('Error removing favorite binder:', error);
+            throw new Error('Failed to remove favorite binder');
+        }
+    }
+
+    /**
+     * Get the current favorite binder
+     */
+    public getFavoriteBinder(): Binder | null {
+        const binders = this.getBinders();
+        return binders.find(binder => binder.isFavorite === true) || null;
+    }
+
+    /**
      * Delete a binder from local storage
      */
     public deleteBinder(id: string): void {

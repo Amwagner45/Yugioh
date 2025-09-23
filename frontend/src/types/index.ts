@@ -54,8 +54,8 @@ export interface BinderCard {
 }
 
 export interface Binder {
-    id: number;        // Integer database ID
-    uuid: string;      // UUID for API calls
+    id: string;        // String ID for local binders (UUID for API calls)
+    uuid?: string;     // UUID for API calls (optional for backward compatibility)
     name: string;
     description?: string;
     cards: BinderCard[];
@@ -65,6 +65,7 @@ export interface Binder {
     is_default?: boolean;
     card_count?: number;
     total_quantity?: number;
+    isFavorite?: boolean;
 }
 
 export interface DeckCard {

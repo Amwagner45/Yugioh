@@ -282,6 +282,44 @@ const BinderPage: React.FC = () => {
         setDeletingBinder(binder);
     };
 
+    const handleSetFavorite = async (binder: Binder) => {
+        try {
+            setError(null);
+            storageService.setFavoriteBinder(binder.id);
+            setBinders(prev => prev.map(b => ({
+                ...b,
+                isFavorite: b.id === binder.id
+            })));
+
+            // Update selected binder if it's the same one
+            if (selectedBinder?.id === binder.id) {
+                setSelectedBinder({ ...selectedBinder, isFavorite: true });
+            }
+        } catch (err) {
+            setError('Failed to set favorite binder');
+            console.error('Error setting favorite binder:', err);
+        }
+    };
+
+    const handleRemoveFavorite = async (binder: Binder) => {
+        try {
+            setError(null);
+            storageService.removeFavoriteBinder(binder.id);
+            setBinders(prev => prev.map(b => ({
+                ...b,
+                isFavorite: false
+            })));
+
+            // Update selected binder if it's the same one
+            if (selectedBinder?.id === binder.id) {
+                setSelectedBinder({ ...selectedBinder, isFavorite: false });
+            }
+        } catch (err) {
+            setError('Failed to remove favorite binder');
+            console.error('Error removing favorite binder:', err);
+        }
+    };
+
     const handleAddCardToBinder = async (cardId: number, quantity: number) => {
         if (!selectedBinder) return;
 
@@ -442,6 +480,29 @@ const BinderPage: React.FC = () => {
                         {currentView === 'view' && `Viewing cards in ${selectedBinder?.name}`}
                         {currentView === 'search' && `Adding cards to ${selectedBinder?.name}`}
                     </p>
+                    {currentView === 'list' && binders.length > 0 && (
+                        <div className="mt-2">
+                            {(() => {
+                                const favoriteBinder = binders.find(b => b.isFavorite === true);
+                                if (favoriteBinder) {
+                                    return (
+                                        <p className="text-sm text-yellow-600 flex items-center">
+                                            <svg className="w-4 h-4 mr-1 fill-current" viewBox="0 0 24 24">
+                                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                                            </svg>
+                                            Favorite binder: <strong className="ml-1">{favoriteBinder.name}</strong> (will be auto-selected in deck builder)
+                                        </p>
+                                    );
+                                } else {
+                                    return (
+                                        <p className="text-sm text-gray-500">
+                                            No favorite binder set. Click the star icon on any binder to set it as your favorite.
+                                        </p>
+                                    );
+                                }
+                            })()}
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex space-x-3">
@@ -537,6 +598,8 @@ const BinderPage: React.FC = () => {
                         onViewBinder={handleViewBinder}
                         onEditBinder={handleEditBinder}
                         onDeleteBinder={handleDeleteBinderRequest}
+                        onSetFavorite={handleSetFavorite}
+                        onRemoveFavorite={handleRemoveFavorite}
                         isLoading={isLoading}
                     />
                 )}

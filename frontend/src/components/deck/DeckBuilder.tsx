@@ -96,9 +96,16 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 console.log(`✅ Loaded ${localBinders.length} binders from local storage`);
                 setAvailableBinders(localBinders);
 
-                // If no binder is selected, use the first available binder
+                // If no binder is selected, prioritize favorite binder first, then first available binder
                 if (!selectedBinderId && localBinders.length > 0) {
-                    setSelectedBinderId(localBinders[0].id.toString());
+                    const favoriteBinder = localBinders.find(b => b.isFavorite === true);
+                    if (favoriteBinder) {
+                        setSelectedBinderId(favoriteBinder.id.toString());
+                        console.log(`✅ Auto-selected favorite binder: ${favoriteBinder.name}`);
+                    } else {
+                        setSelectedBinderId(localBinders[0].id.toString());
+                        console.log(`✅ Auto-selected first available binder: ${localBinders[0].name}`);
+                    }
                 }
                 return;
             }
@@ -140,11 +147,20 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 setDeckNotes(localDeck.notes || '');
                 setDeckTags(localDeck.tags || []);
 
-                // For local decks, default to the first available binder if none is selected
+                // For local decks, default to favorite binder first, then first available binder if none is selected
                 if (!selectedBinderId && availableBinders.length > 0) {
-                    const firstBinderId = availableBinders[0].uuid || availableBinders[0].id.toString();
-                    setSelectedBinderId(firstBinderId);
-                    setBinder(availableBinders[0]);
+                    const favoriteBinder = availableBinders.find(b => b.isFavorite === true);
+                    if (favoriteBinder) {
+                        const binderIdToUse = favoriteBinder.uuid || favoriteBinder.id.toString();
+                        setSelectedBinderId(binderIdToUse);
+                        setBinder(favoriteBinder);
+                        console.log(`✅ Auto-selected favorite binder for deck: ${favoriteBinder.name}`);
+                    } else {
+                        const firstBinderId = availableBinders[0].uuid || availableBinders[0].id.toString();
+                        setSelectedBinderId(firstBinderId);
+                        setBinder(availableBinders[0]);
+                        console.log(`✅ Auto-selected first available binder for deck: ${availableBinders[0].name}`);
+                    }
                 }
                 return;
             }
@@ -193,7 +209,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
             // Set associated binder (convert binder_id to UUID)
             if (deckData.binder_id && availableBinders.length > 0) {
-                const associatedBinder = availableBinders.find(b => b.id === deckData.binder_id);
+                const associatedBinder = availableBinders.find(b => b.id === deckData.binder_id || b.uuid === deckData.binder_id);
                 if (associatedBinder) {
                     setSelectedBinderId(associatedBinder.uuid || associatedBinder.id.toString());
                 }
@@ -479,7 +495,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             console.log('🌐 Saving deck to backend API');
             // Find the selected binder's integer ID
             const selectedBinder = availableBinders.find(b => (b.uuid || b.id.toString()) === selectedBinderId);
-            const binderIntegerId = selectedBinder ? selectedBinder.id : null;
+            const binderIntegerId = selectedBinder ? (typeof selectedBinder.id === 'string' ? parseInt(selectedBinder.id) : selectedBinder.id) : null;
 
             const deckData = {
                 name: deckName,
@@ -968,11 +984,18 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">Select binder</option>
-                                {availableBinders.map((binder) => (
-                                    <option key={binder.uuid || binder.id} value={binder.uuid || binder.id}>
-                                        {binder.name}
-                                    </option>
-                                ))}
+                                {availableBinders
+                                    .sort((a, b) => {
+                                        // Sort favorite binder first
+                                        if (a.isFavorite && !b.isFavorite) return -1;
+                                        if (!a.isFavorite && b.isFavorite) return 1;
+                                        return a.name.localeCompare(b.name);
+                                    })
+                                    .map((binder) => (
+                                        <option key={binder.uuid || binder.id} value={binder.uuid || binder.id}>
+                                            {binder.isFavorite ? '⭐ ' : ''}{binder.name}
+                                        </option>
+                                    ))}
                             </select>
                         </div>
 
