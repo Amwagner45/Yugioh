@@ -88,11 +88,11 @@
 **Goal**: Implement the main deck building functionality
 
 ### 4.1 Basic Deck Builder
-- [ ] Create deck creation/editing interface
-- [ ] Implement "build from binder" constraint system
-- [ ] Add card drag-and-drop functionality
-- [ ] Create main deck, extra deck, and side deck sections
-- [ ] Implement basic deck validation (card limits, deck size)
+- [x] Create deck creation/editing interface
+- [x] Implement "build from binder" constraint system
+- [x] Add card drag-and-drop functionality
+- [x] Create main deck, extra deck, and side deck sections
+- [x] Implement basic deck validation (card limits, deck size)
 
 ### 4.2 Enhanced Deck Building
 - [ ] Add real-time deck statistics (card types, levels, etc.)
