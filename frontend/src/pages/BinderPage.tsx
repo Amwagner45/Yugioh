@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { storageService } from '../services/storage';
 import { cardService } from '../services/api';
 import BinderForm from '../components/binder/BinderForm';
@@ -6,8 +6,17 @@ import BinderList from '../components/binder/BinderList';
 import CardSearch from '../components/binder/CardSearch';
 import SetBrowser from '../components/binder/SetBrowser';
 import CardQuantityManager from '../components/binder/CardQuantityManager';
+import BinderFilters from '../components/binder/BinderFilters';
+import BinderStats from '../components/binder/BinderStats';
+import BinderExportImport from '../components/binder/BinderExportImport';
 import { DeleteBinderConfirm } from '../components/common/ConfirmDialog';
+import {
+    filterAndSortBinderCards,
+    getDefaultBinderFilters,
+    getDefaultBinderSort
+} from '../utils/binderFiltering';
 import type { Binder, BinderCard, Card } from '../types';
+import type { BinderFilterOptions, BinderSortOption } from '../components/binder/BinderFilters';
 
 type ViewMode = 'list' | 'create' | 'edit' | 'view' | 'search';
 type SearchTab = 'search' | 'sets';
@@ -19,6 +28,7 @@ const BinderPage: React.FC = () => {
     const [selectedBinder, setSelectedBinder] = useState<Binder | null>(null);
     const [editingBinder, setEditingBinder] = useState<Binder | null>(null);
     const [deletingBinder, setDeletingBinder] = useState<Binder | null>(null);
+    const [showExportImport, setShowExportImport] = useState(false);
 
     // Loading states
     const [isLoading, setIsLoading] = useState(true);
@@ -32,10 +42,131 @@ const BinderPage: React.FC = () => {
     // Error handling
     const [error, setError] = useState<string | null>(null);
 
+    // Filtering and sorting state
+    const [binderFilters, setBinderFilters] = useState<BinderFilterOptions>(getDefaultBinderFilters());
+    const [binderSort, setBinderSort] = useState<BinderSortOption>(getDefaultBinderSort());
+
     // Load binders on component mount
     useEffect(() => {
         loadBinders();
     }, []);
+
+    // Compute filtered and sorted cards for the selected binder
+    const filteredAndSortedCards = useMemo(() => {
+        if (!selectedBinder) return [];
+
+        const cardsWithData = selectedBinder.cards.map(binderCard => ({
+            ...binderCard,
+            card: cardCache.get(binderCard.cardId),
+        }));
+
+        return filterAndSortBinderCards(cardsWithData, binderFilters, binderSort);
+    }, [selectedBinder, cardCache, binderFilters, binderSort]);
+
+    // Get available tags from all cards in the binder
+    const availableTags = useMemo(() => {
+        if (!selectedBinder) return [];
+
+        const tags = new Set<string>();
+        selectedBinder.cards.forEach(binderCard => {
+            if (binderCard.tags) {
+                binderCard.tags.forEach(tag => tags.add(tag));
+            }
+        });
+
+        return Array.from(tags).sort();
+    }, [selectedBinder]);
+
+    const handleBinderFiltersChange = (filters: BinderFilterOptions) => {
+        setBinderFilters(filters);
+    };
+
+    const handleBinderSortChange = (sort: BinderSortOption) => {
+        setBinderSort(sort);
+    };
+
+    const handleResetBinderFilters = () => {
+        setBinderFilters(getDefaultBinderFilters());
+        setBinderSort(getDefaultBinderSort());
+    };
+
+    const handleUpdateCardTags = async (cardId: number, tags: string[]) => {
+        if (!selectedBinder) return;
+
+        try {
+            setError(null);
+
+            const updatedBinder = { ...selectedBinder };
+            const cardIndex = updatedBinder.cards.findIndex(c => c.cardId === cardId);
+
+            if (cardIndex >= 0) {
+                updatedBinder.cards[cardIndex] = {
+                    ...updatedBinder.cards[cardIndex],
+                    tags: tags.length > 0 ? tags : undefined,
+                };
+
+                updatedBinder.modifiedAt = new Date();
+
+                storageService.saveBinder(updatedBinder);
+                setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
+                setSelectedBinder(updatedBinder);
+            }
+        } catch (err) {
+            setError('Failed to update card tags');
+            console.error('Error updating card tags:', err);
+        }
+    };
+
+    const handleCreateTag = (tag: string) => {
+        // Tag creation is handled automatically when a new tag is added to a card
+        // This callback could be used for additional logic like tag validation or tracking
+        console.log('New tag created:', tag);
+    };
+
+    const handleUpdateCardSetInfo = async (cardId: number, setCode?: string, rarity?: string) => {
+        if (!selectedBinder) return;
+
+        try {
+            setError(null);
+
+            const updatedBinder = { ...selectedBinder };
+            const cardIndex = updatedBinder.cards.findIndex(c => c.cardId === cardId);
+
+            if (cardIndex >= 0) {
+                updatedBinder.cards[cardIndex] = {
+                    ...updatedBinder.cards[cardIndex],
+                    setCode: setCode,
+                    rarity: rarity,
+                };
+
+                updatedBinder.modifiedAt = new Date();
+
+                storageService.saveBinder(updatedBinder);
+                setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
+                setSelectedBinder(updatedBinder);
+            }
+        } catch (err) {
+            setError('Failed to update card set/rarity information');
+            console.error('Error updating card set/rarity:', err);
+        }
+    };
+
+    const handleImportBinder = async (importedBinder: Binder) => {
+        try {
+            setError(null);
+
+            // Save the imported binder
+            storageService.saveBinder(importedBinder);
+            setBinders(prev => [...prev, importedBinder]);
+
+            // Close the modal and show success message
+            setShowExportImport(false);
+            alert(`Successfully imported binder "${importedBinder.name}" with ${importedBinder.cards.length} cards.`);
+        } catch (err) {
+            setError('Failed to save imported binder');
+            console.error('Error saving imported binder:', err);
+        }
+    };
 
     const loadBinders = async () => {
         try {
@@ -302,12 +433,20 @@ const BinderPage: React.FC = () => {
                     )}
 
                     {currentView === 'list' && (
-                        <button
-                            onClick={() => setCurrentView('create')}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            Create Binder
-                        </button>
+                        <>
+                            <button
+                                onClick={() => setShowExportImport(true)}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                Import Binder
+                            </button>
+                            <button
+                                onClick={() => setCurrentView('create')}
+                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            >
+                                Create Binder
+                            </button>
+                        </>
                     )}
 
                     {currentView === 'view' && selectedBinder && (
@@ -317,6 +456,12 @@ const BinderPage: React.FC = () => {
                                 className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500"
                             >
                                 Add Cards
+                            </button>
+                            <button
+                                onClick={() => setShowExportImport(true)}
+                                className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            >
+                                Export/Import
                             </button>
                             <button
                                 onClick={() => handleEditBinder(selectedBinder)}
@@ -410,12 +555,34 @@ const BinderPage: React.FC = () => {
                                 </div>
                                 <div className="bg-purple-50 rounded-lg p-4">
                                     <div className="text-2xl font-bold text-purple-600">
-                                        {selectedBinder.tags?.length || 0}
+                                        {filteredAndSortedCards.length}
                                     </div>
-                                    <div className="text-sm text-gray-600">Tags</div>
+                                    <div className="text-sm text-gray-600">Filtered Results</div>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Detailed Statistics */}
+                        <BinderStats
+                            binderCards={selectedBinder.cards}
+                            cardCache={cardCache}
+                            binderName={selectedBinder.name}
+                        />
+
+                        {/* Filters and Sorting */}
+                        <BinderFilters
+                            cards={selectedBinder.cards.map(bc => ({
+                                cardId: bc.cardId,
+                                card: cardCache.get(bc.cardId),
+                                quantity: bc.quantity
+                            }))}
+                            filters={binderFilters}
+                            sortOption={binderSort}
+                            onFiltersChange={handleBinderFiltersChange}
+                            onSortChange={handleBinderSortChange}
+                            onResetFilters={handleResetBinderFilters}
+                            availableTags={availableTags}
+                        />
 
                         {/* Cards in Binder */}
                         <div className="bg-white rounded-lg shadow-lg p-6">
@@ -430,15 +597,29 @@ const BinderPage: React.FC = () => {
                                         Add Your First Card
                                     </button>
                                 </div>
+                            ) : filteredAndSortedCards.length === 0 ? (
+                                <div className="text-center py-8">
+                                    <p className="text-gray-600 mb-4">No cards match your current filters.</p>
+                                    <button
+                                        onClick={handleResetBinderFilters}
+                                        className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+                                    >
+                                        Clear Filters
+                                    </button>
+                                </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {selectedBinder.cards.map((binderCard) => (
+                                    {filteredAndSortedCards.map((filteredCard) => (
                                         <CardQuantityManager
-                                            key={binderCard.cardId}
-                                            binderCard={binderCard}
-                                            card={cardCache.get(binderCard.cardId)}
+                                            key={filteredCard.cardId}
+                                            binderCard={filteredCard}
+                                            card={filteredCard.card}
                                             onUpdateQuantity={handleUpdateCardQuantity}
                                             onRemoveCard={handleRemoveCardFromBinder}
+                                            onUpdateTags={handleUpdateCardTags}
+                                            onUpdateSetInfo={handleUpdateCardSetInfo}
+                                            availableTags={availableTags}
+                                            onCreateTag={handleCreateTag}
                                         />
                                     ))}
                                 </div>
@@ -456,8 +637,8 @@ const BinderPage: React.FC = () => {
                                     <button
                                         onClick={() => setSearchTab('search')}
                                         className={`py-4 px-1 border-b-2 font-medium text-sm ${searchTab === 'search'
-                                                ? 'border-blue-500 text-blue-600'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                             }`}
                                     >
                                         Search Cards
@@ -465,8 +646,8 @@ const BinderPage: React.FC = () => {
                                     <button
                                         onClick={() => setSearchTab('sets')}
                                         className={`py-4 px-1 border-b-2 font-medium text-sm ${searchTab === 'sets'
-                                                ? 'border-blue-500 text-blue-600'
-                                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                                            ? 'border-blue-500 text-blue-600'
+                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                                             }`}
                                     >
                                         Browse by Set
@@ -502,6 +683,22 @@ const BinderPage: React.FC = () => {
                     onCancel={() => setDeletingBinder(null)}
                     isDeleting={isDeleting}
                 />
+
+                {/* Export/Import Modal */}
+                {showExportImport && (selectedBinder || currentView === 'list') && (
+                    <BinderExportImport
+                        binder={selectedBinder || {
+                            id: 'temp',
+                            name: 'All Binders',
+                            cards: [],
+                            createdAt: new Date(),
+                            modifiedAt: new Date()
+                        }}
+                        cardCache={cardCache}
+                        onImportBinder={handleImportBinder}
+                        onClose={() => setShowExportImport(false)}
+                    />
+                )}
             </div>
         </div>
     );

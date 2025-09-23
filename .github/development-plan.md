@@ -78,6 +78,7 @@
 - [ ] Create binder statistics and summaries
 - [ ] Add card rarity and set tracking
 - [ ] Implement binder sharing/export functionality
+- [ ] Implement import from csv and export to csv functionality
 
 **Deliverable**: Fully functional binder management system
 
@@ -97,8 +98,8 @@
 - [ ] Add real-time deck statistics (card types, levels, etc.)
 - [ ] Implement advanced filtering in deck builder
 - [ ] Create deck search within binder
-- [ ] Add quick-add functionality for common cards
-- [ ] Implement deck copying and templates
+- [ ] Add quick-add functionality for favorited cards
+- [ ] Implement deck cloning
 
 ### 4.3 Deck Management
 - [ ] Create deck list view and organization
@@ -106,6 +107,7 @@
 - [ ] Implement deck notes and descriptions
 - [ ] Create deck validation against ban lists
 - [ ] Add deck sharing functionality
+- [ ] Implement import from .ydk file and export to .ydk file functionality
 
 **Deliverable**: Complete deck building system with binder integration
 

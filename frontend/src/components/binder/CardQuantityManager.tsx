@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import CardTagManager from './CardTagManager';
+import CardSetRarityManager from './CardSetRarityManager';
 import type { BinderCard, Card } from '../../types';
 
 interface CardQuantityManagerProps {
@@ -6,6 +8,10 @@ interface CardQuantityManagerProps {
     card?: Card; // Optional card details for display
     onUpdateQuantity: (cardId: number, newQuantity: number) => void;
     onRemoveCard: (cardId: number) => void;
+    onUpdateTags?: (cardId: number, tags: string[]) => void;
+    onUpdateSetInfo?: (cardId: number, setCode?: string, rarity?: string) => void;
+    availableTags?: string[];
+    onCreateTag?: (tag: string) => void;
     isUpdating?: boolean;
 }
 
@@ -100,6 +106,10 @@ const CardQuantityManager: React.FC<CardQuantityManagerProps> = ({
     card,
     onUpdateQuantity,
     onRemoveCard,
+    onUpdateTags,
+    onUpdateSetInfo,
+    availableTags = [],
+    onCreateTag,
     isUpdating = false,
 }) => {
     const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
@@ -155,10 +165,24 @@ const CardQuantityManager: React.FC<CardQuantityManagerProps> = ({
             </div>
 
             {/* Additional Card Info */}
-            {binderCard.setCode && (
-                <div className="text-sm text-gray-600 mb-2">
-                    Set: {binderCard.setCode}
-                    {binderCard.rarity && <span className="ml-2">({binderCard.rarity})</span>}
+            {(binderCard.setCode || binderCard.rarity || onUpdateSetInfo) && (
+                <div className="mb-3">
+                    {onUpdateSetInfo ? (
+                        <CardSetRarityManager
+                            binderCard={binderCard}
+                            card={card}
+                            onUpdateSetInfo={onUpdateSetInfo}
+                        />
+                    ) : (
+                        <div className="text-sm text-gray-600">
+                            {binderCard.setCode && (
+                                <div>Set: {binderCard.setCode}</div>
+                            )}
+                            {binderCard.rarity && (
+                                <div>Rarity: {binderCard.rarity}</div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -171,6 +195,18 @@ const CardQuantityManager: React.FC<CardQuantityManagerProps> = ({
             {binderCard.notes && (
                 <div className="text-sm text-gray-600 mb-3 italic">
                     Notes: {binderCard.notes}
+                </div>
+            )}
+
+            {/* Tag Management */}
+            {onUpdateTags && (
+                <div className="mb-3">
+                    <CardTagManager
+                        binderCard={binderCard}
+                        availableTags={availableTags}
+                        onUpdateTags={onUpdateTags}
+                        onCreateTag={onCreateTag}
+                    />
                 </div>
             )}
 
@@ -195,8 +231,8 @@ const CardQuantityManager: React.FC<CardQuantityManagerProps> = ({
                                 onClick={() => handleQuickSet(qty)}
                                 disabled={isUpdating}
                                 className={`px-2 py-1 text-xs rounded border transition-colors ${binderCard.quantity === qty
-                                        ? 'bg-blue-600 text-white border-blue-600'
-                                        : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-200'
                                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                             >
                                 {qty}

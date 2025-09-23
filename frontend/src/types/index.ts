@@ -43,6 +43,8 @@ export interface BinderCard {
     rarity?: string;
     condition?: string;
     notes?: string;
+    tags?: string[];
+    dateAdded?: Date;
 }
 
 export interface Binder {
