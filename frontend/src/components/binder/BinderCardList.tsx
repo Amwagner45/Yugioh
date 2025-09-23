@@ -46,6 +46,16 @@ const BinderCardList: React.FC<BinderCardListProps> = ({
     // Filter and sort cards
     const filteredCards = binder.cards
         .filter(card => {
+            // Debug card structure
+            console.log('Processing card:', {
+                cardId: card.cardId,
+                hasCardDetails: !!card.card_details,
+                cardName: card.card_details?.name,
+                setCode: card.setCode,
+                rarity: card.rarity,
+                quantity: card.quantity
+            });
+
             if (!searchTerm) return true;
             const cardDetails = card.card_details;
             if (!cardDetails) {

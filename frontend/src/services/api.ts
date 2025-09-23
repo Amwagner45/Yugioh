@@ -167,7 +167,24 @@ export const binderService = {
         try {
             const params = includeCardDetails ? { include_card_details: 'true' } : {};
             const response = await api.get(`/api/binders/${uuid}`, { params });
-            return response.data;
+
+            // Transform snake_case API response to camelCase for frontend
+            const transformedData = {
+                ...response.data,
+                cards: response.data.cards?.map((card: any) => ({
+                    cardId: card.card_id,
+                    quantity: card.quantity,
+                    setCode: card.set_code,
+                    rarity: card.rarity,
+                    condition: card.condition,
+                    edition: card.edition,
+                    notes: card.notes,
+                    dateAdded: card.date_added ? new Date(card.date_added) : undefined,
+                    card_details: card.card_details // This should already be in the right format
+                })) || []
+            };
+
+            return transformedData;
         } catch (error) {
             console.error('Error fetching binder:', error);
             return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };

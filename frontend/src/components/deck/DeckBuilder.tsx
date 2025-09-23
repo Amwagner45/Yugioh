@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { Deck, Binder } from '../../types';
 import DeckSection from './DeckSection';
 import BinderCardList from '../binder/BinderCardList';
-import api from '../../services/api';
+import api, { binderService } from '../../services/api';
 
 interface DeckBuilderProps {
     deckId?: string;
@@ -135,8 +135,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         if (!selectedBinderId) return;
 
         try {
-            const response = await api.get(`/api/binders/${selectedBinderId}`);
-            setBinder(response.data);
+            const binderData = await binderService.getBinder(selectedBinderId, true);
+            setBinder(binderData);
         } catch (error) {
             console.error('Failed to load binder:', error);
         }
