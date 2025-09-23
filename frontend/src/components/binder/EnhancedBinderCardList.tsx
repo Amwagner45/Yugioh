@@ -28,8 +28,6 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     currentDeck,
     compact = false
 }) => {
-    console.log('🚀 CORRECT EnhancedBinderCardList MOUNTED with', binder.cards.length, 'cards');
-    console.log('🚀 Has onAddToSection:', !!onAddToSection);
     // View and display state
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -282,7 +280,6 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     };
 
     const handleCardRightClick = (e: React.MouseEvent, card: BinderCard) => {
-        console.log('🎯 BINDER Right-click on card:', card.cardId, card.card_details?.name);
         e.preventDefault();
         e.stopPropagation();
         setContextMenu({

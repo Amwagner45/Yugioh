@@ -197,11 +197,9 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                 quantity={cardData.quantity}
                                 showZoom={!disableZoom}
                                 onClick={isAvailable && onCardClick ? () => {
-                                    console.log('🎯 CardGridView onClick for card:', cardData.card_details!.name);
                                     onCardClick(cardData.cardId);
                                 } : undefined}
                                 onRightClick={onCardRightClick ? (e) => {
-                                    console.log('🎯 CardGridView onRightClick for card:', cardData.card_details!.name);
                                     onCardRightClick(e, cardData.cardId);
                                 } : undefined}
                                 className={`${isAvailable && onCardClick

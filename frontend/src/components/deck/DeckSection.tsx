@@ -141,6 +141,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
 
     const handleCardRightClick = (e: React.MouseEvent, cardId: number) => {
         e.preventDefault();
+        e.stopPropagation();
         setContextMenu({
             isOpen: true,
             position: { x: e.clientX, y: e.clientY },
@@ -204,6 +205,9 @@ const DeckSection: React.FC<DeckSectionProps> = ({
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
+            onContextMenu={(e) => {
+                e.preventDefault();
+            }}
         >
             {/* Minimal Header - FaBrary Style */}
             <div className="px-4 py-2 border-b border-gray-200 bg-gray-50">
