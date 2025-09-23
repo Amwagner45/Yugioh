@@ -153,10 +153,10 @@ export interface Banlist {
     is_active: boolean;
     created_at: string;
     updated_at: string;
-    forbidden_cards: number[];
-    limited_cards: number[];
-    semi_limited_cards: number[];
-    whitelist_cards: number[];
+    forbidden_cards: Card[];
+    limited_cards: Card[];
+    semi_limited_cards: Card[];
+    whitelist_cards: Card[];
 }
 
 export interface BanlistCard {
@@ -182,7 +182,7 @@ export interface BanlistViolation {
 export interface BanlistSection {
     title: string;
     type: 'forbidden' | 'limited' | 'semi_limited' | 'whitelist';
-    cards: number[];
+    cards: Card[];
     maxCopies: number;
     color: string;
     bgColor: string;

@@ -35,7 +35,7 @@ class BanlistService {
      * Get all banlists
      */
     async getAll(includeInactive: boolean = false): Promise<{ banlists: Banlist[]; count: number }> {
-        const response = await apiClient.get(`${this.baseUrl}?include_inactive=${includeInactive}`);
+        const response = await apiClient.get(`${this.baseUrl}?include_inactive=${includeInactive}&include_card_details=true`);
         return response.data;
     }
 
@@ -43,7 +43,7 @@ class BanlistService {
      * Get banlist by ID or UUID
      */
     async getById(banlistId: string): Promise<Banlist> {
-        const response = await apiClient.get(`${this.baseUrl}/${banlistId}`);
+        const response = await apiClient.get(`${this.baseUrl}/${banlistId}?include_card_details=true`);
         return response.data;
     }
 
@@ -51,7 +51,7 @@ class BanlistService {
      * Create a new banlist
      */
     async create(data: BanlistCreateData): Promise<Banlist> {
-        const response = await apiClient.post(this.baseUrl, data);
+        const response = await apiClient.post(`${this.baseUrl}?include_card_details=true`, data);
         return response.data;
     }
 
@@ -59,7 +59,7 @@ class BanlistService {
      * Update an existing banlist
      */
     async update(banlistId: string, data: BanlistUpdateData): Promise<Banlist> {
-        const response = await apiClient.put(`${this.baseUrl}/${banlistId}`, data);
+        const response = await apiClient.put(`${this.baseUrl}/${banlistId}?include_card_details=true`, data);
         return response.data;
     }
 
@@ -172,10 +172,10 @@ class BanlistService {
             description: originalBanlist.description,
             format_type: originalBanlist.format_type,
             is_official: false, // Copies are never official
-            forbidden_cards: [...originalBanlist.forbidden_cards],
-            limited_cards: [...originalBanlist.limited_cards],
-            semi_limited_cards: [...originalBanlist.semi_limited_cards],
-            whitelist_cards: [...originalBanlist.whitelist_cards],
+            forbidden_cards: originalBanlist.forbidden_cards.map(card => card.id),
+            limited_cards: originalBanlist.limited_cards.map(card => card.id),
+            semi_limited_cards: originalBanlist.semi_limited_cards.map(card => card.id),
+            whitelist_cards: originalBanlist.whitelist_cards.map(card => card.id),
         };
 
         return this.create(duplicateData);

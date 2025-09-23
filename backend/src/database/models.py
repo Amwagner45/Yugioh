@@ -2048,9 +2048,9 @@ class Banlist:
         if card_id in self.whitelist_cards:
             self.whitelist_cards.remove(card_id)
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self, include_card_details: bool = True) -> Dict[str, Any]:
         """Convert banlist to dictionary"""
-        return {
+        base_dict = {
             "id": self.id,
             "uuid": self.uuid,
             "name": self.name,
@@ -2062,11 +2062,87 @@ class Banlist:
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "forbidden_cards": self.forbidden_cards,
-            "limited_cards": self.limited_cards,
-            "semi_limited_cards": self.semi_limited_cards,
-            "whitelist_cards": self.whitelist_cards,
         }
+
+        if include_card_details:
+            # Include full card details from cache
+            base_dict.update(
+                {
+                    "forbidden_cards": self._get_cards_with_details(
+                        self.forbidden_cards
+                    ),
+                    "limited_cards": self._get_cards_with_details(self.limited_cards),
+                    "semi_limited_cards": self._get_cards_with_details(
+                        self.semi_limited_cards
+                    ),
+                    "whitelist_cards": self._get_cards_with_details(
+                        self.whitelist_cards
+                    ),
+                }
+            )
+        else:
+            # Just return card IDs (for backwards compatibility)
+            base_dict.update(
+                {
+                    "forbidden_cards": self.forbidden_cards,
+                    "limited_cards": self.limited_cards,
+                    "semi_limited_cards": self.semi_limited_cards,
+                    "whitelist_cards": self.whitelist_cards,
+                }
+            )
+
+        return base_dict
+
+    def _get_cards_with_details(self, card_ids: List[int]) -> List[Dict[str, Any]]:
+        """Get full card details for a list of card IDs"""
+        if not card_ids:
+            return []
+
+        cards_with_details = []
+        with get_db_connection() as conn:
+            for card_id in card_ids:
+                cursor = conn.execute(
+                    """
+                    SELECT id, name, type, description, atk, def, level, race, 
+                           attribute, card_images, card_sets, banlist_info, 
+                           archetype, scale, linkval, linkmarkers
+                    FROM card_cache WHERE id = ?
+                    """,
+                    (card_id,),
+                )
+                row = cursor.fetchone()
+
+                if row:
+                    card_dict = {
+                        "id": row[0],
+                        "name": row[1],
+                        "type": row[2],
+                        "desc": row[3],
+                        "atk": row[4],
+                        "def": row[5],
+                        "level": row[6],
+                        "race": row[7],
+                        "attribute": row[8],
+                        "card_images": json.loads(row[9]) if row[9] else [],
+                        "card_sets": json.loads(row[10]) if row[10] else [],
+                        "banlist_info": json.loads(row[11]) if row[11] else {},
+                        "archetype": row[12],
+                        "scale": row[13],
+                        "linkval": row[14],
+                        "linkmarkers": json.loads(row[15]) if row[15] else [],
+                    }
+                    cards_with_details.append(card_dict)
+                else:
+                    # If card not found in cache, still include the ID for debugging
+                    cards_with_details.append(
+                        {
+                            "id": card_id,
+                            "name": f"Card ID {card_id} not found",
+                            "error": True,
+                        }
+                    )
+
+        return cards_with_details
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "Banlist":

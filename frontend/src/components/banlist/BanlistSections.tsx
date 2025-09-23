@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import type { Card, BanlistSection } from '../../types';
-import { cardService } from '../../services/api';
 
 interface BanlistSectionsProps {
     sections: BanlistSection[];
@@ -10,44 +9,17 @@ interface BanlistSectionsProps {
 }
 
 interface BanlistSectionCardProps {
-    cardId: number;
+    card: Card;
     onRemove: (cardId: number) => void;
     maxCopies: number;
 }
 
-const BanlistSectionCard: React.FC<BanlistSectionCardProps> = ({ cardId, onRemove, maxCopies }) => {
-    const [card, setCard] = useState<Card | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-
-    useEffect(() => {
-        const loadCard = async () => {
-            try {
-                const cardData = await cardService.getCardById(cardId);
-                setCard(cardData);
-            } catch (error) {
-                console.error('Error loading card:', error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        loadCard();
-    }, [cardId]);
-
-    if (isLoading) {
-        return (
-            <div className="bg-gray-100 dark:bg-gray-700 rounded p-2 animate-pulse">
-                <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded mb-1"></div>
-                <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
-            </div>
-        );
-    }
-
-    if (!card) {
+const BanlistSectionCard: React.FC<BanlistSectionCardProps> = ({ card, onRemove, maxCopies }) => {
+    if (!card || (card as any).error) {
         return (
             <div className="bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded p-2">
                 <div className="text-red-700 dark:text-red-300 text-sm">
-                    Card ID {cardId} not found
+                    {card?.name || `Card ID ${card?.id || 'unknown'} not found`}
                 </div>
             </div>
         );
@@ -86,7 +58,7 @@ const BanlistSectionCard: React.FC<BanlistSectionCardProps> = ({ cardId, onRemov
 
                         {/* Remove Button */}
                         <button
-                            onClick={() => onRemove(cardId)}
+                            onClick={() => onRemove(card.id)}
                             className="opacity-0 group-hover:opacity-100 p-1 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-opacity"
                             title="Remove card"
                         >
@@ -152,8 +124,8 @@ const BanlistSections: React.FC<BanlistSectionsProps> = ({
                         {/* Drop Zone */}
                         <div
                             className={`flex-1 min-h-96 border-l border-r border-b ${section.borderColor} ${dragOverSection === section.type
-                                    ? `${section.bgColor} border-dashed border-2`
-                                    : 'bg-white dark:bg-gray-800 border-solid'
+                                ? `${section.bgColor} border-dashed border-2`
+                                : 'bg-white dark:bg-gray-800 border-solid'
                                 } rounded-b-lg p-4 transition-colors`}
                             onDragOver={(e) => handleDragOver(e, section.type)}
                             onDragLeave={handleDragLeave}
@@ -170,10 +142,10 @@ const BanlistSections: React.FC<BanlistSectionsProps> = ({
                                 </div>
                             ) : (
                                 <div className="space-y-2">
-                                    {section.cards.map((cardId) => (
+                                    {section.cards.map((card) => (
                                         <BanlistSectionCard
-                                            key={cardId}
-                                            cardId={cardId}
+                                            key={card.id}
+                                            card={card}
                                             onRemove={onRemoveCard}
                                             maxCopies={section.maxCopies}
                                         />
