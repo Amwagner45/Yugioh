@@ -636,6 +636,12 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                     } : null}
                     isOpen={showCardModal}
                     onClose={handleCloseModal}
+                    cardQuantityInBinder={selectedCard.quantity}
+                    quantityInMain={getCardUsageInMain(selectedCard.cardId)}
+                    quantityInExtra={getCardUsageInExtra(selectedCard.cardId)}
+                    quantityInSide={getCardUsageInSide(selectedCard.cardId)}
+                    availableCopies={getAvailableCopies(selectedCard)}
+                    onAddToSection={onAddToSection}
                 />
             )}
 

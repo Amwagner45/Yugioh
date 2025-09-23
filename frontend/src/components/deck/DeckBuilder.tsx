@@ -773,6 +773,30 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         setSelectedCard(null);
     };
 
+    // Helper functions to get card quantities for the modal
+    const getCardQuantityInSection = (cardId: number, section: 'main' | 'extra' | 'side'): number => {
+        if (!deck) return 0;
+        const sectionData = section === 'main' ? deck.mainDeck :
+            section === 'extra' ? deck.extraDeck : deck.sideDeck;
+        return sectionData.find(card => card.cardId === cardId)?.quantity || 0;
+    };
+
+    const getAvailableCopiesForModal = (cardId: number): number => {
+        if (!binder) return 0;
+        const binderCard = binder.cards.find(card => card.cardId === cardId);
+        if (!binderCard) return 0;
+
+        const totalInDeck = getCardQuantityInSection(cardId, 'main') +
+            getCardQuantityInSection(cardId, 'extra') +
+            getCardQuantityInSection(cardId, 'side');
+        return Math.max(0, binderCard.quantity - totalInDeck);
+    };
+
+    const getCardQuantityInBinder = (cardId: number): number => {
+        if (!binder) return 0;
+        return binder.cards.find(card => card.cardId === cardId)?.quantity || 0;
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-64">
@@ -1089,6 +1113,12 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 card={selectedCard}
                 isOpen={isCardModalOpen}
                 onClose={handleCloseCardModal}
+                cardQuantityInBinder={selectedCard ? getCardQuantityInBinder(selectedCard.id) : 0}
+                quantityInMain={selectedCard ? getCardQuantityInSection(selectedCard.id, 'main') : 0}
+                quantityInExtra={selectedCard ? getCardQuantityInSection(selectedCard.id, 'extra') : 0}
+                quantityInSide={selectedCard ? getCardQuantityInSection(selectedCard.id, 'side') : 0}
+                availableCopies={selectedCard ? getAvailableCopiesForModal(selectedCard.id) : 0}
+                onAddToSection={handleAddCardToDeck}
             />
         </div>
     );
