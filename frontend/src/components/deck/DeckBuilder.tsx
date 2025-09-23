@@ -310,13 +310,32 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             });
             console.log('API response:', response.data);
 
-            // Reload deck to get updated card list
-            console.log('Reloading deck...');
-            await loadDeck();
-            console.log('Deck reloaded');
+            // Optimistic update: Update the deck state locally instead of reloading
+            const updatedDeck = { ...currentDeck };
+            const targetSection = section === 'main' ? updatedDeck.mainDeck :
+                section === 'extra' ? updatedDeck.extraDeck :
+                    updatedDeck.sideDeck;
+
+            // Find existing card or create new entry
+            const existingCardIndex = targetSection.findIndex(card => card.cardId === cardId);
+            if (existingCardIndex >= 0) {
+                // Update existing card quantity
+                targetSection[existingCardIndex].quantity += quantity;
+            } else {
+                // Add new card to section
+                targetSection.push({ cardId, quantity });
+            }
+
+            // Update the deck state
+            setDeck(updatedDeck);
+            console.log('Deck updated optimistically');
         } catch (error) {
             console.error('Failed to add card to deck:', error);
             alert('Failed to add card to deck. Please try again.');
+
+            // On error, reload deck to ensure consistency
+            console.log('Error occurred, reloading deck to ensure consistency...');
+            await loadDeck();
         }
     };
 
@@ -331,10 +350,34 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 }
             });
 
-            // Reload deck to get updated card list
-            await loadDeck();
+            // Optimistic update: Update the deck state locally instead of reloading
+            const updatedDeck = { ...deck };
+            const targetSection = section === 'main' ? updatedDeck.mainDeck :
+                section === 'extra' ? updatedDeck.extraDeck :
+                    updatedDeck.sideDeck;
+
+            // Find existing card and update quantity
+            const existingCardIndex = targetSection.findIndex(card => card.cardId === cardId);
+            if (existingCardIndex >= 0) {
+                const currentCard = targetSection[existingCardIndex];
+                if (currentCard.quantity <= quantity) {
+                    // Remove card entirely if quantity would be 0 or less
+                    targetSection.splice(existingCardIndex, 1);
+                } else {
+                    // Decrease quantity
+                    currentCard.quantity -= quantity;
+                }
+            }
+
+            // Update the deck state
+            setDeck(updatedDeck);
+            console.log('Card removed optimistically');
         } catch (error) {
             console.error('Failed to remove card from deck:', error);
+
+            // On error, reload deck to ensure consistency
+            console.log('Error occurred, reloading deck to ensure consistency...');
+            await loadDeck();
         }
     };
 
