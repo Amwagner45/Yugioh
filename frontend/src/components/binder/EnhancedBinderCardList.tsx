@@ -5,6 +5,7 @@ import QuickFilterChips from '../common/QuickFilterChips';
 import AdvancedSearchModal from '../common/AdvancedSearchModal';
 import FilterPresetManager from '../common/FilterPresetManager';
 import ViewModeToggle, { type ViewMode } from '../common/ViewModeToggle';
+import CardDetailModal from '../common/CardDetailModal';
 
 interface EnhancedBinderCardListProps {
     binder: Binder;
@@ -50,6 +51,10 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     // Pagination state
     const [currentPage, setCurrentPage] = useState(1);
     const [cardsPerPage] = useState(15); // 3 wide x 5 rows = 15 cards per page
+
+    // Card detail modal state
+    const [selectedCard, setSelectedCard] = useState<BinderCard | null>(null);
+    const [showCardModal, setShowCardModal] = useState(false);
 
     // Helper function to get how many copies of a card are used in current deck
     const getCardUsageInDeck = (cardId: number) => {
@@ -227,6 +232,24 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
         if (filters.banListStatus.length > 0) count++;
         if (filters.tags.length > 0) count++;
         return count;
+    };
+
+    // Handle card detail modal
+    const handleCardClick = (card: BinderCard) => {
+        setSelectedCard(card);
+        setShowCardModal(true);
+    };
+
+    const handleCardRightClick = (card: BinderCard) => {
+        // Call the original onCardClick for deck building functionality
+        if (onCardClick) {
+            onCardClick(card.cardId);
+        }
+    };
+
+    const handleCloseModal = () => {
+        setShowCardModal(false);
+        setSelectedCard(null);
     };
 
     return (
@@ -436,7 +459,8 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                                     <BinderCardItem
                                         key={`${card.cardId}-${card.setCode || 'noset'}-${card.rarity || 'norarity'}-${index}`}
                                         card={card}
-                                        onClick={onCardClick ? () => onCardClick(card.cardId) : undefined}
+                                        onClick={() => handleCardClick(card)}
+                                        onRightClick={() => handleCardRightClick(card)}
                                         showQuantity={showQuantities}
                                         availableCopies={getAvailableCopies(card)}
                                         usedInDeck={getCardUsageInDeck(card.cardId)}
@@ -463,6 +487,29 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                 onApplyPreset={handleFilterChange}
                 currentFilters={filters}
             />
+
+            {/* Card Detail Modal */}
+            {selectedCard && (
+                <CardDetailModal
+                    card={selectedCard.card_details ? {
+                        id: selectedCard.cardId,
+                        name: selectedCard.card_details.name,
+                        type: selectedCard.card_details.type,
+                        race: selectedCard.card_details.race,
+                        attribute: selectedCard.card_details.attribute,
+                        level: selectedCard.card_details.level,
+                        atk: selectedCard.card_details.atk,
+                        def: selectedCard.card_details.def,
+                        scale: selectedCard.card_details.scale,
+                        desc: selectedCard.card_details.desc,
+                        card_sets: selectedCard.card_details.card_sets,
+                        card_images: selectedCard.card_details.card_images,
+                        banlist_info: selectedCard.card_details.banlist_info
+                    } : null}
+                    isOpen={showCardModal}
+                    onClose={handleCloseModal}
+                />
+            )}
         </div>
     );
 };
@@ -470,7 +517,8 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
 // Individual card item component for display
 interface BinderCardItemProps {
     card: BinderCard;
-    onClick?: () => void;
+    onClick?: () => void; // Left click - show card details
+    onRightClick?: () => void; // Right click - add/remove from deck
     showQuantity?: boolean;
     availableCopies?: number;
     usedInDeck?: number;
@@ -480,6 +528,7 @@ interface BinderCardItemProps {
 const BinderCardItem: React.FC<BinderCardItemProps> = ({
     card,
     onClick,
+    onRightClick,
     showQuantity = true,
     availableCopies = 0,
     usedInDeck = 0,
@@ -502,18 +551,31 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
         e.dataTransfer.effectAllowed = 'copy';
     };
 
+    const handleLeftClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (onClick) {
+            onClick();
+        }
+    };
+
+    const handleRightClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (onRightClick && isAvailable) {
+            onRightClick();
+        }
+    };
+
     return (
         <div
-            className={`relative bg-white rounded-lg border-2 transition-all duration-200 ${onClick
-                ? isAvailable
-                    ? 'border-gray-200 hover:border-blue-300 hover:shadow-lg cursor-pointer'
-                    : 'border-red-200 cursor-not-allowed opacity-75'
+            className={`relative bg-white rounded-lg border-2 transition-all duration-200 ${onClick || onRightClick
+                ? 'border-gray-200 hover:border-blue-300 hover:shadow-lg cursor-pointer'
                 : 'border-gray-200'
                 }`}
-            onClick={isAvailable ? onClick : undefined}
+            onClick={handleLeftClick}
+            onContextMenu={handleRightClick}
             draggable={isAvailable}
             onDragStart={handleDragStart}
-            style={{ cursor: isAvailable ? (onClick ? 'pointer' : 'grab') : 'not-allowed' }}
+            style={{ cursor: 'pointer' }}
         >
             {/* Card Image */}
             {cardDetails?.card_images?.[0] && (

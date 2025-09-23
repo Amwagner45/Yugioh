@@ -68,9 +68,18 @@ const CardDetailModal: React.FC<CardDetailModalProps> = ({
         return icons[attribute] || '⭐';
     };
 
+    const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (e.target === e.currentTarget) {
+            onClose();
+        }
+    };
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-screen overflow-y-auto">
+        <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={handleBackdropClick}
+        >
+            <div className="bg-white rounded-lg shadow-xl max-w-6xl w-full max-h-screen overflow-y-auto">
                 {/* Header */}
                 <div className="flex justify-between items-center p-6 border-b border-gray-200">
                     <h2 className="text-2xl font-bold text-gray-900">{card.name}</h2>
@@ -93,7 +102,7 @@ const CardDetailModal: React.FC<CardDetailModalProps> = ({
                                         src={card.card_images[0].image_url}
                                         alt={card.name}
                                         className="max-w-full h-auto rounded-lg shadow-lg"
-                                        style={{ maxHeight: '400px' }}
+                                        style={{ maxHeight: '600px' }}
                                     />
                                 </div>
                             )}
@@ -221,9 +230,9 @@ const CardDetailModal: React.FC<CardDetailModalProps> = ({
                                             <div className="flex items-center space-x-2">
                                                 <span className="text-sm font-medium text-gray-500">TCG:</span>
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${card.banlist_info.ban_tcg === 'Forbidden' ? 'bg-red-100 text-red-800' :
-                                                        card.banlist_info.ban_tcg === 'Limited' ? 'bg-yellow-100 text-yellow-800' :
-                                                            card.banlist_info.ban_tcg === 'Semi-Limited' ? 'bg-orange-100 text-orange-800' :
-                                                                'bg-green-100 text-green-800'
+                                                    card.banlist_info.ban_tcg === 'Limited' ? 'bg-yellow-100 text-yellow-800' :
+                                                        card.banlist_info.ban_tcg === 'Semi-Limited' ? 'bg-orange-100 text-orange-800' :
+                                                            'bg-green-100 text-green-800'
                                                     }`}>
                                                     {card.banlist_info.ban_tcg}
                                                 </span>
@@ -233,9 +242,9 @@ const CardDetailModal: React.FC<CardDetailModalProps> = ({
                                             <div className="flex items-center space-x-2">
                                                 <span className="text-sm font-medium text-gray-500">OCG:</span>
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${card.banlist_info.ban_ocg === 'Forbidden' ? 'bg-red-100 text-red-800' :
-                                                        card.banlist_info.ban_ocg === 'Limited' ? 'bg-yellow-100 text-yellow-800' :
-                                                            card.banlist_info.ban_ocg === 'Semi-Limited' ? 'bg-orange-100 text-orange-800' :
-                                                                'bg-green-100 text-green-800'
+                                                    card.banlist_info.ban_ocg === 'Limited' ? 'bg-yellow-100 text-yellow-800' :
+                                                        card.banlist_info.ban_ocg === 'Semi-Limited' ? 'bg-orange-100 text-orange-800' :
+                                                            'bg-green-100 text-green-800'
                                                     }`}>
                                                     {card.banlist_info.ban_ocg}
                                                 </span>
