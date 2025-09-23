@@ -1743,15 +1743,54 @@ class Banlist:
         # Clear existing entries
         conn.execute("DELETE FROM banlist_cards WHERE banlist_id = ?", (self.id,))
 
-        # Insert new entries
+        # Function to find the correct card ID (handles ID offset issues)
+        def find_card_id(original_id):
+            # Try original ID first
+            cursor = conn.execute("SELECT 1 FROM card_cache WHERE id = ?", (original_id,))
+            if cursor.fetchone():
+                return original_id
+            
+            # Try ID + 1 (common offset issue in banlist files)
+            cursor = conn.execute("SELECT 1 FROM card_cache WHERE id = ?", (original_id + 1,))
+            if cursor.fetchone():
+                print(f"  Card ID {original_id} not found, using {original_id + 1} instead")
+                return original_id + 1
+            
+            # Try ID - 1 (less common but possible)
+            cursor = conn.execute("SELECT 1 FROM card_cache WHERE id = ?", (original_id - 1,))
+            if cursor.fetchone():
+                print(f"  Card ID {original_id} not found, using {original_id - 1} instead")
+                return original_id - 1
+            
+            return None
+
+        # Map all card IDs to correct ones
+        def map_card_list(card_list):
+            mapped_list = []
+            for card_id in card_list:
+                correct_id = find_card_id(card_id)
+                if correct_id:
+                    mapped_list.append(correct_id)
+                else:
+                    print(f"  Warning: Could not find card with ID {card_id} in database")
+            return mapped_list
+
+        # Map all card lists to correct IDs
+        print("Mapping card IDs to database...")
+        mapped_forbidden = map_card_list(self.forbidden_cards)
+        mapped_limited = map_card_list(self.limited_cards)
+        mapped_semi_limited = map_card_list(self.semi_limited_cards)
+        mapped_whitelist = map_card_list(self.whitelist_cards)
+
+        # Insert new entries with mapped IDs
         card_entries = []
-        for card_id in self.forbidden_cards:
+        for card_id in mapped_forbidden:
             card_entries.append((self.id, card_id, "forbidden"))
-        for card_id in self.limited_cards:
+        for card_id in mapped_limited:
             card_entries.append((self.id, card_id, "limited"))
-        for card_id in self.semi_limited_cards:
+        for card_id in mapped_semi_limited:
             card_entries.append((self.id, card_id, "semi_limited"))
-        for card_id in self.whitelist_cards:
+        for card_id in mapped_whitelist:
             card_entries.append((self.id, card_id, "whitelist"))
 
         if card_entries:
