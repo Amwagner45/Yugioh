@@ -233,6 +233,63 @@ export const deckService = {
 };
 
 /**
+ * Card Synchronization API services
+ */
+export const cardSyncService = {
+    /**
+     * Get current card sync status
+     */
+    async getSyncStatus() {
+        try {
+            const response = await api.get('/api/cards/sync/status');
+            return response.data;
+        } catch (error) {
+            console.error('Error getting sync status:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Start card synchronization (only if needed)
+     */
+    async startSync() {
+        try {
+            const response = await api.post('/api/cards/sync/start');
+            return response.data;
+        } catch (error) {
+            console.error('Error starting sync:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Force card synchronization (regardless of version)
+     */
+    async forceSync() {
+        try {
+            const response = await api.post('/api/cards/sync/force');
+            return response.data;
+        } catch (error) {
+            console.error('Error forcing sync:', error);
+            throw error;
+        }
+    },
+
+    /**
+     * Check YGOPRODeck API version
+     */
+    async checkApiVersion() {
+        try {
+            const response = await api.get('/api/cards/sync/version');
+            return response.data;
+        } catch (error) {
+            console.error('Error checking API version:', error);
+            throw error;
+        }
+    },
+};
+
+/**
  * Health check service
  */
 export const healthService = {

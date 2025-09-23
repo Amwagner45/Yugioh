@@ -730,3 +730,67 @@ async def clear_cache(
     await apply_rate_limit(request, "clear_cache", is_external_api=False)
     await cache_service.clear_expired()
     return {"message": "Cache cleared successfully"}
+
+
+# Bulk Card Synchronization Routes
+from fastapi import BackgroundTasks
+from ..services.bulk_card_sync import bulk_sync_service
+
+
+@router.get("/sync/status")
+async def get_sync_status():
+    """Get current card synchronization status"""
+    try:
+        status = bulk_sync_service.get_sync_status()
+        return status
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting sync status: {str(e)}")
+
+
+@router.post("/sync/start")
+async def start_sync(background_tasks: BackgroundTasks):
+    """Start card synchronization in the background"""
+    try:
+        # Check if sync is already needed
+        if not bulk_sync_service.needs_sync():
+            return {
+                "status": "skipped",
+                "message": "Card database is already up to date"
+            }
+        
+        # Start sync in background
+        background_tasks.add_task(bulk_sync_service.sync_all_cards)
+        
+        return {
+            "status": "started",
+            "message": "Card synchronization started in background"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error starting sync: {str(e)}")
+
+
+@router.post("/sync/force")
+async def force_sync(background_tasks: BackgroundTasks):
+    """Force card synchronization regardless of version"""
+    try:
+        # Force sync by bypassing version check
+        background_tasks.add_task(bulk_sync_service.sync_all_cards)
+        
+        return {
+            "status": "started",
+            "message": "Force card synchronization started in background"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error starting force sync: {str(e)}")
+
+
+@router.get("/sync/version")
+async def check_api_version():
+    """Check YGOPRODeck API database version"""
+    try:
+        version_info = bulk_sync_service.check_db_version()
+        return version_info
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error checking API version: {str(e)}")

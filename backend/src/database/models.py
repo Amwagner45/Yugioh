@@ -1403,6 +1403,32 @@ class Card:
             ),
         )
 
+    @classmethod
+    def from_api_response(cls, data: Dict[str, Any]) -> "Card":
+        """Create Card from YGOPRODeck API response data"""
+        now = datetime.now()
+        
+        return cls(
+            id=int(data.get("id", 0)),
+            name=data.get("name", ""),
+            type=data.get("type", ""),
+            description=data.get("desc", ""),
+            atk=data.get("atk"),
+            def_=data.get("def"),
+            level=data.get("level"),
+            race=data.get("race"),
+            attribute=data.get("attribute"),
+            card_images=data.get("card_images", []),
+            card_sets=data.get("card_sets", []),
+            banlist_info=data.get("banlist_info", {}),
+            archetype=data.get("archetype"),
+            scale=data.get("scale"),
+            linkval=data.get("linkval"),
+            linkmarkers=data.get("linkmarkers", []),
+            cached_at=now,
+            last_updated=now,
+        )
+
     def save(self) -> "Card":
         """Save card to cache database"""
         with get_db_connection() as conn:
@@ -1497,6 +1523,47 @@ class Card:
             )
             result = cursor.fetchone()[0]
             return result if result else 0
+
+    def save_to_cache(self) -> bool:
+        """Save this card to the local cache database"""
+        try:
+            with get_db_connection() as conn:
+                cursor = conn.cursor()
+                
+                # Insert or replace card in cache
+                cursor.execute("""
+                    INSERT OR REPLACE INTO card_cache (
+                        id, name, type, description, atk, def, level, race, attribute,
+                        card_images, card_sets, banlist_info, archetype, scale, linkval,
+                        linkmarkers, cached_at, last_updated
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    self.id,
+                    self.name,
+                    self.type,
+                    self.description,
+                    self.atk,
+                    self.def_,
+                    self.level,
+                    self.race,
+                    self.attribute,
+                    json.dumps(self.card_images),
+                    json.dumps(self.card_sets),
+                    json.dumps(self.banlist_info),
+                    self.archetype,
+                    self.scale,
+                    self.linkval,
+                    json.dumps(self.linkmarkers),
+                    self.cached_at.isoformat() if self.cached_at else None,
+                    self.last_updated.isoformat() if self.last_updated else None,
+                ))
+                
+                conn.commit()
+                return True
+                
+        except Exception as e:
+            print(f"Error saving card {self.id} to cache: {e}")
+            return False
 
     @staticmethod
     def refresh_cache_from_api(max_age_days: int = 30) -> int:

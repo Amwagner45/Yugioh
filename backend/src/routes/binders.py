@@ -253,13 +253,28 @@ async def parse_and_import_csv(csv_content: str, binder: Binder) -> dict:
                         )
                         continue
 
-                    # Fetch card info from API if not cached
-                    card = Card.get_by_id(card_id, fetch_if_missing=True)
+                    # ONLY get card from cache, DO NOT fetch from API during import
+                    card = Card.get_by_id(card_id, fetch_if_missing=False)
                     if not card:
+                        # Skip missing cards with a warning
                         warnings.append(
-                            f"Row {row_num}: Could not find card with ID {card_id}"
+                            f"Row {row_num}: Card {card_id} ({row.get('cardname', 'Unknown')}) not found in cache. Please sync card database first."
                         )
                         continue
+
+                    # Map condition abbreviations to full names
+                    condition_mapping = {
+                        "M": "Mint",
+                        "NM": "Near Mint", 
+                        "LP": "Lightly Played",
+                        "MP": "Moderately Played", 
+                        "HP": "Heavily Played",
+                        "D": "Damaged",
+                        "": "Near Mint"  # Default for empty values
+                    }
+                    
+                    raw_condition = row.get("cardcondition", "").strip()
+                    condition = condition_mapping.get(raw_condition, raw_condition) or "Near Mint"
 
                     # Add card to binder
                     binder.add_card(
@@ -267,8 +282,7 @@ async def parse_and_import_csv(csv_content: str, binder: Binder) -> dict:
                         quantity=quantity,
                         set_code=row.get("cardcode", "").strip() or None,
                         rarity=row.get("cardrarity", "").strip() or None,
-                        condition=row.get("cardcondition", "Near Mint").strip()
-                        or "Near Mint",
+                        condition=condition,
                         edition=row.get("card_edition", "").strip() or None,
                     )
                     imported_cards += 1
