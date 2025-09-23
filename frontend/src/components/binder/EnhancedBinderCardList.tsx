@@ -14,6 +14,7 @@ interface EnhancedBinderCardListProps {
     allowEditing?: boolean;
     title?: string;
     currentDeck?: { mainDeck: DeckCard[]; extraDeck: DeckCard[]; sideDeck: DeckCard[] };
+    compact?: boolean; // For sidebar usage
 }
 
 const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
@@ -21,13 +22,15 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     onCardClick,
     showQuantities = true,
     title = "Cards",
-    currentDeck
+    currentDeck,
+    compact = false
 }) => {
     // View and display state
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
     const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
     const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
     const [showPresetManager, setShowPresetManager] = useState(false);
+    const [gridSize, setGridSize] = useState<3 | 4 | 5>(compact ? 4 : 3);
 
     // Filter state
     const [filters, setFilters] = useState<AdvancedFilterOptions>({
@@ -318,11 +321,39 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                         )}
                     </div>
 
-                    {/* View Mode Toggle */}
-                    <ViewModeToggle
-                        currentMode={viewMode}
-                        onModeChange={setViewMode}
-                    />
+                    {/* View Controls */}
+                    <div className="flex items-center space-x-2">
+                        {/* Grid Size Controls */}
+                        <div className="flex items-center space-x-1 border border-gray-300 rounded p-1">
+                            <button
+                                onClick={() => setGridSize(3)}
+                                className={`px-2 py-1 text-xs rounded ${gridSize === 3 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+                                title="3x3 Grid"
+                            >
+                                3×3
+                            </button>
+                            <button
+                                onClick={() => setGridSize(4)}
+                                className={`px-2 py-1 text-xs rounded ${gridSize === 4 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+                                title="4x4 Grid"
+                            >
+                                4×4
+                            </button>
+                            <button
+                                onClick={() => setGridSize(5)}
+                                className={`px-2 py-1 text-xs rounded ${gridSize === 5 ? 'bg-blue-500 text-white' : 'hover:bg-gray-100'}`}
+                                title="5x5 Grid"
+                            >
+                                5×5
+                            </button>
+                        </div>
+
+                        {/* View Mode Toggle */}
+                        <ViewModeToggle
+                            currentMode={viewMode}
+                            onModeChange={setViewMode}
+                        />
+                    </div>
                 </div>
 
                 {/* Quick Filter Chips */}
@@ -452,9 +483,9 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                     </div>
                 ) : (
                     <div className="h-full flex flex-col">
-                        {/* Card Grid - Compact sidebar style */}
+                        {/* Card Grid - Dynamic grid size */}
                         <div className="flex-1 p-3 overflow-y-auto">
-                            <div className="grid grid-cols-4 gap-2">
+                            <div className={`grid gap-2 ${gridSize === 3 ? 'grid-cols-3' : gridSize === 4 ? 'grid-cols-4' : 'grid-cols-5'}`}>
                                 {currentPageCards.map((card, index) => (
                                     <BinderCardItem
                                         key={`${card.cardId}-${card.setCode || 'noset'}-${card.rarity || 'norarity'}-${index}`}
@@ -465,6 +496,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                                         availableCopies={getAvailableCopies(card)}
                                         usedInDeck={getCardUsageInDeck(card.cardId)}
                                         showDeckInfo={!!currentDeck}
+                                        compact={compact}
                                     />
                                 ))}
                             </div>
@@ -523,6 +555,7 @@ interface BinderCardItemProps {
     availableCopies?: number;
     usedInDeck?: number;
     showDeckInfo?: boolean;
+    compact?: boolean;
 }
 
 const BinderCardItem: React.FC<BinderCardItemProps> = ({
@@ -532,7 +565,8 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
     showQuantity = true,
     availableCopies = 0,
     usedInDeck = 0,
-    showDeckInfo = false
+    showDeckInfo = false,
+    compact = false
 }) => {
     const isAvailable = availableCopies > 0;
     const cardDetails = card.card_details;

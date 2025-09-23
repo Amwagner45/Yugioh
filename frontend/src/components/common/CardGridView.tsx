@@ -16,6 +16,8 @@ interface CardGridViewProps {
     gridSize?: 'sm' | 'md' | 'lg';
     className?: string;
     disableZoom?: boolean;
+    gapSize?: 'sm' | 'md' | 'lg';
+    compactPadding?: boolean;
 }
 
 const CardGridView: React.FC<CardGridViewProps> = ({
@@ -25,12 +27,20 @@ const CardGridView: React.FC<CardGridViewProps> = ({
     showDeckInfo = false,
     gridSize = 'md',
     className = '',
-    disableZoom = false
+    disableZoom = false,
+    gapSize = 'md',
+    compactPadding = false
 }) => {
     const gridClasses = {
-        sm: 'grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-14',
-        md: 'grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 xl:grid-cols-10',
-        lg: 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+        sm: 'grid-cols-8 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-15 xl:grid-cols-18',
+        md: 'grid-cols-6 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-12 xl:grid-cols-15',
+        lg: 'grid-cols-8 sm:grid-cols-10 md:grid-cols-12 lg:grid-cols-15 xl:grid-cols-20'
+    };
+
+    const gapClasses = {
+        sm: 'gap-2',
+        md: 'gap-3',
+        lg: 'gap-4'
     };
 
     const imageSize = gridSize === 'sm' ? 'sm' : gridSize === 'lg' ? 'lg' : 'md';
@@ -46,7 +56,7 @@ const CardGridView: React.FC<CardGridViewProps> = ({
     }
 
     return (
-        <div className={`grid ${gridClasses[gridSize]} gap-4 p-4 ${className}`}>
+        <div className={`grid ${gridClasses[gridSize]} ${gapClasses[gapSize]} ${compactPadding ? 'p-2' : 'p-4'} ${className}`}>
             {cards.map((cardData, index) => {
                 const isAvailable = (cardData.availableCopies ?? cardData.quantity) > 0;
                 const hasCard = !!cardData.card_details;

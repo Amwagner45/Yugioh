@@ -16,6 +16,9 @@ export default {
             },
             gridTemplateColumns: {
                 'card-grid': 'repeat(auto-fill, minmax(200px, 1fr))',
+                '15': 'repeat(15, minmax(0, 1fr))',
+                '18': 'repeat(18, minmax(0, 1fr))',
+                '20': 'repeat(20, minmax(0, 1fr))',
             }
         },
     },

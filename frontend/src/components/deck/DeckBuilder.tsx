@@ -813,6 +813,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     showQuantities={true}
                                     title="Available Cards"
                                     currentDeck={deck}
+                                    compact={true}
                                 />
                             </div>
                         )}
@@ -821,9 +822,9 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                     {/* Main Content Area - Deck Sections (80% width) */}
                     <div className="flex-1 min-w-0">
                         {/* Deck Sections in a more prominent layout */}
-                        <div className="space-y-4">
-                            {/* Main Deck - Most prominent */}
-                            <div className="bg-white rounded-lg shadow-lg">
+                        <div className="space-y-3">
+                            {/* Main Deck - Most prominent with max height */}
+                            <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ maxHeight: '55vh' }}>
                                 <DeckSection
                                     title="Main Deck"
                                     cards={deck.mainDeck}
@@ -838,9 +839,9 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                 />
                             </div>
 
-                            {/* Extra Deck and Side Deck - Side by side */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                <div className="bg-white rounded-lg shadow-lg">
+                            {/* Extra Deck and Side Deck - Side by side with max height */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                                <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ maxHeight: '35vh' }}>
                                     <DeckSection
                                         title="Extra Deck"
                                         cards={deck.extraDeck}
@@ -855,7 +856,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     />
                                 </div>
 
-                                <div className="bg-white rounded-lg shadow-lg">
+                                <div className="bg-white rounded-lg shadow-lg overflow-hidden" style={{ maxHeight: '35vh' }}>
                                     <DeckSection
                                         title="Side Deck"
                                         cards={deck.sideDeck}
@@ -871,15 +872,17 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                 </div>
                             </div>
 
-                            {/* Deck Statistics Section - More compact */}
+                            {/* Deck Statistics Section - Hidden for now */}
+                            {/* 
                             <div className="bg-white rounded-lg shadow-lg">
-                                <div className="p-4">
+                                <div className="p-3">
                                     <DeckStatistics
                                         deck={deck}
                                         binderCards={binder?.cards || []}
                                     />
                                 </div>
                             </div>
+                            */}
                         </div>
                     </div>
                 </div>

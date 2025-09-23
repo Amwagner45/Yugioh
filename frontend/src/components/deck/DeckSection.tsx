@@ -110,7 +110,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
 
     return (
         <div
-            className={`bg-white rounded-lg shadow-lg transition-all border-2 ${isDragOver ? `ring-4 ring-opacity-50 ${getSectionColor()}` : 'border-gray-200'
+            className={`bg-white rounded-lg shadow-lg transition-all border-2 ${enhanced ? 'flex flex-col h-full overflow-hidden' : ''} ${isDragOver ? `ring-4 ring-opacity-50 ${getSectionColor()}` : 'border-gray-200'
                 }`}
             onDragEnter={handleDragEnter}
             onDragOver={handleDragOver}
@@ -150,7 +150,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
             </div>
 
             {/* Content */}
-            <div className="min-h-[200px]">
+            <div className={`${enhanced ? 'overflow-y-auto flex-1' : 'min-h-[200px]'}`}>
                 {cards.length === 0 ? (
                     <div className={`text-center py-8 ${isDragOver ? 'text-blue-600' : 'text-gray-500'}`}>
                         <div className="text-4xl mb-2">
@@ -173,6 +173,8 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                                 onCardClick={handleCardClick}
                                 onCardRightClick={handleCardRightClick}
                                 gridSize={enhanced ? (sectionType === 'main' ? "lg" : "md") : "sm"}
+                                gapSize={enhanced ? (sectionType === 'main' ? "sm" : "md") : "md"}
+                                compactPadding={enhanced && sectionType === 'main'}
                                 disableZoom={true}
                             />
                         ) : (
