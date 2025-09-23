@@ -1608,7 +1608,7 @@ class Card:
 @dataclass
 class Banlist:
     """Banlist model for database operations"""
-    
+
     id: Optional[int] = None
     uuid: str = field(default_factory=lambda: str(uuid.uuid4()))
     name: str = ""
@@ -1620,110 +1620,129 @@ class Banlist:
     is_active: bool = True
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
-    
+
     # Card lists
     forbidden_cards: List[int] = field(default_factory=list)
     limited_cards: List[int] = field(default_factory=list)
     semi_limited_cards: List[int] = field(default_factory=list)
     whitelist_cards: List[int] = field(default_factory=list)
-    
+
     def validate(self) -> List[str]:
         """Validate banlist data"""
         errors = []
-        
+
         # Validate name
         errors.extend(
             ModelValidator.validate_string_length(
                 self.name, "name", min_length=1, max_length=100
             )
         )
-        
+
         # Validate format type
         valid_formats = ["TCG", "OCG", "Custom", "GOAT", "Edison"]
         errors.extend(
-            ModelValidator.validate_choice(self.format_type, "format_type", valid_formats)
+            ModelValidator.validate_choice(
+                self.format_type, "format_type", valid_formats
+            )
         )
-        
+
         # Validate date range
         if self.start_date and self.end_date and self.start_date > self.end_date:
             errors.append("Start date cannot be after end date")
-        
+
         # Check for card overlaps between lists
         all_cards = set()
         lists = [
             ("forbidden", self.forbidden_cards),
             ("limited", self.limited_cards),
             ("semi_limited", self.semi_limited_cards),
-            ("whitelist", self.whitelist_cards)
+            ("whitelist", self.whitelist_cards),
         ]
-        
+
         for list_name, card_list in lists:
             for card_id in card_list:
                 if card_id in all_cards:
-                    errors.append(f"Card {card_id} appears in multiple banlist sections")
+                    errors.append(
+                        f"Card {card_id} appears in multiple banlist sections"
+                    )
                 else:
                     all_cards.add(card_id)
-        
+
         return errors
-    
+
     def save(self) -> bool:
         """Save banlist to database"""
         try:
             validation_errors = self.validate()
             if validation_errors:
                 raise ValidationError(validation_errors)
-            
+
             with get_db_connection() as conn:
                 if self.id is None:
                     # Insert new banlist
                     self.created_at = datetime.now()
                     self.updated_at = self.created_at
-                    
-                    cursor = conn.execute("""
+
+                    cursor = conn.execute(
+                        """
                         INSERT INTO banlists (
                             uuid, name, description, start_date, end_date,
                             format_type, is_official, is_active, created_at, updated_at
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        self.uuid, self.name, self.description,
-                        self.start_date.isoformat() if self.start_date else None,
-                        self.end_date.isoformat() if self.end_date else None,
-                        self.format_type, self.is_official, self.is_active,
-                        self.created_at.isoformat(), self.updated_at.isoformat()
-                    ))
+                    """,
+                        (
+                            self.uuid,
+                            self.name,
+                            self.description,
+                            self.start_date.isoformat() if self.start_date else None,
+                            self.end_date.isoformat() if self.end_date else None,
+                            self.format_type,
+                            self.is_official,
+                            self.is_active,
+                            self.created_at.isoformat(),
+                            self.updated_at.isoformat(),
+                        ),
+                    )
                     self.id = cursor.lastrowid
                 else:
                     # Update existing banlist
                     self.updated_at = datetime.now()
-                    
-                    conn.execute("""
+
+                    conn.execute(
+                        """
                         UPDATE banlists SET
                             name = ?, description = ?, start_date = ?, end_date = ?,
                             format_type = ?, is_official = ?, is_active = ?, updated_at = ?
                         WHERE id = ?
-                    """, (
-                        self.name, self.description,
-                        self.start_date.isoformat() if self.start_date else None,
-                        self.end_date.isoformat() if self.end_date else None,
-                        self.format_type, self.is_official, self.is_active,
-                        self.updated_at.isoformat(), self.id
-                    ))
-                
+                    """,
+                        (
+                            self.name,
+                            self.description,
+                            self.start_date.isoformat() if self.start_date else None,
+                            self.end_date.isoformat() if self.end_date else None,
+                            self.format_type,
+                            self.is_official,
+                            self.is_active,
+                            self.updated_at.isoformat(),
+                            self.id,
+                        ),
+                    )
+
                 # Update banlist cards
                 self._save_banlist_cards(conn)
-                
+
                 conn.commit()
                 return True
-                
+
         except Exception as e:
             print(f"Error saving banlist: {e}")
             return False
-    
+
     def _save_banlist_cards(self, conn):
         """Save banlist card associations"""
         # Clear existing entries
         conn.execute("DELETE FROM banlist_cards WHERE banlist_id = ?", (self.id,))
-        
+
         # Insert new entries
         card_entries = []
         for card_id in self.forbidden_cards:
@@ -1734,28 +1753,34 @@ class Banlist:
             card_entries.append((self.id, card_id, "semi_limited"))
         for card_id in self.whitelist_cards:
             card_entries.append((self.id, card_id, "whitelist"))
-        
+
         if card_entries:
-            conn.executemany("""
+            conn.executemany(
+                """
                 INSERT INTO banlist_cards (banlist_id, card_id, restriction_type)
                 VALUES (?, ?, ?)
-            """, card_entries)
-    
+            """,
+                card_entries,
+            )
+
     @classmethod
-    def get_by_id(cls, banlist_id: int) -> Optional['Banlist']:
+    def get_by_id(cls, banlist_id: int) -> Optional["Banlist"]:
         """Get banlist by ID"""
         try:
             with get_db_connection() as conn:
-                cursor = conn.execute("""
+                cursor = conn.execute(
+                    """
                     SELECT id, uuid, name, description, start_date, end_date,
                            format_type, is_official, is_active, created_at, updated_at
                     FROM banlists WHERE id = ?
-                """, (banlist_id,))
+                """,
+                    (banlist_id,),
+                )
                 row = cursor.fetchone()
-                
+
                 if not row:
                     return None
-                
+
                 banlist = cls(
                     id=row[0],
                     uuid=row[1],
@@ -1767,33 +1792,36 @@ class Banlist:
                     is_official=bool(row[7]),
                     is_active=bool(row[8]),
                     created_at=datetime.fromisoformat(row[9]),
-                    updated_at=datetime.fromisoformat(row[10])
+                    updated_at=datetime.fromisoformat(row[10]),
                 )
-                
+
                 # Load banlist cards
                 banlist._load_banlist_cards(conn)
-                
+
                 return banlist
-                
+
         except Exception as e:
             print(f"Error getting banlist by ID: {e}")
             return None
-    
+
     @classmethod
-    def get_by_uuid(cls, banlist_uuid: str) -> Optional['Banlist']:
+    def get_by_uuid(cls, banlist_uuid: str) -> Optional["Banlist"]:
         """Get banlist by UUID"""
         try:
             with get_db_connection() as conn:
-                cursor = conn.execute("""
+                cursor = conn.execute(
+                    """
                     SELECT id, uuid, name, description, start_date, end_date,
                            format_type, is_official, is_active, created_at, updated_at
                     FROM banlists WHERE uuid = ?
-                """, (banlist_uuid,))
+                """,
+                    (banlist_uuid,),
+                )
                 row = cursor.fetchone()
-                
+
                 if not row:
                     return None
-                
+
                 banlist = cls(
                     id=row[0],
                     uuid=row[1],
@@ -1805,25 +1833,28 @@ class Banlist:
                     is_official=bool(row[7]),
                     is_active=bool(row[8]),
                     created_at=datetime.fromisoformat(row[9]),
-                    updated_at=datetime.fromisoformat(row[10])
+                    updated_at=datetime.fromisoformat(row[10]),
                 )
-                
+
                 # Load banlist cards
                 banlist._load_banlist_cards(conn)
-                
+
                 return banlist
-                
+
         except Exception as e:
             print(f"Error getting banlist by UUID: {e}")
             return None
-    
+
     def _load_banlist_cards(self, conn):
         """Load banlist card associations"""
-        cursor = conn.execute("""
+        cursor = conn.execute(
+            """
             SELECT card_id, restriction_type
             FROM banlist_cards WHERE banlist_id = ?
-        """, (self.id,))
-        
+        """,
+            (self.id,),
+        )
+
         for card_id, restriction_type in cursor.fetchall():
             if restriction_type == "forbidden":
                 self.forbidden_cards.append(card_id)
@@ -1833,9 +1864,9 @@ class Banlist:
                 self.semi_limited_cards.append(card_id)
             elif restriction_type == "whitelist":
                 self.whitelist_cards.append(card_id)
-    
+
     @classmethod
-    def get_all(cls, include_inactive: bool = False) -> List['Banlist']:
+    def get_all(cls, include_inactive: bool = False) -> List["Banlist"]:
         """Get all banlists"""
         try:
             with get_db_connection() as conn:
@@ -1845,16 +1876,16 @@ class Banlist:
                     FROM banlists
                 """
                 params = ()
-                
+
                 if not include_inactive:
                     query += " WHERE is_active = ?"
                     params = (True,)
-                
+
                 query += " ORDER BY created_at DESC"
-                
+
                 cursor = conn.execute(query, params)
                 banlists = []
-                
+
                 for row in cursor.fetchall():
                     banlist = cls(
                         id=row[0],
@@ -1867,39 +1898,41 @@ class Banlist:
                         is_official=bool(row[7]),
                         is_active=bool(row[8]),
                         created_at=datetime.fromisoformat(row[9]),
-                        updated_at=datetime.fromisoformat(row[10])
+                        updated_at=datetime.fromisoformat(row[10]),
                     )
-                    
+
                     # Load banlist cards
                     banlist._load_banlist_cards(conn)
                     banlists.append(banlist)
-                
+
                 return banlists
-                
+
         except Exception as e:
             print(f"Error getting all banlists: {e}")
             return []
-    
+
     def delete(self) -> bool:
         """Delete banlist from database"""
         try:
             if self.id is None:
                 return False
-            
+
             with get_db_connection() as conn:
                 # Delete banlist cards first (foreign key constraint)
-                conn.execute("DELETE FROM banlist_cards WHERE banlist_id = ?", (self.id,))
-                
+                conn.execute(
+                    "DELETE FROM banlist_cards WHERE banlist_id = ?", (self.id,)
+                )
+
                 # Delete banlist
                 conn.execute("DELETE FROM banlists WHERE id = ?", (self.id,))
-                
+
                 conn.commit()
                 return True
-                
+
         except Exception as e:
             print(f"Error deleting banlist: {e}")
             return False
-    
+
     def get_card_restriction(self, card_id: int) -> str:
         """Get restriction level for a specific card"""
         if card_id in self.forbidden_cards:
@@ -1912,7 +1945,7 @@ class Banlist:
             return "whitelist"
         else:
             return "unlimited"  # Default if not explicitly listed
-    
+
     def get_max_copies(self, card_id: int) -> int:
         """Get maximum allowed copies for a card"""
         restriction = self.get_card_restriction(card_id)
@@ -1924,12 +1957,12 @@ class Banlist:
             return 2
         else:
             return 3  # whitelist or unlimited
-    
+
     def add_card_to_list(self, card_id: int, list_type: str) -> bool:
         """Add a card to a specific restriction list"""
         # Remove from other lists first
         self.remove_card_from_all_lists(card_id)
-        
+
         if list_type == "forbidden":
             self.forbidden_cards.append(card_id)
         elif list_type == "limited":
@@ -1940,9 +1973,9 @@ class Banlist:
             self.whitelist_cards.append(card_id)
         else:
             return False
-        
+
         return True
-    
+
     def remove_card_from_all_lists(self, card_id: int):
         """Remove a card from all restriction lists"""
         if card_id in self.forbidden_cards:
@@ -1953,7 +1986,7 @@ class Banlist:
             self.semi_limited_cards.remove(card_id)
         if card_id in self.whitelist_cards:
             self.whitelist_cards.remove(card_id)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert banlist to dictionary"""
         return {
@@ -1971,26 +2004,42 @@ class Banlist:
             "forbidden_cards": self.forbidden_cards,
             "limited_cards": self.limited_cards,
             "semi_limited_cards": self.semi_limited_cards,
-            "whitelist_cards": self.whitelist_cards
+            "whitelist_cards": self.whitelist_cards,
         }
-    
+
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Banlist':
+    def from_dict(cls, data: Dict[str, Any]) -> "Banlist":
         """Create banlist from dictionary"""
         return cls(
             id=data.get("id"),
             uuid=data.get("uuid", str(uuid.uuid4())),
             name=data.get("name", ""),
             description=data.get("description"),
-            start_date=datetime.fromisoformat(data["start_date"]) if data.get("start_date") else None,
-            end_date=datetime.fromisoformat(data["end_date"]) if data.get("end_date") else None,
+            start_date=(
+                datetime.fromisoformat(data["start_date"])
+                if data.get("start_date")
+                else None
+            ),
+            end_date=(
+                datetime.fromisoformat(data["end_date"])
+                if data.get("end_date")
+                else None
+            ),
             format_type=data.get("format_type", "TCG"),
             is_official=data.get("is_official", False),
             is_active=data.get("is_active", True),
-            created_at=datetime.fromisoformat(data["created_at"]) if data.get("created_at") else None,
-            updated_at=datetime.fromisoformat(data["updated_at"]) if data.get("updated_at") else None,
+            created_at=(
+                datetime.fromisoformat(data["created_at"])
+                if data.get("created_at")
+                else None
+            ),
+            updated_at=(
+                datetime.fromisoformat(data["updated_at"])
+                if data.get("updated_at")
+                else None
+            ),
             forbidden_cards=data.get("forbidden_cards", []),
             limited_cards=data.get("limited_cards", []),
             semi_limited_cards=data.get("semi_limited_cards", []),
-            whitelist_cards=data.get("whitelist_cards", [])
+            whitelist_cards=data.get("whitelist_cards", []),
         )

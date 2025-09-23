@@ -26,7 +26,7 @@ export interface BanlistCreateData {
     whitelist_cards?: number[];
 }
 
-export interface BanlistUpdateData extends Partial<BanlistCreateData> {}
+export interface BanlistUpdateData extends Partial<BanlistCreateData> { }
 
 class BanlistService {
     private baseUrl = '/api/banlists';
@@ -141,17 +141,17 @@ class BanlistService {
     async downloadExport(banlistId: string, filename?: string): Promise<void> {
         try {
             const blob = await this.exportToFile(banlistId);
-            
+
             // Create download link
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = filename || `banlist_${banlistId}.lflist.conf`;
-            
+
             // Trigger download
             document.body.appendChild(link);
             link.click();
-            
+
             // Cleanup
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
@@ -166,7 +166,7 @@ class BanlistService {
      */
     async duplicate(banlistId: string, newName?: string): Promise<Banlist> {
         const originalBanlist = await this.getById(banlistId);
-        
+
         const duplicateData: BanlistCreateData = {
             name: newName || `${originalBanlist.name} (Copy)`,
             description: originalBanlist.description,
@@ -192,8 +192,8 @@ class BanlistService {
         whitelistCount: number;
     } {
         return {
-            totalCards: banlist.forbidden_cards.length + banlist.limited_cards.length + 
-                       banlist.semi_limited_cards.length + banlist.whitelist_cards.length,
+            totalCards: banlist.forbidden_cards.length + banlist.limited_cards.length +
+                banlist.semi_limited_cards.length + banlist.whitelist_cards.length,
             forbiddenCount: banlist.forbidden_cards.length,
             limitedCount: banlist.limited_cards.length,
             semiLimitedCount: banlist.semi_limited_cards.length,
@@ -245,7 +245,7 @@ class BanlistService {
         for (const [cardIdStr, totalQuantity] of Object.entries(cardTotals)) {
             const cardId = parseInt(cardIdStr);
             const { restriction, maxCopies } = this.getCardRestrictionLocal(banlist, cardId);
-            
+
             if (totalQuantity > maxCopies) {
                 isValid = false;
                 violations.push({

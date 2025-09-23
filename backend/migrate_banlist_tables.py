@@ -7,13 +7,14 @@ import sys
 import os
 
 # Add the src directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from database import get_db_connection
 
+
 def migrate_add_banlist_tables():
     """Add banlist tables to the database"""
-    
+
     migration_sql = """
     -- Banlists table - stores banlist metadata
     CREATE TABLE IF NOT EXISTS banlists (
@@ -59,42 +60,46 @@ def migrate_add_banlist_tables():
         UPDATE banlists SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id; 
     END;
     """
-    
+
     try:
         with get_db_connection() as conn:
             # Execute the migration
             conn.executescript(migration_sql)
             conn.commit()
-            
+
             print("✅ Successfully added banlist tables")
-            
+
             # Verify tables were created
-            cursor = conn.execute("""
+            cursor = conn.execute(
+                """
                 SELECT name FROM sqlite_master 
                 WHERE type='table' AND name IN ('banlists', 'banlist_cards')
                 ORDER BY name
-            """)
-            
+            """
+            )
+
             tables = [row[0] for row in cursor.fetchall()]
             print(f"📋 Created tables: {', '.join(tables)}")
-            
+
             return True
-            
+
     except Exception as e:
         print(f"❌ Migration failed: {e}")
         return False
 
+
 def main():
     """Run the migration"""
     print("🚀 Starting banlist tables migration...")
-    
+
     success = migrate_add_banlist_tables()
-    
+
     if success:
         print("✅ Migration completed successfully!")
     else:
         print("❌ Migration failed!")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

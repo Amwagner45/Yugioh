@@ -8,12 +8,12 @@ import BanlistSections from '../components/banlist/BanlistSections';
 import BanlistHeader from '../components/banlist/BanlistHeader';
 import BanlistSidebar from '../components/banlist/BanlistSidebar';
 
-interface BanlistBuilderPageProps {}
+interface BanlistBuilderPageProps { }
 
 const BanlistBuilderPage: React.FC<BanlistBuilderPageProps> = () => {
     const navigate = useNavigate();
     const { banlistId } = useParams<{ banlistId?: string }>();
-    
+
     // State management
     const [banlist, setBanlist] = useState<Banlist | null>(null);
     const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +22,7 @@ const BanlistBuilderPage: React.FC<BanlistBuilderPageProps> = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [selectedCards, setSelectedCards] = useState<Set<number>>(new Set());
     const [draggedCard, setDraggedCard] = useState<Card | null>(null);
-    
+
     // Banlist sections configuration
     const banlistSections: BanlistSection[] = [
         {
@@ -127,7 +127,7 @@ const BanlistBuilderPage: React.FC<BanlistBuilderPageProps> = () => {
         setIsSaving(true);
         try {
             let savedBanlist: Banlist;
-            
+
             if (banlist.id) {
                 // Update existing banlist
                 savedBanlist = await banlistService.update(banlist.id, banlist);
@@ -144,7 +144,7 @@ const BanlistBuilderPage: React.FC<BanlistBuilderPageProps> = () => {
                     whitelist_cards: banlist.whitelist_cards
                 });
             }
-            
+
             setBanlist(savedBanlist);
             // Show success notification
         } catch (error) {
@@ -165,13 +165,13 @@ const BanlistBuilderPage: React.FC<BanlistBuilderPageProps> = () => {
         try {
             // Update local state immediately for better UX
             const updatedBanlist = { ...banlist };
-            
+
             // Remove card from all sections first
             updatedBanlist.forbidden_cards = updatedBanlist.forbidden_cards.filter(id => id !== card.id);
             updatedBanlist.limited_cards = updatedBanlist.limited_cards.filter(id => id !== card.id);
             updatedBanlist.semi_limited_cards = updatedBanlist.semi_limited_cards.filter(id => id !== card.id);
             updatedBanlist.whitelist_cards = updatedBanlist.whitelist_cards.filter(id => id !== card.id);
-            
+
             // Add to new section
             switch (sectionType) {
                 case 'forbidden':
@@ -187,9 +187,9 @@ const BanlistBuilderPage: React.FC<BanlistBuilderPageProps> = () => {
                     updatedBanlist.whitelist_cards.push(card.id);
                     break;
             }
-            
+
             setBanlist(updatedBanlist);
-            
+
             // If banlist is saved, update on server
             if (banlist.id) {
                 await banlistService.addCard(banlist.id, card.id, sectionType);
@@ -211,9 +211,9 @@ const BanlistBuilderPage: React.FC<BanlistBuilderPageProps> = () => {
             updatedBanlist.limited_cards = updatedBanlist.limited_cards.filter(id => id !== cardId);
             updatedBanlist.semi_limited_cards = updatedBanlist.semi_limited_cards.filter(id => id !== cardId);
             updatedBanlist.whitelist_cards = updatedBanlist.whitelist_cards.filter(id => id !== cardId);
-            
+
             setBanlist(updatedBanlist);
-            
+
             // If banlist is saved, update on server
             if (banlist.id) {
                 await banlistService.removeCard(banlist.id, cardId);
@@ -283,7 +283,7 @@ const BanlistBuilderPage: React.FC<BanlistBuilderPageProps> = () => {
                         Drag cards to banlist sections
                     </p>
                 </div>
-                
+
                 <CardSearchPanel
                     searchResults={searchResults}
                     onSearch={handleSearch}

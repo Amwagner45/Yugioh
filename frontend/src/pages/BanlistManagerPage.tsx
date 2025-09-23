@@ -5,7 +5,7 @@ import type { Banlist } from '../types';
 
 const BanlistManagerPage: React.FC = () => {
     const navigate = useNavigate();
-    
+
     const [banlists, setBanlists] = useState<Banlist[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -80,7 +80,7 @@ const BanlistManagerPage: React.FC = () => {
 
     const filteredBanlists = banlists.filter(banlist => {
         const matchesSearch = banlist.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            (banlist.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+            (banlist.description || '').toLowerCase().includes(searchTerm.toLowerCase());
         const matchesFormat = !formatFilter || banlist.format_type === formatFilter;
         return matchesSearch && matchesFormat;
     });
@@ -170,7 +170,7 @@ const BanlistManagerPage: React.FC = () => {
                             className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white"
                         />
                     </div>
-                    
+
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             Format
@@ -226,7 +226,7 @@ const BanlistManagerPage: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {filteredBanlists.map((banlist) => {
                         const stats = banlistService.getBanlistStats(banlist);
-                        
+
                         return (
                             <div
                                 key={banlist.id}
@@ -244,7 +244,7 @@ const BanlistManagerPage: React.FC = () => {
                                             </p>
                                         )}
                                     </div>
-                                    
+
                                     {/* Actions dropdown */}
                                     <div className="relative ml-2">
                                         <button className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">

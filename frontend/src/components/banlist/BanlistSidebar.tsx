@@ -87,21 +87,19 @@ const BanlistSidebar: React.FC<BanlistSidebarProps> = ({
                         </div>
                         <div>
                             <span className="text-sm text-gray-600 dark:text-gray-300">Status:</span>
-                            <span className={`ml-2 text-sm font-medium ${
-                                banlist.is_active 
-                                    ? 'text-green-600 dark:text-green-400' 
+                            <span className={`ml-2 text-sm font-medium ${banlist.is_active
+                                    ? 'text-green-600 dark:text-green-400'
                                     : 'text-red-600 dark:text-red-400'
-                            }`}>
+                                }`}>
                                 {banlist.is_active ? 'Active' : 'Inactive'}
                             </span>
                         </div>
                         <div>
                             <span className="text-sm text-gray-600 dark:text-gray-300">Type:</span>
-                            <span className={`ml-2 text-sm font-medium ${
-                                banlist.is_official 
-                                    ? 'text-blue-600 dark:text-blue-400' 
+                            <span className={`ml-2 text-sm font-medium ${banlist.is_official
+                                    ? 'text-blue-600 dark:text-blue-400'
                                     : 'text-gray-600 dark:text-gray-400'
-                            }`}>
+                                }`}>
                                 {banlist.is_official ? 'Official' : 'Custom'}
                             </span>
                         </div>

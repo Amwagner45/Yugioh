@@ -66,7 +66,7 @@ const BanlistSectionCard: React.FC<BanlistSectionCardProps> = ({ cardId, onRemov
                         className="w-12 h-17 object-cover rounded border border-gray-300 dark:border-gray-500"
                     />
                 )}
-                
+
                 {/* Card Info */}
                 <div className="flex-1 min-w-0">
                     <div className="flex justify-between items-start">
@@ -83,7 +83,7 @@ const BanlistSectionCard: React.FC<BanlistSectionCardProps> = ({ cardId, onRemov
                                 </p>
                             )}
                         </div>
-                        
+
                         {/* Remove Button */}
                         <button
                             onClick={() => onRemove(cardId)}
@@ -121,7 +121,7 @@ const BanlistSections: React.FC<BanlistSectionsProps> = ({
     const handleDrop = (e: React.DragEvent, section: BanlistSection) => {
         e.preventDefault();
         setDragOverSection(null);
-        
+
         if (draggedCard) {
             onAddCard(draggedCard, section.type);
         }
@@ -151,11 +151,10 @@ const BanlistSections: React.FC<BanlistSectionsProps> = ({
 
                         {/* Drop Zone */}
                         <div
-                            className={`flex-1 min-h-96 border-l border-r border-b ${section.borderColor} ${
-                                dragOverSection === section.type
+                            className={`flex-1 min-h-96 border-l border-r border-b ${section.borderColor} ${dragOverSection === section.type
                                     ? `${section.bgColor} border-dashed border-2`
                                     : 'bg-white dark:bg-gray-800 border-solid'
-                            } rounded-b-lg p-4 transition-colors`}
+                                } rounded-b-lg p-4 transition-colors`}
                             onDragOver={(e) => handleDragOver(e, section.type)}
                             onDragLeave={handleDragLeave}
                             onDrop={(e) => handleDrop(e, section)}

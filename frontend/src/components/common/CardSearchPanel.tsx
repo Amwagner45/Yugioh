@@ -43,7 +43,7 @@ const CardSearchPanel: React.FC<CardSearchPanelProps> = ({
     const handleFilterChange = (key: keyof SearchFilters, value: string) => {
         const newFilters = { ...filters, [key]: value };
         setFilters(newFilters);
-        
+
         // Build search params
         const searchParams: CardSearchParams = {};
         if (newFilters.name.trim()) searchParams.name = newFilters.name.trim();
@@ -51,7 +51,7 @@ const CardSearchPanel: React.FC<CardSearchPanelProps> = ({
         if (newFilters.race) searchParams.race = newFilters.race;
         if (newFilters.attribute) searchParams.attribute = newFilters.attribute;
         if (newFilters.level) searchParams.level = parseInt(newFilters.level);
-        
+
         onSearch(searchParams);
     };
 
@@ -79,7 +79,7 @@ const CardSearchPanel: React.FC<CardSearchPanelProps> = ({
                         className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-purple-500 focus:border-purple-500 dark:bg-gray-700 dark:text-white text-sm"
                     />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-2">
                     <select
                         value={filters.type}
@@ -204,7 +204,7 @@ const CardSearchPanel: React.FC<CardSearchPanelProps> = ({
                                             className="w-12 h-17 object-cover rounded border border-gray-300 dark:border-gray-500"
                                         />
                                     )}
-                                    
+
                                     {/* Card Info */}
                                     <div className="flex-1 min-w-0">
                                         <h4 className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -224,7 +224,7 @@ const CardSearchPanel: React.FC<CardSearchPanelProps> = ({
                                             </p>
                                         )}
                                     </div>
-                                    
+
                                     {/* Drag indicator */}
                                     <div className="opacity-0 group-hover:opacity-100 text-gray-400 transition-opacity">
                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
