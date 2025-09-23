@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import type { Deck, Binder, Card } from '../../types';
 import DeckSection from './DeckSection';
 import DeckStatistics from './DeckStatistics';
@@ -21,7 +22,12 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
     onSave,
     onCancel
 }) => {
+    const navigate = useNavigate();
+    const location = useLocation();
+
     const [deck, setDeck] = useState<Deck | null>(null);
+    const [originalDeck, setOriginalDeck] = useState<Deck | null>(null); // Keep track of the original saved deck
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [binder, setBinder] = useState<Binder | null>(null);
     const [availableBinders, setAvailableBinders] = useState<Binder[]>([]);
     const [selectedBinderId, setSelectedBinderId] = useState<string>(binderId || '');
@@ -56,7 +62,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             loadDeck();
         } else if (!deckId) {
             // Initialize empty deck
-            setDeck({
+            const emptyDeck = {
                 id: '',
                 name: '',
                 description: '',
@@ -68,7 +74,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 notes: '',
                 createdAt: new Date(),
                 modifiedAt: new Date()
-            });
+            };
+            setDeck(emptyDeck);
+            setOriginalDeck(JSON.parse(JSON.stringify(emptyDeck))); // Deep copy for comparison
+            setHasUnsavedChanges(false);
         }
     }, [deckId, availableBinders]);
 
@@ -122,6 +131,9 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             if (localDeck) {
                 console.log('✅ Deck loaded from local storage:', localDeck.name);
                 setDeck(localDeck);
+                setOriginalDeck(JSON.parse(JSON.stringify(localDeck))); // Deep copy for comparison
+                setHasUnsavedChanges(false); // Reset unsaved changes flag
+
                 setDeckName(localDeck.name);
                 setDeckDescription(localDeck.description || '');
                 setDeckFormat(localDeck.format || '');
@@ -168,6 +180,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
             console.log('Setting deck state:', transformedDeck);
             setDeck(transformedDeck);
+            setOriginalDeck(JSON.parse(JSON.stringify(transformedDeck))); // Deep copy for comparison
+            setHasUnsavedChanges(false);
 
             // Set form fields
             setDeckName(deckData.name);
@@ -247,6 +261,165 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
     };
 
+    // Mark changes as unsaved whenever deck or form fields are modified
+    const markAsUnsaved = () => {
+        setHasUnsavedChanges(true);
+    };
+
+    // Check if user wants to leave with unsaved changes
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+        if (hasUnsavedChanges) {
+            e.preventDefault();
+            e.returnValue = '';
+            return '';
+        }
+    };
+
+    // Handle cancel with unsaved changes warning
+    const handleCancel = () => {
+        if (hasUnsavedChanges) {
+            const confirmLeave = window.confirm(
+                'You have unsaved changes. Are you sure you want to leave without saving?'
+            );
+            if (!confirmLeave) {
+                return;
+            }
+        }
+        if (onCancel) {
+            onCancel();
+        }
+    };
+
+    // Add beforeunload event listener
+    useEffect(() => {
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => {
+            window.removeEventListener('beforeunload', handleBeforeUnload);
+        };
+    }, [hasUnsavedChanges]);
+
+    // Block navigation when there are unsaved changes
+    useEffect(() => {
+        const handlePopState = (e: PopStateEvent) => {
+            if (hasUnsavedChanges) {
+                const confirmLeave = window.confirm(
+                    'You have unsaved changes. Are you sure you want to leave without saving?'
+                );
+                if (!confirmLeave) {
+                    e.preventDefault();
+                    window.history.pushState(null, '', location.pathname);
+                }
+            }
+        };
+
+        if (hasUnsavedChanges) {
+            window.history.pushState(null, '', location.pathname);
+            window.addEventListener('popstate', handlePopState);
+        }
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, [hasUnsavedChanges, location.pathname]);
+
+    // Helper function to save deck cards to backend
+    const saveDeckCardsToBackend = async (deckId: string, currentDeck: Deck) => {
+        if (!currentDeck) return;
+
+        try {
+            // Get the current state of the deck from the backend to compare
+            const response = await api.get(`/api/decks/${deckId}`);
+            const backendDeck = response.data;
+
+            // Convert backend deck format to our format
+            const backendMainDeck = backendDeck.main_deck.map((card: any) => ({
+                cardId: card.card_id,
+                quantity: card.quantity
+            }));
+            const backendExtraDeck = backendDeck.extra_deck.map((card: any) => ({
+                cardId: card.card_id,
+                quantity: card.quantity
+            }));
+            const backendSideDeck = backendDeck.side_deck.map((card: any) => ({
+                cardId: card.card_id,
+                quantity: card.quantity
+            }));
+
+            // Helper function to sync a section
+            const syncSection = async (currentCards: any[], backendCards: any[], section: 'main' | 'extra' | 'side') => {
+                // Create maps for easier comparison
+                const currentMap = new Map(currentCards.map(card => [card.cardId, card.quantity]));
+                const backendMap = new Map(backendCards.map(card => [card.cardId, card.quantity]));
+
+                // Remove cards that are no longer in current deck
+                for (const [cardId, quantity] of backendMap) {
+                    if (!currentMap.has(cardId)) {
+                        // Remove all copies
+                        await api.delete(`/api/decks/${deckId}/cards/${cardId}`, {
+                            params: { section, quantity }
+                        });
+                    }
+                }
+
+                // Add or update cards from current deck
+                for (const [cardId, currentQuantity] of currentMap) {
+                    const backendQuantity = backendMap.get(cardId) || 0;
+                    const difference = currentQuantity - backendQuantity;
+
+                    if (difference > 0) {
+                        // Add more copies
+                        await api.post(`/api/decks/${deckId}/cards`, null, {
+                            params: { card_id: cardId, section, quantity: difference }
+                        });
+                    } else if (difference < 0) {
+                        // Remove some copies
+                        await api.delete(`/api/decks/${deckId}/cards/${cardId}`, {
+                            params: { section, quantity: Math.abs(difference) }
+                        });
+                    }
+                    // If difference === 0, no change needed
+                }
+            };
+
+            // Sync all three sections
+            await syncSection(currentDeck.mainDeck, backendMainDeck, 'main');
+            await syncSection(currentDeck.extraDeck, backendExtraDeck, 'extra');
+            await syncSection(currentDeck.sideDeck, backendSideDeck, 'side');
+        } catch (error) {
+            console.error('Failed to save deck cards to backend:', error);
+            throw error;
+        }
+    };
+
+    // Helper function to add all cards to a new deck
+    const addAllCardsToNewDeck = async (deckId: string, currentDeck: Deck) => {
+        if (!currentDeck) return;
+
+        try {
+            // Add all cards from current deck state
+            const allCards = [
+                ...currentDeck.mainDeck.map(card => ({ ...card, section: 'main' })),
+                ...currentDeck.extraDeck.map(card => ({ ...card, section: 'extra' })),
+                ...currentDeck.sideDeck.map(card => ({ ...card, section: 'side' }))
+            ];
+
+            for (const card of allCards) {
+                if (card.quantity > 0) {
+                    await api.post(`/api/decks/${deckId}/cards`, null, {
+                        params: {
+                            card_id: card.cardId,
+                            section: card.section,
+                            quantity: card.quantity
+                        }
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Failed to add cards to new deck:', error);
+            throw error;
+        }
+    };
+
     const handleSaveDeck = async () => {
         if (!deck) return null;
 
@@ -270,6 +443,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
                 storageService.saveDeck(updatedDeck);
                 setDeck(updatedDeck);
+                setOriginalDeck(JSON.parse(JSON.stringify(updatedDeck))); // Deep copy for comparison
+                setHasUnsavedChanges(false); // Reset unsaved changes flag
 
                 if (onSave) {
                     onSave(updatedDeck);
@@ -296,9 +471,18 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
             let response;
             if (deckId) {
+                // Update existing deck
                 response = await api.put(`/api/decks/${deckId}`, deckData);
+
+                // Now save the current card state to the backend
+                await saveDeckCardsToBackend(deckId, deck);
             } else {
+                // Create new deck
                 response = await api.post('/api/decks/', deckData);
+                const newDeckId = response.data.uuid;
+
+                // For new decks, just add all the current cards (no need to compare)
+                await addAllCardsToNewDeck(newDeckId, deck);
             }
 
             const savedDeck: Deck = {
@@ -306,18 +490,9 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 name: response.data.name,
                 description: response.data.description || '',
                 format: response.data.format || '',
-                mainDeck: response.data.main_deck.map((card: any) => ({
-                    cardId: card.card_id,
-                    quantity: card.quantity
-                })),
-                extraDeck: response.data.extra_deck.map((card: any) => ({
-                    cardId: card.card_id,
-                    quantity: card.quantity
-                })),
-                sideDeck: response.data.side_deck.map((card: any) => ({
-                    cardId: card.card_id,
-                    quantity: card.quantity
-                })),
+                mainDeck: deck.mainDeck, // Use current deck state instead of response
+                extraDeck: deck.extraDeck, // Use current deck state instead of response
+                sideDeck: deck.sideDeck, // Use current deck state instead of response
                 tags: response.data.tags || [],
                 notes: response.data.notes || '',
                 createdAt: new Date(response.data.created_at),
@@ -325,6 +500,9 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             };
 
             setDeck(savedDeck);
+            setOriginalDeck(JSON.parse(JSON.stringify(savedDeck))); // Deep copy for comparison
+            setHasUnsavedChanges(false); // Reset unsaved changes flag
+
             if (onSave) {
                 onSave(savedDeck);
             }
@@ -426,51 +604,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         }
 
         try {
-            // Check if this is a local storage deck
-            const isLocalDeck = storageService.getDeck(currentDeck.id);
+            // Just update the deck state temporarily without saving
+            console.log('Adding card to deck temporarily (no save)');
 
-            if (isLocalDeck) {
-                // Handle local storage deck
-                console.log('Updating local storage deck');
-
-                // Optimistic update: Update the deck state locally
-                const updatedDeck = { ...currentDeck };
-                const targetSection = section === 'main' ? updatedDeck.mainDeck :
-                    section === 'extra' ? updatedDeck.extraDeck :
-                        updatedDeck.sideDeck;
-
-                // Find existing card or create new entry
-                const existingCardIndex = targetSection.findIndex(card => card.cardId === cardId);
-                if (existingCardIndex >= 0) {
-                    // Update existing card quantity
-                    targetSection[existingCardIndex].quantity += quantity;
-                } else {
-                    // Add new card to section
-                    targetSection.push({ cardId, quantity });
-                }
-
-                updatedDeck.modifiedAt = new Date();
-
-                // Save to local storage
-                storageService.saveDeck(updatedDeck);
-                setDeck(updatedDeck);
-
-                console.log('Local deck updated successfully');
-                return;
-            }
-
-            // Handle backend API deck
-            console.log('Making API call to add card to deck');
-            const response = await api.post(`/api/decks/${currentDeck.id}/cards`, null, {
-                params: {
-                    card_id: cardId,
-                    section: section,
-                    quantity: quantity
-                }
-            });
-            console.log('API response:', response.data);
-
-            // Optimistic update: Update the deck state locally instead of reloading
+            // Optimistic update: Update the deck state locally
             const updatedDeck = { ...currentDeck };
             const targetSection = section === 'main' ? updatedDeck.mainDeck :
                 section === 'extra' ? updatedDeck.extraDeck :
@@ -486,16 +623,16 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 targetSection.push({ cardId, quantity });
             }
 
-            // Update the deck state
+            updatedDeck.modifiedAt = new Date();
+
+            // Update the deck state and mark as unsaved
             setDeck(updatedDeck);
-            console.log('Deck updated optimistically');
+            markAsUnsaved();
+
+            console.log('Card added to deck temporarily');
         } catch (error) {
             console.error('Failed to add card to deck:', error);
             alert('Failed to add card to deck. Please try again.');
-
-            // On error, reload deck to ensure consistency
-            console.log('Error occurred, reloading deck to ensure consistency...');
-            await loadDeck();
         }
     };
 
@@ -503,51 +640,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         if (!deck?.id) return;
 
         try {
-            // Check if this is a local storage deck
-            const isLocalDeck = storageService.getDeck(deck.id);
+            // Just update the deck state temporarily without saving
+            console.log('Removing card from deck temporarily (no save)');
 
-            if (isLocalDeck) {
-                // Handle local storage deck
-                console.log('Removing card from local storage deck');
-
-                // Optimistic update: Update the deck state locally
-                const updatedDeck = { ...deck };
-                const targetSection = section === 'main' ? updatedDeck.mainDeck :
-                    section === 'extra' ? updatedDeck.extraDeck :
-                        updatedDeck.sideDeck;
-
-                // Find existing card and update quantity
-                const existingCardIndex = targetSection.findIndex(card => card.cardId === cardId);
-                if (existingCardIndex >= 0) {
-                    const currentCard = targetSection[existingCardIndex];
-                    if (currentCard.quantity <= quantity) {
-                        // Remove card entirely if quantity would be 0 or less
-                        targetSection.splice(existingCardIndex, 1);
-                    } else {
-                        // Decrease quantity
-                        currentCard.quantity -= quantity;
-                    }
-                }
-
-                updatedDeck.modifiedAt = new Date();
-
-                // Save to local storage
-                storageService.saveDeck(updatedDeck);
-                setDeck(updatedDeck);
-
-                console.log('Card removed from local deck successfully');
-                return;
-            }
-
-            // Handle backend API deck
-            await api.delete(`/api/decks/${deck.id}/cards/${cardId}`, {
-                params: {
-                    section: section,
-                    quantity: quantity
-                }
-            });
-
-            // Optimistic update: Update the deck state locally instead of reloading
+            // Optimistic update: Update the deck state locally
             const updatedDeck = { ...deck };
             const targetSection = section === 'main' ? updatedDeck.mainDeck :
                 section === 'extra' ? updatedDeck.extraDeck :
@@ -566,15 +662,15 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 }
             }
 
-            // Update the deck state
+            updatedDeck.modifiedAt = new Date();
+
+            // Update the deck state and mark as unsaved
             setDeck(updatedDeck);
-            console.log('Card removed optimistically');
+            markAsUnsaved();
+
+            console.log('Card removed from deck temporarily');
         } catch (error) {
             console.error('Failed to remove card from deck:', error);
-
-            // On error, reload deck to ensure consistency
-            console.log('Error occurred, reloading deck to ensure consistency...');
-            await loadDeck();
         }
     };
 
@@ -637,6 +733,8 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
 
             // Set the cloned deck as current deck
             setDeck(clonedDeck);
+            setOriginalDeck(JSON.parse(JSON.stringify(clonedDeck))); // Deep copy for comparison
+            setHasUnsavedChanges(false); // Reset unsaved changes flag
 
             // Set form fields
             setDeckName(clonedDeck.name);
@@ -744,8 +842,11 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                 {/* Header - More compact */}
                 <div className="bg-white rounded-lg shadow-lg p-4 mb-4 mx-4">
                     <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-2xl font-bold text-gray-900">
+                        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                             {deckId ? 'Edit Deck' : 'Create New Deck'}
+                            {hasUnsavedChanges && (
+                                <span className="text-orange-500 text-lg">●</span>
+                            )}
                         </h1>
                         <div className="flex space-x-2">
                             <button
@@ -774,14 +875,17 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             </button>
                             <button
                                 onClick={handleSaveDeck}
-                                className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                                className={`px-3 py-1.5 text-sm rounded transition-colors ${hasUnsavedChanges
+                                        ? 'bg-orange-600 text-white hover:bg-orange-700'
+                                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                                    }`}
                                 disabled={isLoading}
                             >
-                                {isLoading ? 'Saving...' : 'Save'}
+                                {isLoading ? 'Saving...' : hasUnsavedChanges ? 'Save Changes' : 'Save'}
                             </button>
                             {onCancel && (
                                 <button
-                                    onClick={onCancel}
+                                    onClick={handleCancel}
                                     className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors"
                                 >
                                     Cancel
@@ -799,7 +903,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             <input
                                 type="text"
                                 value={deckName}
-                                onChange={(e) => setDeckName(e.target.value)}
+                                onChange={(e) => {
+                                    setDeckName(e.target.value);
+                                    markAsUnsaved();
+                                }}
                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Enter deck name"
                                 required
@@ -812,7 +919,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             </label>
                             <select
                                 value={deckFormat}
-                                onChange={(e) => setDeckFormat(e.target.value)}
+                                onChange={(e) => {
+                                    setDeckFormat(e.target.value);
+                                    markAsUnsaved();
+                                }}
                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">Select format</option>
@@ -830,7 +940,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             </label>
                             <select
                                 value={selectedBinderId}
-                                onChange={(e) => setSelectedBinderId(e.target.value)}
+                                onChange={(e) => {
+                                    setSelectedBinderId(e.target.value);
+                                    markAsUnsaved();
+                                }}
                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                             >
                                 <option value="">Select binder</option>
@@ -849,7 +962,10 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                             <input
                                 type="text"
                                 value={deckDescription}
-                                onChange={(e) => setDeckDescription(e.target.value)}
+                                onChange={(e) => {
+                                    setDeckDescription(e.target.value);
+                                    markAsUnsaved();
+                                }}
                                 className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                 placeholder="Enter deck description"
                             />

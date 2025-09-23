@@ -202,7 +202,7 @@
 ### 4.5 Extra
 - [ ] Add quick-add functionality for favorited cards
 - [ ] Multi user only see binder and decks that user 
-- [ ] Fix UI and take inspiration from other deck builders
+- [x] Fix UI and take inspiration from other deck builders
 - [ ] Backup data for binders and decks in case something goes wrong
 - [ ] Only Save deck after Save Deck is clicked. Temporary changes to the deck should not be saved
 - [ ] Sort button for deck builder
