@@ -575,7 +575,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             alert('Please save the deck first before exporting.');
             return;
         }
-        
+
         // Create a temporary deck with current form values for export
         const deckToExport = {
             ...deck,
@@ -585,7 +585,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
             notes: deckNotes || deck.notes,
             tags: deckTags || deck.tags,
         };
-        
+
         setExportModal({ show: true, deck: deckToExport });
     };
 
@@ -595,27 +595,27 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
         try {
             // For unsaved decks, we need to save them to storage temporarily for export
             let deckToExport = exportModal.deck;
-            
+
             if (!deckToExport.id) {
                 // Create a temporary ID for export
                 const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                 deckToExport = { ...deckToExport, id: tempId };
-                
+
                 // Temporarily save to storage for export
                 storageService.saveDeck(deckToExport);
             }
-            
+
             const content = importExportService.exportDeck(deckToExport.id, { format });
             const extension = format === 'json' ? 'json' : format === 'ydk' ? 'ydk' : format === 'txt' ? 'txt' : 'csv';
             const filename = `${deckToExport.name.replace(/[^a-z0-9]/gi, '_')}.${extension}`;
 
             importExportService.downloadFile(content as string, filename);
-            
+
             // Clean up temporary deck if it was created
             if (!exportModal.deck.id) {
                 storageService.deleteDeck(deckToExport.id);
             }
-            
+
             setExportModal({ show: false, deck: null });
         } catch (error) {
             console.error('Export failed:', error);
