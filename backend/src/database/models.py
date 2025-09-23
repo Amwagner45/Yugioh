@@ -1746,22 +1746,32 @@ class Banlist:
         # Function to find the correct card ID (handles ID offset issues)
         def find_card_id(original_id):
             # Try original ID first
-            cursor = conn.execute("SELECT 1 FROM card_cache WHERE id = ?", (original_id,))
+            cursor = conn.execute(
+                "SELECT 1 FROM card_cache WHERE id = ?", (original_id,)
+            )
             if cursor.fetchone():
                 return original_id
-            
+
             # Try ID + 1 (common offset issue in banlist files)
-            cursor = conn.execute("SELECT 1 FROM card_cache WHERE id = ?", (original_id + 1,))
+            cursor = conn.execute(
+                "SELECT 1 FROM card_cache WHERE id = ?", (original_id + 1,)
+            )
             if cursor.fetchone():
-                print(f"  Card ID {original_id} not found, using {original_id + 1} instead")
+                print(
+                    f"  Card ID {original_id} not found, using {original_id + 1} instead"
+                )
                 return original_id + 1
-            
+
             # Try ID - 1 (less common but possible)
-            cursor = conn.execute("SELECT 1 FROM card_cache WHERE id = ?", (original_id - 1,))
+            cursor = conn.execute(
+                "SELECT 1 FROM card_cache WHERE id = ?", (original_id - 1,)
+            )
             if cursor.fetchone():
-                print(f"  Card ID {original_id} not found, using {original_id - 1} instead")
+                print(
+                    f"  Card ID {original_id} not found, using {original_id - 1} instead"
+                )
                 return original_id - 1
-            
+
             return None
 
         # Map all card IDs to correct ones
@@ -1772,7 +1782,9 @@ class Banlist:
                 if correct_id:
                     mapped_list.append(correct_id)
                 else:
-                    print(f"  Warning: Could not find card with ID {card_id} in database")
+                    print(
+                        f"  Warning: Could not find card with ID {card_id} in database"
+                    )
             return mapped_list
 
         # Map all card lists to correct IDs
