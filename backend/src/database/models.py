@@ -1246,6 +1246,10 @@ class Card:
             query += " AND name LIKE ?"
             params.append(f"%{filters['name']}%")
 
+        if filters.get("name_fuzzy"):
+            query += " AND name LIKE ?"
+            params.append(f"%{filters['name_fuzzy']}%")
+
         if filters.get("type"):
             query += " AND type = ?"
             params.append(filters["type"])

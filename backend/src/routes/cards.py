@@ -57,7 +57,7 @@ async def test_api_connection(request: Request):
 async def search_cards(
     request: Request,
     # Basic filters
-    name: Optional[str] = None,
+    name: Optional[str] = None,  # Fuzzy name search (like fname in YGOPRODeck API)
     type: Optional[str] = None,
     race: Optional[str] = None,
     attribute: Optional[str] = None,
@@ -89,117 +89,61 @@ async def search_cards(
     """
     Enhanced search for Yu-Gi-Oh cards with comprehensive filtering options
     """
-    # Apply rate limiting
-    client_ip = await apply_rate_limit(request, "search", is_external_api=True)
+    # Apply rate limiting (local database search, not external API)
+    client_ip = await apply_rate_limit(request, "search", is_external_api=False)
 
-    # Prepare search parameters for YGOPRODeck API
-    search_params = {}
+    # Build search filters for local database
+    search_filters = {}
 
     # Basic filters
+    # Handle name for fuzzy name search (like fname in YGOPRODeck API)
     if name:
-        # Always use fuzzy search by default for better user experience
-        # The YGOPRODeck API is very strict with exact name matching
-        search_params["fname"] = name  # fuzzy name search
-
+        search_filters["name_fuzzy"] = name
     if type:
-        search_params["type"] = type
+        search_filters["type"] = type
     if race:
-        search_params["race"] = race
+        search_filters["race"] = race
     if attribute:
-        search_params["attribute"] = attribute
+        search_filters["attribute"] = attribute
     if level:
-        search_params["level"] = level
+        search_filters["level"] = level
+    if archetype:
+        search_filters["archetype"] = archetype
 
-    # ATK/DEF filters
+    # ATK/DEF range filters
     if atk is not None:
-        search_params["atk"] = atk
-    elif atk_min is not None or atk_max is not None:
-        # For range queries, we'll need to filter results post-API call
-        # YGOPRODeck doesn't support range queries directly
-        pass
+        search_filters["atk_min"] = atk
+        search_filters["atk_max"] = atk
+    else:
+        if atk_min is not None:
+            search_filters["atk_min"] = atk_min
+        if atk_max is not None:
+            search_filters["atk_max"] = atk_max
 
     if def_ is not None:
-        search_params["def"] = def_
-    elif def_min is not None or def_max is not None:
-        # For range queries, we'll need to filter results post-API call
-        pass
-
-    # Advanced filters
-    if archetype:
-        search_params["archetype"] = archetype
-    if banlist:
-        search_params["banlist"] = banlist
-    if format:
-        search_params["format"] = format
-    if sort:
-        search_params["sort"] = sort
-    if order:
-        search_params["order"] = order
-
-    # Set and rarity filters
-    if cardset:
-        # For set-based searches, try a different approach
-        # Some APIs might not support direct set filtering
-        # Instead we might need to search broadly and filter client-side
-
-        # First try the standard cardset parameter with mapped name
-        set_code_mapping = {
-            "LOB": "Legend of Blue Eyes White Dragon",
-            "MRD": "Metal Raiders",
-            "SDP": "Starter Deck: Pegasus",
-            "SDK": "Starter Deck: Kaiba",
-            "SDY": "Starter Deck: Yugi",
-            "MRL": "Magic Ruler",
-            "PSV": "Pharaoh's Servant",
-            "LON": "Labyrinth of Nightmare",
-            "LOD": "Legacy of Darkness",
-            "PGD": "Pharaonic Guardian",
-            "MFC": "Magician's Force",
-            "DCR": "Dark Crisis",
-            "IOC": "Invasion of Chaos",
-            "AST": "Ancient Sanctuary",
-            "SOD": "Soul of the Duelist",
-            "RDS": "Rise of Destiny",
-            "FET": "Flaming Eternity",
-            "TLM": "The Lost Millennium",
-            "CRV": "Cybernetic Revolution",
-            "EEN": "Elemental Energy",
-        }
-
-        # Use full set name if mapping exists, otherwise use provided value
-        set_name = set_code_mapping.get(cardset, cardset)
-
-        # Try different parameter names that YGOPRODeck might accept
-        # search_params["cardset"] = set_name
-        # Alternative: try without set filtering and filter results afterwards
-        pass  # Will implement client-side filtering instead
-
-    # Text description search
-    if description:
-        search_params["fname"] = description  # Search in description
-
-    # For set-based searches, we need to get ALL cards first, then filter and paginate
-    # Don't add pagination params to API request if we're doing set filtering
-    if not cardset:
-        # Only add pagination for non-set searches
-        if limit and limit <= 100:  # YGOPRODeck limits to 100
-            search_params["num"] = limit
-            search_params["offset"] = offset
+        search_filters["def_min"] = def_
+        search_filters["def_max"] = def_
+    else:
+        if def_min is not None:
+            search_filters["def_min"] = def_min
+        if def_max is not None:
+            search_filters["def_max"] = def_max
 
     # Create cache key from all parameters
-    cache_key_params = search_params.copy()
+    cache_key_params = search_filters.copy()
     cache_key_params.update(
         {
-            "atk_min": atk_min,
-            "atk_max": atk_max,
-            "def_min": def_min,
-            "def_max": def_max,
+            "name": name,
+            "cardset": cardset,
             "rarity": rarity,
+            "description": description,
             "fuzzy": fuzzy,
+            "limit": limit,
+            "offset": offset,
         }
     )
 
-    # Check cache first
+    # Check memory cache first
     try:
         cached_results = await cache_service.get_card_search_results(cache_key_params)
         if cached_results is not None:
@@ -208,47 +152,47 @@ async def search_cards(
                 data=cached_results, count=len(cached_results), cached=True
             )
     except Exception as e:
-        error_handler.logger.warning(f"Cache lookup failed: {e}")
+        error_handler.logger.warning(f"Memory cache lookup failed: {e}")
 
-    # Define the API call function
-    async def api_call():
-        print(f"Making API request with params: {search_params}")  # Debug log
-        data = await make_ygoprodeck_request(
-            "https://db.ygoprodeck.com/api/v7/cardinfo.php", params=search_params
-        )
-        return data.get("data", [])
-
-    # Execute with comprehensive error handling
+    # Search local database
     try:
-        card_data = await error_handler.retry_with_backoff(
-            api_call, operation_type="api_request"
-        )
+        from ..database.models import Card
 
-        # Apply client-side filters that YGOPRODeck doesn't support
+        # Get cards from local database
+        card_models = Card.search_by_filters(search_filters)
+
+        # Convert card models to API format
+        card_data = []
+        for card in card_models:
+            card_dict = {
+                "id": card.id,
+                "name": card.name,
+                "type": card.type,
+                "desc": card.description,
+                "atk": card.atk,
+                "def": card.def_,
+                "level": card.level,
+                "race": card.race,
+                "attribute": card.attribute,
+                "archetype": card.archetype,
+                "scale": card.scale,
+                "linkval": card.linkval,
+                "linkmarkers": card.linkmarkers,
+                "card_images": card.card_images,
+                "card_sets": card.card_sets,
+                "banlist_info": card.banlist_info,
+            }
+            card_data.append(card_dict)
+
+        # Apply additional filters that require post-processing
         filtered_data = card_data
 
-        # ATK range filter
-        if atk_min is not None or atk_max is not None:
+        # Description/text search filter
+        if description:
             filtered_data = [
                 card
                 for card in filtered_data
-                if card.get("atk") is not None
-                and (
-                    (atk_min is None or card["atk"] >= atk_min)
-                    and (atk_max is None or card["atk"] <= atk_max)
-                )
-            ]
-
-        # DEF range filter
-        if def_min is not None or def_max is not None:
-            filtered_data = [
-                card
-                for card in filtered_data
-                if card.get("def") is not None
-                and (
-                    (def_min is None or card["def"] >= def_min)
-                    and (def_max is None or card["def"] <= def_max)
-                )
+                if description.lower() in card.get("desc", "").lower()
             ]
 
         # Set filter (requires checking card_sets)
@@ -301,6 +245,28 @@ async def search_cards(
                 )
             ]
 
+        # Apply sorting
+        if sort:
+            reverse_order = order and order.lower() == "desc"
+            if sort == "name":
+                filtered_data.sort(
+                    key=lambda x: x.get("name", ""), reverse=reverse_order
+                )
+            elif sort == "atk":
+                filtered_data.sort(
+                    key=lambda x: x.get("atk") or 0, reverse=reverse_order
+                )
+            elif sort == "def":
+                filtered_data.sort(
+                    key=lambda x: x.get("def") or 0, reverse=reverse_order
+                )
+            elif sort == "level":
+                filtered_data.sort(
+                    key=lambda x: x.get("level") or 0, reverse=reverse_order
+                )
+            elif sort == "id":
+                filtered_data.sort(key=lambda x: x.get("id", 0), reverse=reverse_order)
+
         # Cache the results
         try:
             await cache_service.cache_card_search_results(
@@ -309,20 +275,14 @@ async def search_cards(
         except Exception as e:
             error_handler.logger.warning(f"Failed to cache results: {e}")
 
-        # Apply pagination after all filtering
+        # Apply pagination
         total_count = len(filtered_data)
-
-        # Handle pagination for set searches (which fetch all data first)
-        if cardset:
-            start_idx = offset
-            end_idx = min(offset + limit, total_count)
-            paginated_data = filtered_data[start_idx:end_idx]
-        else:
-            # For non-set searches, pagination was handled by the API
-            paginated_data = filtered_data
+        start_idx = offset
+        end_idx = min(offset + limit, total_count)
+        paginated_data = filtered_data[start_idx:end_idx]
 
         # Record successful request
-        await record_request_success(client_ip, "search", is_external_api=True)
+        await record_request_success(client_ip, "search", is_external_api=False)
 
         return CardSearchResponse(
             data=paginated_data,
@@ -332,57 +292,95 @@ async def search_cards(
         )
 
     except Exception as e:
-        await record_request_failure(client_ip, "search", is_external_api=True)
-        print(f"API request failed: {str(e)}")  # Debug log
-        print(f"Search params were: {search_params}")  # Debug log
+        await record_request_failure(client_ip, "search", is_external_api=False)
+        error_handler.logger.warning(f"Database search failed: {str(e)}")
 
-        # Try fallback strategies
+        # Fallback: try external API if local search fails
+        error_handler.logger.warning("Falling back to external API search")
+
+        # Apply rate limiting for external API
+        client_ip = await apply_rate_limit(
+            request, "search_fallback", is_external_api=True
+        )
+
+        # Prepare search parameters for YGOPRODeck API fallback
+        search_params = {}
+        if name:
+            search_params["fname"] = name
+        if type:
+            search_params["type"] = type
+        if race:
+            search_params["race"] = race
+        if attribute:
+            search_params["attribute"] = attribute
+        if level:
+            search_params["level"] = level
+        if archetype:
+            search_params["archetype"] = archetype
+
+        # Define the API call function for fallback
+        async def api_call():
+            print(f"Making fallback API request with params: {search_params}")
+            data = await make_ygoprodeck_request(
+                "https://db.ygoprodeck.com/api/v7/cardinfo.php", params=search_params
+            )
+            return data.get("data", [])
+
         try:
-            # Try to get some popular cards as fallback
-            fallback_data = await fallback_strategy.get_popular_cards_fallback()
+            card_data = await error_handler.retry_with_backoff(
+                api_call, operation_type="api_request"
+            )
 
-            # Apply basic filters to fallback data
+            # Apply basic filtering to fallback data
+            filtered_data = card_data
             if name:
-                fallback_data = [
+                filtered_data = [
                     card
-                    for card in fallback_data
-                    if name.lower() in card["name"].lower()
+                    for card in filtered_data
+                    if name.lower() in card.get("name", "").lower()
                 ]
 
-            if type:
-                fallback_data = [
-                    card
-                    for card in fallback_data
-                    if type.lower() in card["type"].lower()
-                ]
+            # Cache and return fallback results
+            try:
+                await cache_service.cache_card_search_results(
+                    cache_key_params, filtered_data
+                )
+            except Exception as e:
+                error_handler.logger.warning(f"Failed to cache fallback results: {e}")
 
-            if race:
-                fallback_data = [
-                    card
-                    for card in fallback_data
-                    if card.get("race", "").lower() == race.lower()
-                ]
+            # Apply pagination
+            total_count = len(filtered_data)
+            start_idx = offset
+            end_idx = min(offset + limit, total_count)
+            paginated_data = filtered_data[start_idx:end_idx]
 
-            if attribute:
-                fallback_data = [
-                    card
-                    for card in fallback_data
-                    if card.get("attribute", "").lower() == attribute.lower()
-                ]
+            # Record successful request
+            await record_request_success(
+                client_ip, "search_fallback", is_external_api=True
+            )
 
             return CardSearchResponse(
-                data=fallback_data,
-                count=len(fallback_data),
-                error=f"API temporarily unavailable. Showing fallback results.",
+                data=paginated_data,
+                count=len(paginated_data),
+                total=total_count,
                 cached=False,
+                error="Local search failed. Showing external API results.",
             )
-        except Exception:
-            # Ultimate fallback
+
+        except Exception as fallback_error:
+            await record_request_failure(
+                client_ip, "search_fallback", is_external_api=True
+            )
+            error_handler.logger.error(
+                f"Both local and external search failed: {fallback_error}"
+            )
+
             return CardSearchResponse(
                 data=[],
                 count=0,
-                error=error_handler.create_standardized_error(e, "search")["message"],
+                total=0,
                 cached=False,
+                error="Search temporarily unavailable. Please try again later.",
             )
 
 
@@ -396,63 +394,175 @@ async def advanced_search(
     """
     Advanced multi-field search across card names, descriptions, and other fields
     """
-    client_ip = await apply_rate_limit(request, "advanced_search", is_external_api=True)
+    # Apply rate limiting (local database search, not external API)
+    client_ip = await apply_rate_limit(
+        request, "advanced_search", is_external_api=False
+    )
 
     search_fields = [f.strip() for f in fields.split(",")]
 
     try:
-        # For advanced search, we'll need to fetch more data and filter client-side
-        async def api_call():
-            # Search by name first to get a broad set
-            data = await make_ygoprodeck_request(
-                "https://db.ygoprodeck.com/api/v7/cardinfo.php", params={"fname": query}
-            )
-            return data.get("data", [])
+        # Search local database for all cards, then filter by fields
+        from ..database.models import Card
+        from ..database import get_db_connection
 
-        card_data = await error_handler.retry_with_backoff(
-            api_call, operation_type="api_request"
-        )
+        # Get all cards from local database (we'll filter them manually)
+        # For efficiency, we could add a direct text search to the database in the future
+        with get_db_connection() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM card_cache LIMIT 5000"
+            )  # Limit for performance
+            all_cards = [Card.from_db_row(row) for row in cursor.fetchall()]
 
-        # Filter results based on query matching multiple fields
+        # Convert to API format and filter results based on query matching multiple fields
         filtered_data = []
         query_lower = query.lower()
 
-        for card in card_data:
+        for card in all_cards:
             match_found = False
 
-            if "name" in search_fields and query_lower in card.get("name", "").lower():
+            # Convert card to dict format
+            card_dict = {
+                "id": card.id,
+                "name": card.name,
+                "type": card.type,
+                "desc": card.description,
+                "atk": card.atk,
+                "def": card.def_,
+                "level": card.level,
+                "race": card.race,
+                "attribute": card.attribute,
+                "archetype": card.archetype,
+                "scale": card.scale,
+                "linkval": card.linkval,
+                "linkmarkers": card.linkmarkers,
+                "card_images": card.card_images,
+                "card_sets": card.card_sets,
+                "banlist_info": card.banlist_info,
+            }
+
+            # Check if query matches any of the specified fields
+            if (
+                "name" in search_fields
+                and query_lower in card_dict.get("name", "").lower()
+            ):
                 match_found = True
-            if "desc" in search_fields and query_lower in card.get("desc", "").lower():
+            if (
+                "desc" in search_fields
+                and query_lower in card_dict.get("desc", "").lower()
+            ):
                 match_found = True
-            if "type" in search_fields and query_lower in card.get("type", "").lower():
+            if (
+                "type" in search_fields
+                and query_lower in card_dict.get("type", "").lower()
+            ):
                 match_found = True
-            if "race" in search_fields and query_lower in card.get("race", "").lower():
+            if (
+                "race" in search_fields
+                and query_lower in card_dict.get("race", "").lower()
+            ):
                 match_found = True
             if (
                 "attribute" in search_fields
-                and query_lower in card.get("attribute", "").lower()
+                and query_lower in card_dict.get("attribute", "").lower()
             ):
                 match_found = True
 
             if match_found:
-                filtered_data.append(card)
+                filtered_data.append(card_dict)
 
-        await record_request_success(client_ip, "advanced_search", is_external_api=True)
+        await record_request_success(
+            client_ip, "advanced_search", is_external_api=False
+        )
 
         return CardSearchResponse(
             data=filtered_data, count=len(filtered_data), cached=False
         )
 
     except Exception as e:
-        await record_request_failure(client_ip, "advanced_search", is_external_api=True)
-        return CardSearchResponse(
-            data=[],
-            count=0,
-            error=error_handler.create_standardized_error(e, "advanced_search")[
-                "message"
-            ],
-            cached=False,
+        await record_request_failure(
+            client_ip, "advanced_search", is_external_api=False
         )
+        error_handler.logger.warning(f"Local advanced search failed: {str(e)}")
+
+        # Fallback to external API if local search fails
+        error_handler.logger.warning("Falling back to external API for advanced search")
+
+        # Apply rate limiting for external API
+        client_ip = await apply_rate_limit(
+            request, "advanced_search_fallback", is_external_api=True
+        )
+
+        try:
+            # Fallback to external API
+            async def api_call():
+                data = await make_ygoprodeck_request(
+                    "https://db.ygoprodeck.com/api/v7/cardinfo.php",
+                    params={"fname": query},
+                )
+                return data.get("data", [])
+
+            card_data = await error_handler.retry_with_backoff(
+                api_call, operation_type="api_request"
+            )
+
+            # Filter results based on query matching multiple fields
+            filtered_data = []
+            query_lower = query.lower()
+
+            for card in card_data:
+                match_found = False
+
+                if (
+                    "name" in search_fields
+                    and query_lower in card.get("name", "").lower()
+                ):
+                    match_found = True
+                if (
+                    "desc" in search_fields
+                    and query_lower in card.get("desc", "").lower()
+                ):
+                    match_found = True
+                if (
+                    "type" in search_fields
+                    and query_lower in card.get("type", "").lower()
+                ):
+                    match_found = True
+                if (
+                    "race" in search_fields
+                    and query_lower in card.get("race", "").lower()
+                ):
+                    match_found = True
+                if (
+                    "attribute" in search_fields
+                    and query_lower in card.get("attribute", "").lower()
+                ):
+                    match_found = True
+
+                if match_found:
+                    filtered_data.append(card)
+
+            await record_request_success(
+                client_ip, "advanced_search_fallback", is_external_api=True
+            )
+
+            return CardSearchResponse(
+                data=filtered_data,
+                count=len(filtered_data),
+                cached=False,
+                error="Local search failed. Showing external API results.",
+            )
+
+        except Exception as fallback_error:
+            await record_request_failure(
+                client_ip, "advanced_search_fallback", is_external_api=True
+            )
+            return CardSearchResponse(
+                data=[],
+                count=0,
+                error="Advanced search temporarily unavailable. Please try again later.",
+                cached=False,
+            )
 
 
 @router.get("/search/filters")
@@ -528,7 +638,8 @@ async def get_search_suggestions(
     """
     Get search suggestions based on partial query
     """
-    client_ip = await apply_rate_limit(request, "suggestions", is_external_api=True)
+    # Apply rate limiting (local database search, not external API)
+    client_ip = await apply_rate_limit(request, "suggestions", is_external_api=False)
 
     if len(query) < 2:
         return {"suggestions": []}
@@ -540,28 +651,20 @@ async def get_search_suggestions(
         if cached_suggestions:
             return {"suggestions": cached_suggestions}
 
-        # Search for cards matching the query
-        async def api_call():
-            data = await make_ygoprodeck_request(
-                "https://db.ygoprodeck.com/api/v7/cardinfo.php",
-                params={"fname": query, "num": limit * 2},  # Get more to filter
-            )
-            return data.get("data", [])
+        # Search local database for cards matching the query
+        from ..database.models import Card
 
-        card_data = await error_handler.retry_with_backoff(
-            api_call, operation_type="api_request"
-        )
+        # Use the existing search_by_name method for suggestions
+        matching_cards = Card.search_by_name(query, exact_match=False)
 
         # Extract unique suggestions
         suggestions = []
         seen = set()
 
-        for card in card_data:
-            name = card.get("name", "")
+        for card in matching_cards:
+            name = card.name
             if name and name.lower() not in seen:
-                suggestions.append(
-                    {"name": name, "id": card.get("id"), "type": card.get("type")}
-                )
+                suggestions.append({"name": name, "id": card.id, "type": card.type})
                 seen.add(name.lower())
 
                 if len(suggestions) >= limit:
@@ -570,13 +673,70 @@ async def get_search_suggestions(
         # Cache suggestions for 5 minutes
         await cache_service.set(cache_key, suggestions, ttl=300)
 
-        await record_request_success(client_ip, "suggestions", is_external_api=True)
+        await record_request_success(client_ip, "suggestions", is_external_api=False)
 
         return {"suggestions": suggestions}
 
     except Exception as e:
-        await record_request_failure(client_ip, "suggestions", is_external_api=True)
-        return {"suggestions": [], "error": str(e)}
+        await record_request_failure(client_ip, "suggestions", is_external_api=False)
+        error_handler.logger.warning(f"Local suggestions search failed: {str(e)}")
+
+        # Fallback to external API if local search fails
+        error_handler.logger.warning("Falling back to external API for suggestions")
+
+        # Apply rate limiting for external API
+        client_ip = await apply_rate_limit(
+            request, "suggestions_fallback", is_external_api=True
+        )
+
+        try:
+            # Search for cards matching the query from external API
+            async def api_call():
+                data = await make_ygoprodeck_request(
+                    "https://db.ygoprodeck.com/api/v7/cardinfo.php",
+                    params={"fname": query, "num": limit * 2},  # Get more to filter
+                )
+                return data.get("data", [])
+
+            card_data = await error_handler.retry_with_backoff(
+                api_call, operation_type="api_request"
+            )
+
+            # Extract unique suggestions
+            suggestions = []
+            seen = set()
+
+            for card in card_data:
+                name = card.get("name", "")
+                if name and name.lower() not in seen:
+                    suggestions.append(
+                        {"name": name, "id": card.get("id"), "type": card.get("type")}
+                    )
+                    seen.add(name.lower())
+
+                    if len(suggestions) >= limit:
+                        break
+
+            # Cache suggestions for 5 minutes
+            await cache_service.set(cache_key, suggestions, ttl=300)
+
+            await record_request_success(
+                client_ip, "suggestions_fallback", is_external_api=True
+            )
+
+            return {
+                "suggestions": suggestions,
+                "error": "Local search failed. Showing external API results.",
+            }
+
+        except Exception as fallback_error:
+            await record_request_failure(
+                client_ip, "suggestions_fallback", is_external_api=True
+            )
+            return {
+                "suggestions": [],
+                "error": "Suggestions temporarily unavailable. Please try again later.",
+            }
 
 
 async def get_random_cards(
@@ -654,6 +814,7 @@ async def get_card_by_id(
 
     # Check database cache (this is where all bulk-synced cards are stored)
     from ..database.models import Card
+
     try:
         card = Card.get_by_id(card_id, fetch_if_missing=False)
         if card is not None:
@@ -676,20 +837,22 @@ async def get_card_by_id(
                 "card_sets": card.card_sets,
                 "banlist_info": card.banlist_info,
             }
-            
+
             # Store in memory cache for faster access next time
             try:
                 await cache_service.cache_card_by_id(card_id, card_data)
             except Exception as e:
                 error_handler.logger.warning(f"Failed to cache card in memory: {e}")
-            
+
             await record_request_success(client_ip, "get_by_id", is_external_api=False)
             return {"data": card_data, "cached": True}
     except Exception as e:
         error_handler.logger.warning(f"Database cache lookup failed: {e}")
 
     # Only make external API call if card is not in database (which shouldn't happen after bulk sync)
-    error_handler.logger.warning(f"Card {card_id} not found in local database cache, attempting external API call")
+    error_handler.logger.warning(
+        f"Card {card_id} not found in local database cache, attempting external API call"
+    )
 
     # Apply rate limiting for external API
     client_ip = await apply_rate_limit(request, "get_by_id", is_external_api=True)
