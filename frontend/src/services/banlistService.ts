@@ -208,13 +208,13 @@ class BanlistService {
         restriction: 'forbidden' | 'limited' | 'semi_limited' | 'whitelist' | 'unlimited';
         maxCopies: number;
     } {
-        if (banlist.forbidden_cards.includes(cardId)) {
+        if (banlist.forbidden_cards.some(card => card.id === cardId)) {
             return { restriction: 'forbidden', maxCopies: 0 };
-        } else if (banlist.limited_cards.includes(cardId)) {
+        } else if (banlist.limited_cards.some(card => card.id === cardId)) {
             return { restriction: 'limited', maxCopies: 1 };
-        } else if (banlist.semi_limited_cards.includes(cardId)) {
+        } else if (banlist.semi_limited_cards.some(card => card.id === cardId)) {
             return { restriction: 'semi_limited', maxCopies: 2 };
-        } else if (banlist.whitelist_cards.includes(cardId)) {
+        } else if (banlist.whitelist_cards.some(card => card.id === cardId)) {
             return { restriction: 'whitelist', maxCopies: 3 };
         } else {
             return { restriction: 'unlimited', maxCopies: 3 };

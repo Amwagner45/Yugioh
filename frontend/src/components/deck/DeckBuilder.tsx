@@ -1075,6 +1075,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                     currentDeck={deck}
                                     compact={true}
                                     onRemoveFromDeck={handleRemoveCardFromDeck}
+                                    currentBanlist={currentBanlist}
                                 />
                             </div>
                         )}
@@ -1105,6 +1106,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                         sideDeck: deck.sideDeck
                                     }}
                                     getCardRestriction={getCardRestriction}
+                                    currentBanlist={currentBanlist}
                                 />
                             </div>
 
@@ -1130,6 +1132,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                             sideDeck: deck.sideDeck
                                         }}
                                         getCardRestriction={getCardRestriction}
+                                        currentBanlist={currentBanlist}
                                     />
                                 </div>
 
@@ -1153,6 +1156,7 @@ const DeckBuilder: React.FC<DeckBuilderProps> = ({
                                             sideDeck: deck.sideDeck
                                         }}
                                         getCardRestriction={getCardRestriction}
+                                        currentBanlist={currentBanlist}
                                     />
                                 </div>
                             </div>

@@ -5,7 +5,7 @@ import ViewModeToggle from '../common/ViewModeToggle';
 import EnhancedCardContextMenu from '../common/EnhancedCardContextMenu';
 import { DECK_SORT_OPTIONS, type DeckSortOption } from '../../utils/deckSorting';
 import type { ViewMode } from '../common/ViewModeToggle';
-import type { DeckCard, BinderCard } from '../../types';
+import type { DeckCard, BinderCard, Banlist } from '../../types';
 
 interface DeckSectionProps {
     title: string;
@@ -22,6 +22,7 @@ interface DeckSectionProps {
     onAddToSpecificSection?: (cardId: number, section: 'main' | 'extra' | 'side', quantity?: number) => void;
     allDeckCards?: { mainDeck: DeckCard[]; extraDeck: DeckCard[]; sideDeck: DeckCard[] };
     getCardRestriction?: (cardId: number) => { restriction: string; maxCopies: number; isViolation: boolean };
+    currentBanlist?: Banlist | null;
 }
 
 const DeckSection: React.FC<DeckSectionProps> = ({
@@ -38,7 +39,8 @@ const DeckSection: React.FC<DeckSectionProps> = ({
     onMoveCard,
     onAddToSpecificSection,
     allDeckCards,
-    getCardRestriction
+    getCardRestriction,
+    currentBanlist
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -347,6 +349,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                                 isDeckSection={true}
                                 sectionType={sectionType}
                                 getCardRestriction={getCardRestriction}
+                                currentBanlist={currentBanlist}
                             />
                         ) : (
                             <CardListView
@@ -355,6 +358,7 @@ const DeckSection: React.FC<DeckSectionProps> = ({
                                 onCardRightClick={handleCardRightClick}
                                 showThumbnails={true}
                                 getCardRestriction={getCardRestriction}
+                                currentBanlist={currentBanlist}
                             />
                         )}
                     </div>

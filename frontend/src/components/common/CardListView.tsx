@@ -1,6 +1,6 @@
 import React from 'react';
 import CardImage from './CardImage';
-import type { Card } from '../../types';
+import type { Card, Banlist } from '../../types';
 
 interface CardListViewProps {
     cards: Array<{
@@ -16,6 +16,7 @@ interface CardListViewProps {
     showThumbnails?: boolean;
     className?: string;
     getCardRestriction?: (cardId: number) => { restriction: string; maxCopies: number; isViolation: boolean };
+    currentBanlist?: Banlist | null;
 }
 
 const CardListView: React.FC<CardListViewProps> = ({
@@ -25,7 +26,8 @@ const CardListView: React.FC<CardListViewProps> = ({
     showDeckInfo = false,
     showThumbnails = true,
     className = '',
-    getCardRestriction
+    getCardRestriction,
+    currentBanlist
 }) => {
     if (cards.length === 0) {
         return (
@@ -78,6 +80,7 @@ const CardListView: React.FC<CardListViewProps> = ({
                                     card={card!}
                                     size="xs"
                                     showZoom={false}
+                                    currentBanlist={currentBanlist}
                                 />
                             </div>
                         )}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import CardImage from './CardImage';
-import type { Card } from '../../types';
+import type { Card, Banlist } from '../../types';
 
 interface CardTableViewProps {
     cards: Array<{
@@ -17,6 +17,7 @@ interface CardTableViewProps {
     onCardRightClick?: (e: React.MouseEvent, cardId: number) => void;
     showDeckInfo?: boolean;
     className?: string;
+    currentBanlist?: Banlist | null;
 }
 
 type SortField = 'name' | 'type' | 'attribute' | 'level' | 'atk' | 'def' | 'quantity' | 'rarity';
@@ -27,7 +28,8 @@ const CardTableView: React.FC<CardTableViewProps> = ({
     onCardClick,
     onCardRightClick,
     showDeckInfo = false,
-    className = ''
+    className = '',
+    currentBanlist
 }) => {
     const [sortField, setSortField] = useState<SortField>('name');
     const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -128,10 +130,10 @@ const CardTableView: React.FC<CardTableViewProps> = ({
                                 <tr
                                     key={`${cardData.cardId}-${index}`}
                                     className={`transition-colors ${hasCard
-                                            ? isAvailable
-                                                ? 'hover:bg-blue-50 cursor-pointer'
-                                                : 'bg-red-50 cursor-not-allowed opacity-75'
-                                            : 'bg-gray-50 opacity-60'
+                                        ? isAvailable
+                                            ? 'hover:bg-blue-50 cursor-pointer'
+                                            : 'bg-red-50 cursor-not-allowed opacity-75'
+                                        : 'bg-gray-50 opacity-60'
                                         }`}
                                     onClick={isAvailable && onCardClick ? () => onCardClick(cardData.cardId) : undefined}
                                     onContextMenu={onCardRightClick ? (e) => onCardRightClick(e, cardData.cardId) : undefined}
@@ -143,6 +145,7 @@ const CardTableView: React.FC<CardTableViewProps> = ({
                                                 card={card!}
                                                 size="xs"
                                                 showZoom={false}
+                                                currentBanlist={currentBanlist}
                                             />
                                         ) : (
                                             <div className="w-8 h-12 bg-gray-200 rounded border flex items-center justify-center">

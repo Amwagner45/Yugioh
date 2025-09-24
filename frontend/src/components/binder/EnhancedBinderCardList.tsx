@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Binder, BinderCard, DeckCard } from '../../types';
+import type { Binder, BinderCard, DeckCard, Banlist } from '../../types';
 import AdvancedFilterSidebar, { type AdvancedFilterOptions } from '../common/AdvancedFilterSidebar';
 import QuickFilterChips from '../common/QuickFilterChips';
 import AdvancedSearchModal from '../common/AdvancedSearchModal';
@@ -8,6 +8,8 @@ import ViewModeToggle, { type ViewMode } from '../common/ViewModeToggle';
 import CardDetailModal from '../common/CardDetailModal';
 import EnhancedCardContextMenu from '../common/EnhancedCardContextMenu';
 import { SORT_OPTIONS, type SortOption } from '../../utils/cardSorting';
+import BanlistIcon from '../common/BanlistIcon';
+import { banlistService } from '../../services/banlistService';
 
 interface EnhancedBinderCardListProps {
     binder: Binder;
@@ -20,6 +22,8 @@ interface EnhancedBinderCardListProps {
     compact?: boolean; // For sidebar usage
     // For handling cards dropped from deck sections
     onRemoveFromDeck?: (cardId: number, section: 'main' | 'extra' | 'side', quantity?: number) => void;
+    // Current banlist for showing banlist icons
+    currentBanlist?: Banlist | null;
 }
 
 const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
@@ -30,7 +34,8 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
     title = "Cards",
     currentDeck,
     compact = false,
-    onRemoveFromDeck
+    onRemoveFromDeck,
+    currentBanlist
 }) => {
     // View and display state
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -593,6 +598,7 @@ const EnhancedBinderCardList: React.FC<EnhancedBinderCardListProps> = ({
                                         availableCopies={getAvailableCopies(card)}
                                         usedInDeck={getCardUsageInDeck(card.cardId)}
                                         showDeckInfo={!!currentDeck}
+                                        currentBanlist={currentBanlist}
                                     />
                                 ))}
                             </div>
@@ -677,6 +683,7 @@ interface BinderCardItemProps {
     availableCopies?: number;
     usedInDeck?: number;
     showDeckInfo?: boolean;
+    currentBanlist?: Banlist | null;
 }
 
 const BinderCardItem: React.FC<BinderCardItemProps> = ({
@@ -686,10 +693,15 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
     showQuantity = true,
     availableCopies = 0,
     usedInDeck = 0,
-    showDeckInfo = false
+    showDeckInfo = false,
+    currentBanlist
 }) => {
     const isAvailable = availableCopies > 0;
     const cardDetails = card.card_details;
+
+    // Determine banlist restriction for the card
+    const banlistRestriction = currentBanlist && cardDetails ? banlistService.getCardRestrictionLocal(currentBanlist, cardDetails.id) : null;
+    const showBanlistIcon = banlistRestriction && ['forbidden', 'limited', 'semi_limited'].includes(banlistRestriction.restriction);
 
     const handleDragStart = (e: React.DragEvent) => {
         if (!isAvailable) {
@@ -747,6 +759,15 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
                 </div>
             )}
 
+            {/* Banlist icon - Top left corner */}
+            {showBanlistIcon && banlistRestriction && cardDetails && (
+                <BanlistIcon
+                    restriction={banlistRestriction.restriction as 'forbidden' | 'limited' | 'semi_limited'}
+                    size={18}
+                    position="top-left"
+                />
+            )}
+
             {/* Quantity Badge - Top Right */}
             {showQuantity && (
                 <div className="absolute top-1 right-1">
@@ -756,9 +777,9 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
                 </div>
             )}
 
-            {/* Deck Usage Badge - Top Left */}
+            {/* Deck Usage Badge - Top Left, offset if banlist icon exists */}
             {showDeckInfo && usedInDeck > 0 && (
-                <div className="absolute top-1 left-1">
+                <div className={`absolute top-1 ${showBanlistIcon ? 'left-5' : 'left-1'}`}>
                     <span className="bg-orange-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg">
                         {usedInDeck}
                     </span>

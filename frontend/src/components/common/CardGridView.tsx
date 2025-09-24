@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import CardImage from './CardImage';
-import type { Card } from '../../types';
+import BanlistIcon from './BanlistIcon';
+import type { Card, Banlist } from '../../types';
 
 interface CardGridViewProps {
     cards: Array<{
@@ -24,6 +25,8 @@ interface CardGridViewProps {
     sectionType?: 'main' | 'extra' | 'side';
     // For banlist violation checking
     getCardRestriction?: (cardId: number) => { restriction: string; maxCopies: number; isViolation: boolean };
+    // Current banlist for showing banlist icons
+    currentBanlist?: Banlist | null;
 }
 
 const CardGridView: React.FC<CardGridViewProps> = ({
@@ -39,7 +42,8 @@ const CardGridView: React.FC<CardGridViewProps> = ({
     allowOverlap = false,
     isDeckSection = false,
     sectionType,
-    getCardRestriction
+    getCardRestriction,
+    currentBanlist
 }) => {
     // State for tooltip management
     const [tooltip, setTooltip] = useState<{
@@ -145,6 +149,7 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                         showZoom={!disableZoom}
                                         onClick={isAvailable && onCardClick ? () => onCardClick(cardData.cardId) : undefined}
                                         onRightClick={onCardRightClick ? (e) => onCardRightClick(e, cardData.cardId) : undefined}
+                                        currentBanlist={currentBanlist}
                                         className={`${isAvailable && onCardClick
                                             ? 'cursor-pointer'
                                             : isAvailable
@@ -268,6 +273,7 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                         onRightClick={onCardRightClick ? (e) => {
                                             onCardRightClick(e, cardData.cardId);
                                         } : undefined}
+                                        currentBanlist={currentBanlist}
                                         className={`${isAvailable && onCardClick
                                             ? 'cursor-pointer'
                                             : isAvailable

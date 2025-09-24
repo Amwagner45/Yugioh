@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import type { Card } from '../../types';
+import type { Card, Banlist } from '../../types';
+import { banlistService } from '../../services/banlistService';
+import BanlistIcon from './BanlistIcon';
 
 interface CardImageProps {
     card: Card;
@@ -9,6 +11,7 @@ interface CardImageProps {
     className?: string;
     onClick?: () => void;
     onRightClick?: (e: React.MouseEvent) => void;
+    currentBanlist?: Banlist | null;
 }
 
 const sizeClasses = {
@@ -26,10 +29,15 @@ const CardImage: React.FC<CardImageProps> = ({
     showZoom = true,
     className = '',
     onClick,
-    onRightClick
+    onRightClick,
+    currentBanlist
 }) => {
     const [isZoomed, setIsZoomed] = useState(false);
     const [imageError, setImageError] = useState(false);
+
+    // Determine banlist restriction for the card
+    const banlistRestriction = currentBanlist ? banlistService.getCardRestrictionLocal(currentBanlist, card.id) : null;
+    const showBanlistIcon = banlistRestriction && ['forbidden', 'limited', 'semi_limited'].includes(banlistRestriction.restriction);
 
     const cardImage = card.card_images?.[0];
 
@@ -129,9 +137,18 @@ const CardImage: React.FC<CardImageProps> = ({
                     }}
                 />
 
-                {/* Quantity indicator overlay - Top left inside card */}
+                {/* Banlist icon - Top left corner */}
+                {showBanlistIcon && banlistRestriction && (
+                    <BanlistIcon
+                        restriction={banlistRestriction.restriction as 'forbidden' | 'limited' | 'semi_limited'}
+                        size={size === 'xs' ? 16 : size === 'sm' ? 18 : 20}
+                        position="top-left"
+                    />
+                )}
+
+                {/* Quantity indicator overlay - Top left inside card, offset if banlist icon exists */}
                 {quantity && quantity > 1 && (
-                    <div className="absolute top-1 left-1 bg-orange-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-sm">
+                    <div className={`absolute top-1 ${showBanlistIcon ? 'left-6' : 'left-1'} bg-orange-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-sm z-40`}>
                         {quantity > 99 ? '99+' : quantity}
                     </div>
                 )}
