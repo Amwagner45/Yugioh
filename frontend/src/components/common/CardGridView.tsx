@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import CardImage from './CardImage';
-import BanlistIcon from './BanlistIcon';
 import type { Card, Banlist } from '../../types';
 
 interface CardGridViewProps {
@@ -106,8 +105,6 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                 {cards.map((cardData, index) => {
                     const isAvailable = (cardData.availableCopies ?? cardData.quantity) > 0;
                     const hasCard = !!cardData.card_details;
-                    const cardRestriction = getCardRestriction ? getCardRestriction(cardData.cardId) : null;
-                    const isViolation = cardRestriction?.isViolation || false;
 
                     return (
                         <div
@@ -157,28 +154,6 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                                 : 'cursor-not-allowed'
                                             }`}
                                     />
-
-                                    {/* Banlist Violation Indicator */}
-                                    {isViolation && (
-                                        <div className="absolute -top-1 -right-1 z-50">
-                                            <div
-                                                className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white"
-                                                title={`Banlist Violation: ${cardRestriction?.restriction} (max ${cardRestriction?.maxCopies})`}
-                                            >
-                                                <svg
-                                                    className="w-4 h-4 text-white font-bold"
-                                                    fill="currentColor"
-                                                    viewBox="0 0 20 20"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM10 18a8 8 0 100-16 8 8 0 000 16z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    )}
                                 </>
                             ) : (
                                 // Placeholder for cards without details
@@ -229,8 +204,6 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                 {cards.map((cardData, index) => {
                     const isAvailable = (cardData.availableCopies ?? cardData.quantity) > 0;
                     const hasCard = !!cardData.card_details;
-                    const cardRestriction = getCardRestriction ? getCardRestriction(cardData.cardId) : null;
-                    const isViolation = cardRestriction?.isViolation || false;
 
                     return (
                         <div
@@ -281,28 +254,6 @@ const CardGridView: React.FC<CardGridViewProps> = ({
                                                 : 'cursor-not-allowed'
                                             }`}
                                     />
-
-                                    {/* Banlist Violation Indicator */}
-                                    {isViolation && (
-                                        <div className="absolute -top-1 -right-1 z-50">
-                                            <div
-                                                className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white"
-                                                title={`Banlist Violation: ${cardRestriction?.restriction} (max ${cardRestriction?.maxCopies})`}
-                                            >
-                                                <svg
-                                                    className="w-4 h-4 text-white font-bold"
-                                                    fill="currentColor"
-                                                    viewBox="0 0 20 20"
-                                                >
-                                                    <path
-                                                        fillRule="evenodd"
-                                                        d="M13.477 14.89A6 6 0 015.11 6.524l8.367 8.368zm1.414-1.414L6.524 5.11a6 6 0 018.367 8.367zM10 18a8 8 0 100-16 8 8 0 000 16z"
-                                                        clipRule="evenodd"
-                                                    />
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    )}
                                 </>
                             ) : (
                                 // Placeholder for cards without details

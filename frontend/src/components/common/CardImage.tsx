@@ -141,14 +141,14 @@ const CardImage: React.FC<CardImageProps> = ({
                 {showBanlistIcon && banlistRestriction && (
                     <BanlistIcon
                         restriction={banlistRestriction.restriction as 'forbidden' | 'limited' | 'semi_limited'}
-                        size={size === 'xs' ? 16 : size === 'sm' ? 18 : 20}
+                        size={24}
                         position="top-left"
                     />
                 )}
 
                 {/* Quantity indicator overlay - Top left inside card, offset if banlist icon exists */}
                 {quantity && quantity > 1 && (
-                    <div className={`absolute top-1 ${showBanlistIcon ? 'left-6' : 'left-1'} bg-orange-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-sm z-40`}>
+                    <div className={`absolute top-1 ${showBanlistIcon ? 'left-7' : 'left-1'} bg-orange-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-white shadow-sm z-40`}>
                         {quantity > 99 ? '99+' : quantity}
                     </div>
                 )}

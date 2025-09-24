@@ -14,7 +14,7 @@ interface BanlistIconProps {
 
 const BanlistIcon: React.FC<BanlistIconProps> = ({
     restriction,
-    size = 20,
+    size = 24,
     className = '',
     position = 'top-left'
 }) => {
@@ -36,8 +36,8 @@ const BanlistIcon: React.FC<BanlistIconProps> = ({
     if (!icon) return null;
 
     const positionClasses = position === 'top-left'
-        ? 'absolute -top-1 -left-1 z-50'
-        : 'absolute -top-1 -right-1 z-50';
+        ? 'absolute top-1 left-1 z-50'
+        : 'absolute top-1 right-1 z-50';
 
     return (
         <div className={positionClasses}>

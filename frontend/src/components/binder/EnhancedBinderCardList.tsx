@@ -763,7 +763,7 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
             {showBanlistIcon && banlistRestriction && cardDetails && (
                 <BanlistIcon
                     restriction={banlistRestriction.restriction as 'forbidden' | 'limited' | 'semi_limited'}
-                    size={18}
+                    size={24}
                     position="top-left"
                 />
             )}
@@ -779,7 +779,7 @@ const BinderCardItem: React.FC<BinderCardItemProps> = ({
 
             {/* Deck Usage Badge - Top Left, offset if banlist icon exists */}
             {showDeckInfo && usedInDeck > 0 && (
-                <div className={`absolute top-1 ${showBanlistIcon ? 'left-5' : 'left-1'}`}>
+                <div className={`absolute top-1 ${showBanlistIcon ? 'left-7' : 'left-1'}`}>
                     <span className="bg-orange-600 text-white text-xs font-bold px-1.5 py-0.5 rounded-full shadow-lg">
                         {usedInDeck}
                     </span>
