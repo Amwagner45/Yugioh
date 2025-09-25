@@ -21,6 +21,9 @@ Thumbs.db
 .env.test.local
 .env.production.local
 
+# Ignore YGOProg authentication tokens
+ygoprog_token.json
+
 # Ignore dependency directories
 node_modules/
 __pycache__/
