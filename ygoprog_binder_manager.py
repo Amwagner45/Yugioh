@@ -473,50 +473,58 @@ class YGOProgBinderManager:
             return False
 
     def export_binder_to_csv(self, binder_id: str, filename: str = None) -> bool:
-        """Export binder contents to CSV file"""
-        binder_data = self.get_binder_contents(binder_id)
-        if not binder_data:
+        """Export binder contents to CSV file using dedicated CSV export API"""
+        if not self.auth.is_token_valid():
+            print("❌ No valid authentication token")
             return False
 
-        cards = binder_data.get("cards", [])
-        if not cards:
-            print("❌ No cards found in binder")
-            return False
-
-        # Generate filename if not provided
-        if not filename:
-            binder_name = binder_data.get("name", "unknown_binder")
-            # Clean filename
-            safe_name = "".join(
-                c for c in binder_name if c.isalnum() or c in (" ", "-", "_")
-            ).rstrip()
-            filename = f"{safe_name}_{binder_id[:8]}.csv"
+        # Use the dedicated CSV export API endpoint
+        url = f"{self.base_url}/api/export/binder/csv/{binder_id}"
+        headers = self._get_api_headers()
+        # Override Content-Type for CSV endpoint
+        headers["Accept"] = "text/csv"
 
         try:
-            with open(filename, "w", newline="", encoding="utf-8") as csvfile:
-                if cards:
-                    # Get all unique field names from all cards
-                    all_fieldnames = set()
-                    for card in cards:
-                        all_fieldnames.update(card.keys())
+            print(f"📤 Requesting CSV export for binder ID: {binder_id}")
+            response = requests.get(url, headers=headers, timeout=30)
 
-                    # Convert to list and sort for consistency
-                    fieldnames = sorted(list(all_fieldnames))
+            if response.status_code == 200:
+                # Generate filename if not provided
+                if not filename:
+                    # Try to get filename from Content-Disposition header
+                    content_disposition = response.headers.get('Content-Disposition', '')
+                    if 'filename=' in content_disposition:
+                        # Extract filename from header like "attachment; filename=data.csv"
+                        filename = content_disposition.split('filename=')[1].strip().strip('"')
+                    else:
+                        # Fallback to default naming
+                        filename = f"binder_{binder_id[:8]}.csv"
 
-                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-                    writer.writeheader()
+                # Write CSV content to file
+                with open(filename, "w", encoding="utf-8", newline="") as csvfile:
+                    csvfile.write(response.text)
 
-                    for card in cards:
-                        writer.writerow(card)
+                # Count lines to report number of cards (subtract 1 for header, ignore empty lines)
+                lines = [line.strip() for line in response.text.strip().split('\n') if line.strip()]
+                card_count = max(0, len(lines) - 1) if lines else 0
+                print(f"✅ Exported {card_count} cards to {filename}")
+                return True
 
-                    print(f"✅ Exported {len(cards)} cards to {filename}")
-                    return True
+            elif response.status_code == 404:
+                print(f"❌ Binder not found: {binder_id}")
+                return False
+            elif response.status_code == 403:
+                print(f"❌ Access denied to binder: {binder_id}")
+                return False
+            else:
+                print(f"❌ CSV export failed with status {response.status_code}")
+                if response.text:
+                    print(f"Response: {response.text[:200]}")
+                return False
 
-        except Exception as e:
-            print(f"❌ Failed to write CSV: {e}")
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Request failed: {e}")
             return False
-
-        return False
 
 
 def main():
