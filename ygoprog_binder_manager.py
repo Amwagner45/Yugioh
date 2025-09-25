@@ -553,9 +553,9 @@ def main():
     )
     parser.add_argument(
         "--add-card",
-        nargs=4,
-        metavar=("CARD_NAME", "CARD_ID", "RARITY", "COUNT"),
-        help="Add a card to binder (requires --binder-id)",
+        nargs=5,
+        metavar=("CARD_NAME", "CARD_ID", "RARITY", "COUNT", "SET"),
+        help="Add a card to binder (requires --binder-id) - Format: NAME ID RARITY COUNT SET",
     )
 
     # Options
@@ -657,7 +657,7 @@ def main():
         if not args.binder_id:
             print("❌ --binder-id required for adding cards")
             sys.exit(1)
-        card_name, card_id_str, rarity, count_str = args.add_card
+        card_name, card_id_str, rarity, count_str, card_set = args.add_card
         try:
             card_id = int(card_id_str)
             count = int(count_str)
@@ -670,7 +670,7 @@ def main():
             "cardId": card_id,
             "count": count,
             "rarity": rarity,
-            "set": "Unknown",
+            "set": card_set,
             "code": "",
         }
 
