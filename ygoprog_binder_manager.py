@@ -407,6 +407,8 @@ class YGOProgBinderManager:
                     return True
             else:
                 print(f"❌ Add cards failed with status {response.status_code}")
+                if response.text:
+                    print(f"Response: {response.text[:500]}")
                 return False
 
         except requests.exceptions.RequestException as e:
@@ -569,9 +571,9 @@ def main():
     )
     parser.add_argument(
         "--add-card",
-        nargs=5,
-        metavar=("CARD_NAME", "CARD_ID", "RARITY", "COUNT", "SET"),
-        help="Add a card to binder (requires --binder-id) - Format: NAME ID RARITY COUNT SET",
+        nargs=6,
+        metavar=("CARD_NAME", "CARD_ID", "RARITY", "COUNT", "SET", "CODE"),
+        help="Add a card to binder (requires --binder-id) - Format: NAME ID RARITY COUNT SET CODE",
     )
 
     # Options
@@ -673,7 +675,7 @@ def main():
         if not args.binder_id:
             print("❌ --binder-id required for adding cards")
             sys.exit(1)
-        card_name, card_id_str, rarity, count_str, card_set = args.add_card
+        card_name, card_id_str, rarity, count_str, card_set, card_code = args.add_card
         try:
             card_id = int(card_id_str)
             count = int(count_str)
@@ -687,10 +689,10 @@ def main():
             "count": count,
             "rarity": rarity,
             "set": card_set,
-            "code": "",
+            "code": card_code,
         }
 
-        print(f"➕ Adding {count}x {card_name} to binder {args.binder_id}")
+        print(f"➕ Adding {count}x {card_name} ({card_code}) to binder {args.binder_id}")
         if not binder_mgr.add_cards_to_binder(args.binder_id, [card]):
             sys.exit(1)
 
