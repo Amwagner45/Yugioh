@@ -492,10 +492,14 @@ class YGOProgBinderManager:
                 # Generate filename if not provided
                 if not filename:
                     # Try to get filename from Content-Disposition header
-                    content_disposition = response.headers.get('Content-Disposition', '')
-                    if 'filename=' in content_disposition:
+                    content_disposition = response.headers.get(
+                        "Content-Disposition", ""
+                    )
+                    if "filename=" in content_disposition:
                         # Extract filename from header like "attachment; filename=data.csv"
-                        filename = content_disposition.split('filename=')[1].strip().strip('"')
+                        filename = (
+                            content_disposition.split("filename=")[1].strip().strip('"')
+                        )
                     else:
                         # Fallback to default naming
                         filename = f"binder_{binder_id[:8]}.csv"
@@ -505,7 +509,11 @@ class YGOProgBinderManager:
                     csvfile.write(response.text)
 
                 # Count lines to report number of cards (subtract 1 for header, ignore empty lines)
-                lines = [line.strip() for line in response.text.strip().split('\n') if line.strip()]
+                lines = [
+                    line.strip()
+                    for line in response.text.strip().split("\n")
+                    if line.strip()
+                ]
                 card_count = max(0, len(lines) - 1) if lines else 0
                 print(f"✅ Exported {card_count} cards to {filename}")
                 return True
