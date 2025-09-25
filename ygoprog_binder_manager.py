@@ -692,7 +692,9 @@ def main():
             "code": card_code,
         }
 
-        print(f"➕ Adding {count}x {card_name} ({card_code}) to binder {args.binder_id}")
+        print(
+            f"➕ Adding {count}x {card_name} ({card_code}) to binder {args.binder_id}"
+        )
         if not binder_mgr.add_cards_to_binder(args.binder_id, [card]):
             sys.exit(1)
 
