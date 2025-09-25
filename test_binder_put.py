@@ -327,28 +327,15 @@ class YGOProgBinder:
             with open(filename, "w", newline="", encoding="utf-8") as csvfile:
                 # Determine fieldnames from first card
                 if cards:
-                    fieldnames = list(cards[0].keys())
-                    # Ensure common fields are first
-                    priority_fields = [
-                        "name",
-                        "cardId",
-                        "count",
-                        "set",
-                        "code",
-                        "rarity",
-                    ]
-                    ordered_fields = []
-
-                    for field in priority_fields:
-                        if field in fieldnames:
-                            ordered_fields.append(field)
-
-                    # Add remaining fields
-                    for field in fieldnames:
-                        if field not in ordered_fields:
-                            ordered_fields.append(field)
-
-                    writer = csv.DictWriter(csvfile, fieldnames=ordered_fields)
+                    # Get all unique field names from all cards
+                    all_fieldnames = set()
+                    for card in cards:
+                        all_fieldnames.update(card.keys())
+                    
+                    # Convert to list and sort for consistency
+                    fieldnames = sorted(list(all_fieldnames))
+                    
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
                     writer.writeheader()
 
                     for card in cards:
@@ -376,24 +363,266 @@ class YGOProgBinder:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         }
 
-    def update_binder_cards(self, binder_id: str, cards: List[Dict[str, Any]]) -> bool:
+    def update_binder_cards(self, binder_id: str, cards: List[Dict[str, Any]], method: str = "PUT") -> bool:
         """
-        Update cards in a YGOProg binder (existing functionality)
+        Update cards in a YGOProg binder - try different HTTP methods
         """
         if not self.auth.is_token_valid():
             print("❌ No valid authentication token")
             return False
 
-        url = f"{self.base_url}/api/binder/{binder_id}/cards"
+        # Try different possible endpoints and methods
+        endpoints_to_try = [
+            f"/api/binder/{binder_id}/cards",
+            f"/api/binder/{binder_id}",
+            f"/api/user/binder/{binder_id}/cards",
+            f"/api/user/binder/{binder_id}",
+        ]
+        
         headers = self._get_api_headers()
         payload = {"cards": cards}
+        
+        # If updating the whole binder, include additional fields
+        if "/cards" not in endpoints_to_try[0]:
+            # Get current binder info to preserve other fields
+            current_binder = self.get_binder_contents(binder_id)
+            if current_binder:
+                payload.update({
+                    "name": current_binder.get("name", "Unknown Binder"),
+                    "description": current_binder.get("description", ""),
+                    "_id": binder_id
+                })
+
+        for endpoint in endpoints_to_try:
+            url = f"{self.base_url}{endpoint}"
+            try:
+                print(f"Trying {method} request to {endpoint}")
+                print(f"📤 Sending payload with {len(cards)} cards")
+                
+                if len(cards) <= 3:
+                    print(f"📋 Sample payload: {json.dumps(payload, indent=2)}")
+                
+                # Try the specified HTTP method
+                if method.upper() == "PUT":
+                    response = requests.put(url, json=payload, headers=headers, timeout=30)
+                elif method.upper() == "PATCH":
+                    response = requests.patch(url, json=payload, headers=headers, timeout=30)
+                elif method.upper() == "POST":
+                    response = requests.post(url, json=payload, headers=headers, timeout=30)
+                else:
+                    print(f"❌ Unsupported HTTP method: {method}")
+                    continue
+
+                print(f"📡 Response status: {response.status_code}")
+                
+                if response.status_code in [200, 201, 204]:
+                    print(f"✅ SUCCESS with {method} to {endpoint}")
+                    try:
+                        response_data = response.json()
+                        # Check if the response shows the expected number of cards
+                        returned_cards = response_data.get("cards", [])
+                        print(f"� Server reports {len(returned_cards)} cards in binder")
+                        
+                        if len(returned_cards) == len(cards):
+                            print("✅ Card count matches - operation successful!")
+                            return True
+                        else:
+                            print(f"⚠️ Card count mismatch: expected {len(cards)}, got {len(returned_cards)}")
+                            if len(cards) == 0 and len(returned_cards) > 0:
+                                print("❌ Clear operation failed - cards still present")
+                                continue
+                    except:
+                        print(f"📡 Response text: {response.text[:200]}...")
+                    
+                    return True
+                elif response.status_code == 404:
+                    print(f"Endpoint {endpoint} not found (404)")
+                    continue
+                elif response.status_code == 401:
+                    print("❌ Authentication failed - token may be expired")
+                    return False
+                else:
+                    print(f"Endpoint {endpoint} returned {response.status_code}: {response.text[:200]}")
+                    continue
+
+            except requests.exceptions.RequestException as e:
+                print(f"Error trying {endpoint}: {e}")
+                continue
+
+        print(f"❌ All endpoints failed for {method} method")
+        return False
+
+    def create_binder(self, name: str, description: str = "") -> Optional[str]:
+        """
+        Create a new binder
+        Returns binder ID if successful, None if failed
+        """
+        if not self.auth.is_token_valid():
+            print("❌ No valid authentication token")
+            return None
+
+        # Try different possible endpoints for creating binders
+        possible_endpoints = [
+            f"/api/binder/{name}",  # Based on browser dev tools showing POST to /api/binder/test5
+            "/api/binder",
+            "/api/binders",
+            "/api/user/binder",
+            "/api/user/binders",
+        ]
+        
+        headers = self._get_api_headers()
+        payload = {
+            "name": name,
+            "description": description,
+            "cards": []
+        }
+
+        for endpoint in possible_endpoints:
+            url = f"{self.base_url}{endpoint}"
+            try:
+                print(f"Trying to create binder at endpoint: {endpoint}")
+                response = requests.post(url, json=payload, headers=headers, timeout=30)
+
+                if response.status_code == 201 or response.status_code == 200:
+                    data = response.json()
+                    print(f"✅ Found working create endpoint: {endpoint}")
+                    binder_id = data.get("_id") or data.get("id")
+                    if binder_id:
+                        print(f"✅ Binder '{name}' created successfully! ID: {binder_id}")
+                        return binder_id
+                    else:
+                        print(f"⚠️ Binder created but no ID returned. Response: {data}")
+                        return None
+                elif response.status_code == 404:
+                    print(f"Endpoint {endpoint} not found (404)")
+                    continue
+                elif response.status_code == 401:
+                    print("❌ Authentication failed - token may be expired")
+                    return None
+                else:
+                    print(f"Endpoint {endpoint} returned {response.status_code}: {response.text[:200]}")
+                    continue
+
+            except requests.exceptions.RequestException as e:
+                print(f"Error trying {endpoint}: {e}")
+                continue
+
+        print("❌ Could not find working create binder endpoint")
+        return None
+
+    def delete_binder(self, binder_id: str) -> bool:
+        """
+        Delete a binder completely using the DELETE endpoint
+        """
+        if not self.auth.is_token_valid():
+            print("❌ No valid authentication token")
+            return False
+
+        url = f"{self.base_url}/api/binder/{binder_id}"
+        headers = self._get_api_headers()
 
         try:
-            print(f"Updating binder {binder_id} with {len(cards)} cards...")
-            response = requests.put(url, json=payload, headers=headers, timeout=30)
+            print(f"🗑️ Deleting binder {binder_id}...")
+            print(f"📤 Sending DELETE request to {url}")
+            response = requests.delete(url, headers=headers, timeout=30)
 
+            print(f"📡 Response status: {response.status_code}")
+            
+            if response.status_code == 200 or response.status_code == 204:
+                try:
+                    if response.text:
+                        response_data = response.json()
+                        print(f"📡 Response: {json.dumps(response_data, indent=2)}")
+                except:
+                    print(f"📡 Response text: {response.text}")
+                print("✅ Binder deleted successfully!")
+                return True
+            elif response.status_code == 401:
+                print("❌ Authentication failed - token may be expired")
+                return False
+            elif response.status_code == 404:
+                print("❌ Binder not found")
+                return False
+            elif response.status_code == 403:
+                print("❌ Access denied - you may not have permission to delete this binder")
+                return False
+            else:
+                print(f"❌ Delete failed with status {response.status_code}")
+                print(f"Response: {response.text}")
+                return False
+
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Request failed: {e}")
+            return False
+
+    def remove_cards_from_binder(self, binder_id: str, card_names: List[str]) -> bool:
+        """
+        Remove specific cards from a binder by name
+        """
+        # First get current binder contents
+        binder_data = self.get_binder_contents(binder_id)
+        if not binder_data:
+            print("❌ Could not retrieve binder contents")
+            return False
+
+        current_cards = binder_data.get("cards", [])
+        if not current_cards:
+            print("❌ No cards found in binder")
+            return False
+
+        # Remove the specified cards
+        cards_to_keep = []
+        removed_count = 0
+        
+        for card in current_cards:
+            card_name = card.get("name", "").lower()
+            if any(target_name.lower() == card_name for target_name in card_names):
+                removed_count += 1
+                print(f"🗑️ Removing: {card.get('name')}")
+            else:
+                cards_to_keep.append(card)
+
+        if removed_count == 0:
+            print(f"⚠️ No cards found matching: {', '.join(card_names)}")
+            return False
+
+        # Update the binder with remaining cards
+        print(f"Updating binder with {len(cards_to_keep)} remaining cards...")
+        return self.update_binder_cards(binder_id, cards_to_keep)
+
+    def update_card_count(self, binder_id: str, card_code: str, rarity: str, count_delta: int) -> bool:
+        """
+        Update the count of a specific card in a binder using the /card/count endpoint
+        count_delta: positive to add cards, negative to remove cards
+        """
+        if not self.auth.is_token_valid():
+            print("❌ No valid authentication token")
+            return False
+
+        url = f"{self.base_url}/api/binder/{binder_id}/card/count"
+        headers = self._get_api_headers()
+        payload = {
+            "code": card_code,
+            "rarity": rarity,
+            "count": count_delta
+        }
+
+        try:
+            print(f"Updating card count: {card_code} ({rarity}) by {count_delta}")
+            print(f"📤 Sending to {url}")
+            print(f"📋 Payload: {json.dumps(payload, indent=2)}")
+            
+            response = requests.put(url, json=payload, headers=headers, timeout=30)
+            
+            print(f"📡 Response status: {response.status_code}")
+            
             if response.status_code == 200:
-                print("✅ Binder updated successfully!")
+                try:
+                    response_data = response.json()
+                    print(f"📡 Response: {json.dumps(response_data, indent=2)}")
+                except:
+                    print(f"📡 Response text: {response.text}")
+                print("✅ Card count updated successfully!")
                 return True
             elif response.status_code == 401:
                 print("❌ Authentication failed - token may be expired")
@@ -405,6 +634,272 @@ class YGOProgBinder:
 
         except requests.exceptions.RequestException as e:
             print(f"❌ Request failed: {e}")
+            return False
+
+    def remove_card_by_code(self, binder_id: str, card_code: str, rarity: str = None) -> bool:
+        """
+        Remove a card from binder by setting its count to 0 using the card/count endpoint
+        """
+        if not self.auth.is_token_valid():
+            print("❌ No valid authentication token")
+            return False
+
+        # If no rarity specified, try to find the card in the binder first
+        if not rarity:
+            binder_data = self.get_binder_contents(binder_id)
+            cards = binder_data.get("cards", [])
+            
+            matching_cards = [card for card in cards if card.get("code", "") == card_code]
+            if not matching_cards:
+                print(f"❌ Card with code {card_code} not found in binder")
+                return False
+            
+            # If multiple rarities exist, remove all of them
+            success_count = 0
+            for card in matching_cards:
+                card_rarity = card.get("rarity", "Common")
+                current_count = card.get("count", 0)
+                if current_count > 0:
+                    # Use negative count to remove all copies
+                    if self.update_card_count(binder_id, card_code, card_rarity, -current_count):
+                        success_count += 1
+                        print(f"✅ Removed {current_count}x {card.get('name', 'Unknown')} ({card_rarity})")
+            
+            return success_count > 0
+        else:
+            # Get current count first
+            binder_data = self.get_binder_contents(binder_id)
+            cards = binder_data.get("cards", [])
+            
+            target_card = None
+            for card in cards:
+                if card.get("code", "") == card_code and card.get("rarity", "") == rarity:
+                    target_card = card
+                    break
+            
+            if not target_card:
+                print(f"❌ Card {card_code} ({rarity}) not found in binder")
+                return False
+            
+            current_count = target_card.get("count", 0)
+            if current_count <= 0:
+                print(f"⚠️ Card {card_code} ({rarity}) already has 0 count")
+                return True
+            
+            # Remove all copies
+            return self.update_card_count(binder_id, card_code, rarity, -current_count)
+
+    def remove_single_card(self, binder_id: str, card_code: str, rarity: str) -> bool:
+        """
+        Remove a single card from binder by setting its count to 0 using the card/count endpoint
+        This is a simplified version that only handles one card at a time
+        """
+        if not self.auth.is_token_valid():
+            print("❌ No valid authentication token")
+            return False
+
+        # Get current binder contents to find the card
+        print(f"🔍 Looking for card {card_code} ({rarity}) in binder...")
+        binder_data = self.get_binder_contents(binder_id)
+        cards = binder_data.get("cards", [])
+        
+        target_card = None
+        for card in cards:
+            if card.get("code", "") == card_code and card.get("rarity", "") == rarity:
+                target_card = card
+                break
+        
+        if not target_card:
+            print(f"❌ Card {card_code} ({rarity}) not found in binder")
+            return False
+        
+        current_count = target_card.get("count", 0)
+        card_name = target_card.get("name", "Unknown")
+        
+        if current_count <= 0:
+            print(f"⚠️ Card {card_name} ({card_code}) already has 0 count")
+            return True
+        
+        print(f"🗑️ Removing {current_count}x {card_name} ({card_code} - {rarity})")
+        
+        # Remove all copies by setting count to negative current count
+        return self.update_card_count(binder_id, card_code, rarity, -current_count)
+
+    def remove_all_cards_from_binder(self, binder_id: str) -> bool:
+        """
+        Remove all cards from a binder by setting each card's count to 0 using the card/count endpoint
+        (This clears the binder contents but keeps the binder itself)
+        """
+        if not self.auth.is_token_valid():
+            print("❌ No valid authentication token")
+            return False
+
+        # Get current binder contents
+        binder_data = self.get_binder_contents(binder_id)
+        cards = binder_data.get("cards", [])
+        
+        if not cards:
+            print("✅ Binder is already empty")
+            return True
+        
+        print(f"🗑️ Removing all cards from binder (keeping binder itself)...")
+        print(f"📊 Found {len(cards)} card types to remove")
+        
+        success_count = 0
+        error_count = 0
+        
+        for i, card in enumerate(cards, 1):
+            card_name = card.get("name", "Unknown")
+            card_code = card.get("code", "")
+            card_rarity = card.get("rarity", "Common")
+            current_count = card.get("count", 0)
+            
+            if not card_code:
+                print(f"⚠️ Skipping {card_name} - no card code")
+                error_count += 1
+                continue
+            
+            if current_count <= 0:
+                print(f"⏭️ Skipping {card_name} - already 0 count")
+                continue
+            
+            print(f"[{i}/{len(cards)}] Removing {current_count}x {card_name} ({card_code})")
+            
+            if self.update_card_count(binder_id, card_code, card_rarity, -current_count):
+                success_count += 1
+            else:
+                error_count += 1
+                
+            # Longer delay to avoid overwhelming the API
+            import time
+            if i < len(cards):  # Don't sleep after the last card
+                print(f"⏳ Waiting 10 seconds before next request...")
+                time.sleep(10)
+        print(f"📊 Results: {success_count} successful, {error_count} failed")
+        return error_count == 0
+
+    def clear_binder(self, binder_id: str) -> bool:
+        """
+        Remove all cards from a binder - try the new card/count method first
+        """
+        if not self.auth.is_token_valid():
+            print("❌ No valid authentication token")
+            return False
+
+        print(f"🗑️ Clearing all cards from binder {binder_id}...")
+        
+        # Method 1: Try the new card/count approach
+        print("Method 1: Using individual card/count operations...")
+        if self.remove_all_cards_from_binder(binder_id):
+            print("✅ Binder cleared successfully using card/count method!")
+            return True
+        
+        # Fallback to old methods if the new one fails
+        print("Method 1 failed, trying fallback methods...")
+        
+        # Method 2: Try to update with empty card list
+        print("Method 2: Trying PUT with empty cards array...")
+        success = self.update_binder_cards(binder_id, [])
+        if success:
+            # Verify it actually worked
+            binder_data = self.get_binder_contents(binder_id)
+            current_cards = binder_data.get("cards", [])
+            if len(current_cards) == 0:
+                print("✅ Method 2 successful - binder cleared!")
+                return True
+            else:
+                print(f"❌ Method 2 failed - still has {len(current_cards)} cards")
+        
+        # Method 3: Try DELETE request on cards endpoint
+        print("Method 3: Trying DELETE request...")
+        try:
+            url = f"{self.base_url}/api/binder/{binder_id}/cards"
+            headers = self._get_api_headers()
+            response = requests.delete(url, headers=headers, timeout=30)
+            
+            if response.status_code in [200, 204]:
+                print("✅ DELETE request successful!")
+                # Verify
+                binder_data = self.get_binder_contents(binder_id)
+                current_cards = binder_data.get("cards", [])
+                if len(current_cards) == 0:
+                    print("✅ Method 3 successful - binder cleared!")
+                    return True
+                else:
+                    print(f"❌ Method 3 failed - still has {len(current_cards)} cards")
+            else:
+                print(f"DELETE request failed: {response.status_code}")
+        except Exception as e:
+            print(f"DELETE request error: {e}")
+        
+        print("❌ All clear methods failed")
+        return False
+
+    def import_csv_to_binder(self, csv_file_path: str, binder_id: str) -> bool:
+        """
+        Import cards from a CSV file to a binder
+        Expects CSV format: cardname,cardq,cardid,cardrarity,cardcondition,card_edition,cardset,cardcode
+        """
+        if not self.auth.is_token_valid():
+            print("❌ No valid authentication token")
+            return False
+
+        try:
+            print(f"Reading CSV file: {csv_file_path}")
+            cards = []
+            
+            with open(csv_file_path, 'r', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                
+                for row_num, row in enumerate(reader, 1):
+                    # Extract and validate data
+                    name = row.get("cardname", "").strip()
+                    cardid_str = row.get("cardid", "").strip()
+                    count_str = row.get("cardq", "1").strip()
+                    rarity = row.get("cardrarity", "").strip()
+                    card_set = row.get("cardset", "").strip()
+                    code = row.get("cardcode", "").strip()
+                    
+                    # Validate required fields
+                    if not name:
+                        print(f"⚠️ Row {row_num}: Missing card name, skipping")
+                        continue
+                        
+                    if not cardid_str or not cardid_str.isdigit():
+                        print(f"⚠️ Row {row_num}: Invalid card ID for '{name}', skipping")
+                        continue
+                    
+                    cardid = int(cardid_str)
+                    count = int(count_str) if count_str.isdigit() else 1
+                    
+                    # Map CSV columns to YGOProg format - ensure all strings are non-null
+                    card = {
+                        "name": name,
+                        "cardId": cardid,  # Note: YGOProg uses "cardId", not "cardid"
+                        "count": count,
+                        "rarity": rarity if rarity else "Unknown",
+                        "set": card_set if card_set else "Unknown",
+                        "code": code if code else ""
+                    }
+                    
+                    cards.append(card)
+
+            if not cards:
+                print("❌ No valid cards found in CSV file")
+                return False
+
+            print(f"📥 Parsed {len(cards)} cards from CSV")
+            print(f"Sample cards: {[c['name'] for c in cards[:3]]}")
+            print(f"Sample card format: {cards[0] if cards else 'None'}")
+
+            # Upload cards to binder
+            return self.update_binder_cards(binder_id, cards)
+
+        except FileNotFoundError:
+            print(f"❌ CSV file not found: {csv_file_path}")
+            return False
+        except Exception as e:
+            print(f"❌ Error processing CSV file: {e}")
             return False
 
 
@@ -594,6 +1089,32 @@ def main():
         action="store_true",
         help="Sync cards to a binder (original functionality)",
     )
+    action_group.add_argument(
+        "--create-binder", metavar="NAME", help="Create a new binder with the given name"
+    )
+    action_group.add_argument(
+        "--delete-binder", metavar="BINDER_ID", help="Delete a binder completely (removes binder and all cards)"
+    )
+    action_group.add_argument(
+        "--import-csv", metavar="CSV_FILE", help="Import cards from CSV file to a binder"
+    )
+    action_group.add_argument(
+        "--remove-cards", metavar="CARD_NAMES", nargs="+", help="Remove specific cards from binder (space-separated names)"
+    )
+    action_group.add_argument(
+        "--clear-binder", metavar="BINDER_ID", help="Remove all cards from a binder (keeps the empty binder)"
+    )
+    action_group.add_argument(
+        "--remove-by-code", metavar="CARD_CODE", help="Remove card by code (e.g. 'MRD-EN060')"
+    )
+    action_group.add_argument(
+        "--remove-card", nargs=2, metavar=("CARD_CODE", "RARITY"),
+        help="Remove a single card by code and rarity (e.g. 'MRD-EN060' 'Ultra Rare')"
+    )
+    action_group.add_argument(
+        "--test-card-count", nargs=3, metavar=("CARD_CODE", "RARITY", "COUNT_DELTA"), 
+        help="Test card count update (code rarity count_delta)"
+    )
 
     # Sync options
     sync_group = parser.add_argument_group("Sync Options")
@@ -743,6 +1264,122 @@ def main():
             print("✅ CSV export completed successfully!")
             sys.exit(0)  # Exit after successful export
 
+    elif args.create_binder:
+        print(f"🆕 Creating new binder: '{args.create_binder}'")
+        binder_id = binder_mgr.create_binder(args.create_binder, "Created via test script")
+        if binder_id:
+            print(f"✅ New binder created with ID: {binder_id}")
+        else:
+            print("❌ Failed to create binder")
+            sys.exit(1)
+        sys.exit(0)
+
+    elif args.delete_binder:
+        print(f"🗑️ Deleting binder: {args.delete_binder}")
+        print("⚠️  WARNING: This will permanently delete the binder and all its cards!")
+        confirm = input("Type 'DELETE' to confirm: ")
+        if confirm == "DELETE":
+            success = binder_mgr.delete_binder(args.delete_binder)
+            if not success:
+                sys.exit(1)
+        else:
+            print("❌ Deletion cancelled")
+            sys.exit(1)
+        sys.exit(0)
+
+    elif args.import_csv:
+        if not args.binder_id:
+            print("❌ --binder-id required for CSV import")
+            sys.exit(1)
+        print(f"📥 Importing CSV '{args.import_csv}' to binder {args.binder_id}")
+        success = binder_mgr.import_csv_to_binder(args.import_csv, args.binder_id)
+        if not success:
+            sys.exit(1)
+        else:
+            print("✅ CSV import completed successfully!")
+        sys.exit(0)
+
+    elif args.remove_cards:
+        if not args.binder_id:
+            print("❌ --binder-id required for removing cards")
+            sys.exit(1)
+        print(f"🗑️ Removing cards from binder {args.binder_id}: {', '.join(args.remove_cards)}")
+        success = binder_mgr.remove_cards_from_binder(args.binder_id, args.remove_cards)
+        if not success:
+            sys.exit(1)
+        else:
+            print("✅ Cards removed successfully!")
+        sys.exit(0)
+
+    elif args.clear_binder:
+        binder_id = args.clear_binder
+        
+        # If the argument is just "default" or empty, use the env variable
+        if binder_id in ["default", ""]:
+            binder_id = os.getenv("YGOPROG_DEFAULT_BINDER_ID")
+            if not binder_id:
+                print("❌ No default binder ID set in environment variables")
+                sys.exit(1)
+            print(f"Using default binder ID from environment: {binder_id}")
+        
+        print(f"🗑️ Clearing all cards from binder: {binder_id}")
+        print("⚠️  WARNING: This will remove ALL cards from the binder!")
+        confirm = input("Type 'CLEAR' to confirm: ")
+        if confirm == "CLEAR":
+            success = binder_mgr.clear_binder(binder_id)
+            if not success:
+                sys.exit(1)
+            else:
+                print("✅ Binder cleared successfully!")
+        else:
+            print("❌ Clear operation cancelled")
+            sys.exit(1)
+        sys.exit(0)
+
+    elif args.remove_card:
+        if not args.binder_id:
+            print("❌ --binder-id required for removing cards")
+            sys.exit(1)
+        card_code, rarity = args.remove_card
+        print(f"🗑️ Removing card {card_code} ({rarity}) from binder {args.binder_id}")
+        success = binder_mgr.remove_single_card(args.binder_id, card_code, rarity)
+        if not success:
+            sys.exit(1)
+        else:
+            print("✅ Card removed successfully!")
+        sys.exit(0)
+
+    elif args.remove_by_code:
+        if not args.binder_id:
+            print("❌ --binder-id required for removing cards by code")
+            sys.exit(1)
+        print(f"🗑️ Removing card {args.remove_by_code} from binder {args.binder_id}")
+        success = binder_mgr.remove_card_by_code(args.binder_id, args.remove_by_code)
+        if not success:
+            sys.exit(1)
+        else:
+            print("✅ Card removed successfully!")
+        sys.exit(0)
+
+    elif args.test_card_count:
+        if not args.binder_id:
+            print("❌ --binder-id required for testing card count")
+            sys.exit(1)
+        card_code, rarity, count_delta_str = args.test_card_count
+        try:
+            count_delta = int(count_delta_str)
+        except ValueError:
+            print(f"❌ Invalid count delta: {count_delta_str}")
+            sys.exit(1)
+        
+        print(f"🧪 Testing card count update: {card_code} ({rarity}) by {count_delta}")
+        success = binder_mgr.update_card_count(args.binder_id, card_code, rarity, count_delta)
+        if not success:
+            sys.exit(1)
+        else:
+            print("✅ Card count updated successfully!")
+        sys.exit(0)
+
     elif args.sync_binder:
         # Explicit sync behavior
         # Load payload
@@ -770,9 +1407,15 @@ def main():
     else:
         # No action specified, default to sync for backwards compatibility
         print("💡 No action specified. Use --help to see available options:")
-        print("   --list-binders       List all your binders")
-        print("   --export-csv ID      Export binder to CSV")
-        print("   --sync-binder        Sync cards to binder (default)")
+        print("   --list-binders           List all your binders")
+        print("   --export-csv ID          Export binder to CSV")
+        print("   --create-binder NAME     Create a new binder")
+        print("   --delete-binder ID       Delete entire binder (removes binder completely)")
+        print("   --import-csv FILE        Import CSV to binder (requires --binder-id)")
+        print("   --remove-cards NAMES     Remove cards from binder (requires --binder-id)")
+        print("   --clear-binder ID        Remove all cards from binder (keeps binder)")
+        print("   --remove-card CODE RARITY Remove single card by code and rarity (requires --binder-id)")
+        print("   --sync-binder            Sync cards to binder (default)")
         print()
         print("Running default sync behavior...")
 
