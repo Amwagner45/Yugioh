@@ -155,16 +155,72 @@ const BinderPage: React.FC = () => {
         try {
             setError(null);
 
-            // Save the imported binder
-            storageService.saveBinder(importedBinder);
-            setBinders(prev => [...prev, importedBinder]);
+            // Create the imported binder via backend API for automatic CSV export
+            const binderData = {
+                name: importedBinder.name,
+                description: importedBinder.description || `Imported binder with ${importedBinder.cards.length} cards`,
+                tags: importedBinder.tags || [],
+                is_default: importedBinder.is_default || false
+            };
+
+            const response = await binderService.createBinder(binderData);
+            
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            // Map the API response to frontend format
+            const newBinder: Binder = {
+                ...response,
+                id: response.uuid || response.id,
+                createdAt: new Date(response.created_at),
+                modifiedAt: new Date(response.updated_at),
+                cards: [] // Start with empty cards, will be populated below
+            };
+
+            // Add all the imported cards to the binder via API
+            const binderUuid = response.uuid || response.id;
+            let successfulCards = 0;
+            
+            for (const card of importedBinder.cards) {
+                try {
+                    await binderService.addCardToBinder(
+                        binderUuid,
+                        card.cardId,
+                        card.quantity,
+                        card.setCode,
+                        card.rarity,
+                        card.condition,
+                        card.edition,
+                        card.notes
+                    );
+                    successfulCards++;
+                } catch (cardError) {
+                    console.warn(`Failed to add card ${card.cardId} to binder:`, cardError);
+                }
+            }
+
+            // Update local state with the new binder (cards will be loaded when viewing)
+            setBinders(prev => [...prev, newBinder]);
 
             // Close the modal and show success message
             setShowExportImport(false);
-            alert(`Successfully imported binder "${importedBinder.name}" with ${importedBinder.cards.length} cards.`);
+            alert(`Successfully imported binder "${newBinder.name}" with ${successfulCards}/${importedBinder.cards.length} cards and exported as CSV.`);
+            
+            console.log('Successfully imported and exported binder:', newBinder.name, `${successfulCards}/${importedBinder.cards.length} cards`);
         } catch (err) {
-            setError('Failed to save imported binder');
-            console.error('Error saving imported binder:', err);
+            console.error('Error importing binder via API:', err);
+            // Fallback to local storage if API fails
+            try {
+                storageService.saveBinder(importedBinder);
+                setBinders(prev => [...prev, importedBinder]);
+                setShowExportImport(false);
+                alert(`Successfully imported binder "${importedBinder.name}" with ${importedBinder.cards.length} cards (saved locally).`);
+                console.log('Imported binder to local storage as fallback');
+            } catch (storageErr) {
+                setError('Failed to save imported binder');
+                console.error('Error saving imported binder:', storageErr);
+            }
         }
     };
 

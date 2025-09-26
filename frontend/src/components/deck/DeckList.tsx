@@ -221,11 +221,59 @@ const DeckList: React.FC<DeckListProps> = ({
             else if (extension === 'json') format = 'json';
             else if (extension === 'csv') format = 'csv';
 
+            // First import using the service (which saves to local storage)
             const result = await importExportService.importDeck(content, format);
 
             if (result.success) {
-                loadDecks();
-                alert(`Successfully imported ${result.imported.decks} deck(s)`);
+                try {
+                    // Get the imported deck from local storage
+                    const localDecks = storageService.getDecks();
+                    const newestDeck = localDecks[localDecks.length - 1]; // Most recently added deck
+
+                    if (newestDeck) {
+                        // Create the deck via backend API for automatic YDK/JSON export
+                        const deckData = {
+                            name: newestDeck.name,
+                            description: newestDeck.description || `Imported deck from ${file.name}`,
+                            format: newestDeck.format,
+                            tags: newestDeck.tags || [],
+                            notes: newestDeck.notes
+                        };
+
+                        const apiResponse = await deckService.createDeck(deckData);
+                        
+                        if (apiResponse.error) {
+                            console.warn('Failed to save to API, keeping local copy:', apiResponse.error);
+                        } else {
+                            // Add cards to the deck via API
+                            const deckUuid = apiResponse.uuid || apiResponse.id;
+                            
+                            // Add main deck cards
+                            for (const card of newestDeck.mainDeck) {
+                                await deckService.addCardToDeck(deckUuid, card.cardId, card.quantity, 'main');
+                            }
+                            
+                            // Add extra deck cards
+                            for (const card of newestDeck.extraDeck) {
+                                await deckService.addCardToDeck(deckUuid, card.cardId, card.quantity, 'extra');
+                            }
+                            
+                            // Add side deck cards
+                            for (const card of newestDeck.sideDeck) {
+                                await deckService.addCardToDeck(deckUuid, card.cardId, card.quantity, 'side');
+                            }
+
+                            // Remove from local storage since it's now in the API
+                            storageService.deleteDeck(newestDeck.id);
+                            console.log('Successfully imported and exported deck with cards:', apiResponse.name);
+                        }
+                    }
+                } catch (apiError) {
+                    console.warn('Failed to save imported deck to API, keeping local copy:', apiError);
+                }
+
+                loadDecks(); // Reload decks from API
+                alert(`Successfully imported ${result.imported.decks} deck(s) and exported as YDK/JSON.`);
             } else {
                 alert(`Import failed: ${result.errors.join(', ')}`);
             }

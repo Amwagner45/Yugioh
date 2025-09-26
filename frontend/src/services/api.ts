@@ -246,6 +246,30 @@ export const binderService = {
             return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
         }
     },
+
+    async addCardToBinder(binderUuid: string, cardId: number, quantity: number = 1, setCode?: string, rarity?: string, condition?: string, edition?: string, notes?: string) {
+        try {
+            const cardData = {
+                card_id: cardId,
+                quantity: quantity,
+                set_code: setCode,
+                rarity: rarity,
+                condition: condition,
+                edition: edition,
+                notes: notes
+            };
+
+            const response = await api.post(`/api/binders/${binderUuid}/cards`, cardData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error adding card to binder:', error);
+            return { error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
 };
 
 /**
