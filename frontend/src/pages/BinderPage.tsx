@@ -570,8 +570,13 @@ const BinderPage: React.FC = () => {
     useEffect(() => {
         if (selectedBinder && currentView === 'view') {
             const loadCardDetailsFromCache = async () => {
+                console.log('selectedBinder.cards structure check:', selectedBinder.cards.slice(0, 3));
+
                 const cardIdsNeeded = selectedBinder.cards
-                    .map(bc => bc.cardId)
+                    .map(bc => {
+                        console.log('Processing binder card:', bc, 'cardId type:', typeof bc.cardId);
+                        return bc.cardId;
+                    })
                     .filter(cardId => !cardCache.has(cardId));
 
                 if (cardIdsNeeded.length > 0) {
@@ -579,6 +584,9 @@ const BinderPage: React.FC = () => {
                     console.log('First 10 card IDs:', cardIdsNeeded.slice(0, 10));
 
                     try {
+                        console.log('About to call batch API with card IDs:', cardIdsNeeded.slice(0, 10));
+                        console.log('Card IDs data type check:', cardIdsNeeded.map(id => typeof id));
+
                         // Use the batch endpoint to get all cards at once from database cache
                         const response = await fetch('http://localhost:8000/api/cards/batch', {
                             method: 'POST',
@@ -589,6 +597,11 @@ const BinderPage: React.FC = () => {
                         });
 
                         console.log('Batch API response status:', response.status);
+
+                        if (!response.ok) {
+                            const errorText = await response.text();
+                            console.error('Batch API error response:', errorText);
+                        }
 
                         if (response.ok) {
                             const result = await response.json();

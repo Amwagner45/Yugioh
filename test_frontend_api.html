@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Frontend API Calls</title>
+</head>
+
+<body>
+    <h1>Test Frontend API Calls</h1>
+    <div id="output"></div>
+
+    <script>
+        async function testBatchAPI() {
+            const output = document.getElementById('output');
+
+            try {
+                console.log('Testing batch API...');
+
+                // Test the batch API exactly like the frontend would
+                const cardIds = [32864, 1435851, 1557499, 1641882, 1784619];
+
+                console.log('Sending card IDs:', cardIds);
+                console.log('Card IDs types:', cardIds.map(id => typeof id));
+
+                const response = await fetch('http://localhost:8000/api/cards/batch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(cardIds),
+                });
+
+                console.log('Response status:', response.status);
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('Success! Got result:', result);
+                    output.innerHTML = `
+                        <h2>✅ SUCCESS</h2>
+                        <p>Status: ${response.status}</p>
+                        <p>Cards returned: ${result.data.length}</p>
+                        <p>Missing cards: ${result.missing_cards.length}</p>
+                        <p>Card names: ${result.data.map(card => card.name).join(', ')}</p>
+                    `;
+                } else {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    output.innerHTML = `
+                        <h2>❌ ERROR</h2>
+                        <p>Status: ${response.status}</p>
+                        <p>Error: ${errorText}</p>
+                    `;
+                }
+
+            } catch (error) {
+                console.error('Request failed:', error);
+                output.innerHTML = `
+                    <h2>❌ REQUEST FAILED</h2>
+                    <p>Error: ${error.message}</p>
+                `;
+            }
+        }
+
+        // Run the test when page loads
+        testBatchAPI();
+    </script>
+</body>
+
+</html>

@@ -27,6 +27,22 @@ async def lifespan(app: FastAPI):
     # Initialize cache
     await initialize_cache()
 
+    # Auto-import any CSV files found in binders directory
+    try:
+        from src.services.auto_import import auto_import_service
+
+        print("🔄 Running automatic binder import...")
+        import_stats = auto_import_service.auto_import_binders()
+        if import_stats["binders_created"] > 0:
+            print(
+                f"✅ Auto-import completed: {import_stats['binders_created']} binders imported"
+            )
+        else:
+            print("✅ Auto-import completed: No new binders to import")
+    except Exception as e:
+        print(f"⚠️ Auto-import failed: {e}")
+        # Don't fail startup if auto-import fails
+
     print("Application startup complete")
     yield
 

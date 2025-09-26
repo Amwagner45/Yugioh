@@ -242,6 +242,30 @@ class Binder:
             return cls.from_db_row(row) if row else None
 
     @classmethod
+    def get_all(cls, user_id: Optional[int] = None) -> List["Binder"]:
+        """Get all binders, optionally filtered by user_id"""
+        with get_db_connection() as conn:
+            if user_id is not None:
+                cursor = conn.execute(
+                    "SELECT * FROM binders WHERE user_id = ? ORDER BY created_at DESC",
+                    (user_id,),
+                )
+            else:
+                cursor = conn.execute("SELECT * FROM binders ORDER BY created_at DESC")
+            return [cls.from_db_row(row) for row in cursor.fetchall()]
+
+    @classmethod
+    def get_by_name(cls, name: str, user_id: int = 1) -> Optional["Binder"]:
+        """Get binder by exact name match"""
+        with get_db_connection() as conn:
+            cursor = conn.execute(
+                "SELECT * FROM binders WHERE user_id = ? AND name = ? LIMIT 1",
+                (user_id, name),
+            )
+            row = cursor.fetchone()
+            return cls.from_db_row(row) if row else None
+
+    @classmethod
     def search_by_name(cls, search_term: str, user_id: int = 1) -> List["Binder"]:
         """Search binders by name"""
         with get_db_connection() as conn:
