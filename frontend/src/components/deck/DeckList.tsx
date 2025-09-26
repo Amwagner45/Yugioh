@@ -241,23 +241,23 @@ const DeckList: React.FC<DeckListProps> = ({
                         };
 
                         const apiResponse = await deckService.createDeck(deckData);
-                        
+
                         if (apiResponse.error) {
                             console.warn('Failed to save to API, keeping local copy:', apiResponse.error);
                         } else {
                             // Add cards to the deck via API
                             const deckUuid = apiResponse.uuid || apiResponse.id;
-                            
+
                             // Add main deck cards
                             for (const card of newestDeck.mainDeck) {
                                 await deckService.addCardToDeck(deckUuid, card.cardId, card.quantity, 'main');
                             }
-                            
+
                             // Add extra deck cards
                             for (const card of newestDeck.extraDeck) {
                                 await deckService.addCardToDeck(deckUuid, card.cardId, card.quantity, 'extra');
                             }
-                            
+
                             // Add side deck cards
                             for (const card of newestDeck.sideDeck) {
                                 await deckService.addCardToDeck(deckUuid, card.cardId, card.quantity, 'side');

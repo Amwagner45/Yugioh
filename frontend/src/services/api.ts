@@ -122,7 +122,7 @@ export const binderService = {
             if (binder.description) formData.append('description', binder.description);
             if (binder.tags) formData.append('tags', binder.tags.join(','));
 
-            const response = await api.post('/api/binders', formData, {
+            const response = await api.post('/api/binders/', formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },

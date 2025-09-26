@@ -164,7 +164,7 @@ const BinderPage: React.FC = () => {
             };
 
             const response = await binderService.createBinder(binderData);
-            
+
             if (response.error) {
                 throw new Error(response.error);
             }
@@ -181,7 +181,7 @@ const BinderPage: React.FC = () => {
             // Add all the imported cards to the binder via API
             const binderUuid = response.uuid || response.id;
             let successfulCards = 0;
-            
+
             for (const card of importedBinder.cards) {
                 try {
                     await binderService.addCardToBinder(
@@ -206,7 +206,7 @@ const BinderPage: React.FC = () => {
             // Close the modal and show success message
             setShowExportImport(false);
             alert(`Successfully imported binder "${newBinder.name}" with ${successfulCards}/${importedBinder.cards.length} cards and exported as CSV.`);
-            
+
             console.log('Successfully imported and exported binder:', newBinder.name, `${successfulCards}/${importedBinder.cards.length} cards`);
         } catch (err) {
             console.error('Error importing binder via API:', err);
