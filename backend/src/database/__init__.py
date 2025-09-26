@@ -12,11 +12,6 @@ from .manager import DatabaseManager
 # Configure logging
 logger = logging.getLogger(__name__)
 
-# Default database configuration
-DEFAULT_DB_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "..", "cache", "yugioh_deckbuilder.db"
-)
-
 # Global database manager instance
 _db_manager = None
 
@@ -25,9 +20,10 @@ def get_db_manager() -> DatabaseManager:
     """Get the global database manager instance"""
     global _db_manager
     if _db_manager is None:
-        # Ensure cache directory exists
-        os.makedirs(os.path.dirname(DEFAULT_DB_PATH), exist_ok=True)
-        _db_manager = DatabaseManager(DEFAULT_DB_PATH)
+        # Use config to get the correct database path
+        from ..config import config
+
+        _db_manager = DatabaseManager(config.database_path)
     return _db_manager
 
 

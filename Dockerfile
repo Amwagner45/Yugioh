@@ -1,12 +1,19 @@
 # Multi-stage Docker build for Yu-Gi-Oh Deck Builder
-FROM node:18-alpine AS frontend-builder
+FROM node:22-alpine AS frontend-builder
+
+# Install build dependencies for Alpine Linux
+RUN apk add --no-cache python3 make g++ libc6-compat
 
 # Set working directory for frontend build
 WORKDIR /app/frontend
 
 # Copy frontend package files
 COPY frontend/package*.json ./
-RUN npm ci
+
+# Clean install with better handling of optional dependencies
+RUN rm -rf node_modules package-lock.json && \
+    npm install --include=optional --force && \
+    npm rebuild
 
 # Copy frontend source code
 COPY frontend/ ./
