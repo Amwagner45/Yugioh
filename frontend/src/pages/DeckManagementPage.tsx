@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import DeckList from '../components/deck/DeckList';
 import { storageService } from '../services/storage';
+import { deckService } from '../services/api';
 
 interface DeckManagementPageProps {
     onEditDeck: (deckId: string) => void;
@@ -20,17 +21,38 @@ const DeckManagementPage: React.FC<DeckManagementPageProps> = ({
         loadAvailableTags();
     }, []);
 
-    const loadAvailableTags = () => {
-        const decks = storageService.getDecks();
-        const allTags = new Set<string>();
+    const loadAvailableTags = async () => {
+        try {
+            // Load decks from backend API (primary source)
+            const apiDecks = await deckService.getDecks();
+            const decks = apiDecks.error ? [] : apiDecks;
 
-        decks.forEach(deck => {
-            if (deck.tags) {
-                deck.tags.forEach(tag => allTags.add(tag));
+            const allTags = new Set<string>();
+            decks.forEach((deck: any) => {
+                if (deck.tags) {
+                    deck.tags.forEach((tag: string) => allTags.add(tag));
+                }
+            });
+
+            setAvailableTags(Array.from(allTags).sort());
+        } catch (error) {
+            console.error('Failed to load deck tags from API, falling back to local storage:', error);
+            // Fallback to local storage if API fails
+            try {
+                const decks = storageService.getDecks();
+                const allTags = new Set<string>();
+
+                decks.forEach(deck => {
+                    if (deck.tags) {
+                        deck.tags.forEach(tag => allTags.add(tag));
+                    }
+                });
+
+                setAvailableTags(Array.from(allTags).sort());
+            } catch (storageError) {
+                console.error('Failed to load from local storage:', storageError);
             }
-        });
-
-        setAvailableTags(Array.from(allTags).sort());
+        }
     };
 
     const handleTagToggle = (tag: string) => {
@@ -92,8 +114,8 @@ const DeckManagementPage: React.FC<DeckManagementPageProps> = ({
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
                                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${showFilters || selectedTags.length > 0
-                                        ? 'bg-purple-600 text-white'
-                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                     }`}
                             >
                                 <span className="flex items-center gap-2">
@@ -130,8 +152,8 @@ const DeckManagementPage: React.FC<DeckManagementPageProps> = ({
                                         key={tag}
                                         onClick={() => handleTagToggle(tag)}
                                         className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${selectedTags.includes(tag)
-                                                ? 'bg-purple-600 text-white'
-                                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                            ? 'bg-purple-600 text-white'
+                                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                                             }`}
                                     >
                                         {tag}

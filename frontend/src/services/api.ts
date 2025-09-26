@@ -249,7 +249,7 @@ export const binderService = {
 };
 
 /**
- * Deck API services (placeholder for future implementation)
+ * Deck API services
  */
 export const deckService = {
     async getDecks() {
@@ -259,6 +259,106 @@ export const deckService = {
         } catch (error) {
             console.error('Error fetching decks:', error);
             return { data: [], error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async createDeck(deck: {
+        name: string;
+        description?: string;
+        format?: string;
+        binder_id?: number;
+        tags?: string[];
+        notes?: string;
+    }) {
+        try {
+            const response = await api.post('/api/decks', deck, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error creating deck:', error);
+            return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async getDeck(uuid: string) {
+        try {
+            const response = await api.get(`/api/decks/${uuid}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching deck:', error);
+            return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async updateDeck(uuid: string, deck: {
+        name?: string;
+        description?: string;
+        format?: string;
+        binder_id?: number;
+        tags?: string[];
+        notes?: string;
+    }) {
+        try {
+            const response = await api.put(`/api/decks/${uuid}`, deck, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error updating deck:', error);
+            return { data: null, error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async deleteDeck(uuid: string) {
+        try {
+            const response = await api.delete(`/api/decks/${uuid}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error deleting deck:', error);
+            return { error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async addCardToDeck(deckUuid: string, cardId: number, quantity: number = 1, section: 'main' | 'extra' | 'side' = 'main') {
+        try {
+            const response = await api.post(`/api/decks/${deckUuid}/cards`, {
+                card_id: cardId,
+                quantity: quantity,
+                section: section
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error adding card to deck:', error);
+            return { error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async removeCardFromDeck(deckUuid: string, cardId: number) {
+        try {
+            const response = await api.delete(`/api/decks/${deckUuid}/cards/${cardId}`);
+            return response.data;
+        } catch (error) {
+            console.error('Error removing card from deck:', error);
+            return { error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
+
+    async validateDeck(deckUuid: string) {
+        try {
+            const response = await api.post(`/api/decks/${deckUuid}/validate`);
+            return response.data;
+        } catch (error) {
+            console.error('Error validating deck:', error);
+            return { error: error instanceof Error ? error.message : 'Unknown error' };
         }
     },
 };

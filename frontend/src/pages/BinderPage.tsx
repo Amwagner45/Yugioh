@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { storageService } from '../services/storage';
+import { binderService } from '../services/api';
 import BinderForm from '../components/binder/BinderForm';
 import BinderList from '../components/binder/BinderList';
 import CardSearch from '../components/binder/CardSearch';
@@ -170,15 +171,33 @@ const BinderPage: React.FC = () => {
     const loadBinders = async () => {
         try {
             setIsLoading(true);
+            setError(null);
 
-            // Load binders from local storage (primary source)
-            const savedBinders = storageService.getBinders();
-            setBinders(savedBinders);
+            // Load binders from backend API (primary source)
+            const apiBinders = await binderService.getBinders();
 
-            console.log(`Loaded ${savedBinders.length} binders from local storage`);
+            // Map API response to frontend Binder format
+            const mappedBinders = apiBinders.map((binder: any) => ({
+                ...binder,
+                id: binder.uuid || binder.id, // Use uuid as id for API binders
+                createdAt: new Date(binder.createdAt),
+                modifiedAt: new Date(binder.modifiedAt),
+                cards: binder.cards || []
+            }));
+
+            setBinders(mappedBinders);
+            console.log(`Loaded ${mappedBinders.length} binders from backend API`);
         } catch (err) {
-            setError('Failed to load binders');
-            console.error('Error loading binders:', err);
+            console.error('Failed to load binders from API:', err);
+            // Fall back to local storage if API fails
+            try {
+                const savedBinders = storageService.getBinders();
+                setBinders(savedBinders);
+                console.log(`Loaded ${savedBinders.length} binders from local storage as fallback`);
+            } catch (storageErr) {
+                console.error('Failed to load from local storage:', storageErr);
+                setError('Failed to load binders');
+            }
         } finally {
             setIsLoading(false);
         }
@@ -193,20 +212,46 @@ const BinderPage: React.FC = () => {
             setIsSubmitting(true);
             setError(null);
 
+            // Create binder via backend API
+            const response = await binderService.createBinder(binderData);
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            // The API returns the created binder with all fields populated
             const newBinder: Binder = {
-                ...binderData,
-                id: generateId(),
-                cards: [],
-                createdAt: new Date(),
-                modifiedAt: new Date(),
+                ...response,
+                id: response.uuid || response.id, // Use uuid as id for consistency
+                createdAt: new Date(response.created_at),
+                modifiedAt: new Date(response.updated_at),
+                cards: response.cards || []
             };
 
-            storageService.saveBinder(newBinder);
+            // Add to local state and return to list view
             setBinders(prev => [...prev, newBinder]);
             setCurrentView('list');
+
+            console.log('Successfully created binder:', newBinder.name);
         } catch (err) {
-            setError('Failed to create binder');
             console.error('Error creating binder:', err);
+            // Fallback to local storage if API fails
+            try {
+                const newBinder: Binder = {
+                    ...binderData,
+                    id: generateId(),
+                    cards: [],
+                    createdAt: new Date(),
+                    modifiedAt: new Date(),
+                };
+
+                storageService.saveBinder(newBinder);
+                setBinders(prev => [...prev, newBinder]);
+                setCurrentView('list');
+                console.log('Created binder in local storage as fallback');
+            } catch (storageErr) {
+                setError('Failed to create binder');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -219,25 +264,60 @@ const BinderPage: React.FC = () => {
             setIsSubmitting(true);
             setError(null);
 
+            // Get the UUID for the API call (use uuid if available, otherwise use id)
+            const binderUuid = editingBinder.uuid || editingBinder.id;
+
+            // Update binder via backend API
+            const response = await binderService.updateBinder(binderUuid, binderData);
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            // The API returns the updated binder
             const updatedBinder: Binder = {
-                ...editingBinder,
-                ...binderData,
-                modifiedAt: new Date(),
+                ...response,
+                id: response.uuid || response.id, // Use uuid as id for consistency
+                createdAt: new Date(response.created_at),
+                modifiedAt: new Date(response.updated_at),
+                cards: response.cards || editingBinder.cards || []
             };
 
-            storageService.saveBinder(updatedBinder);
-            setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
+            // Update local state
+            setBinders(prev => prev.map(b => b.id === editingBinder.id ? updatedBinder : b));
 
             // Update selected binder if it's the same one
-            if (selectedBinder?.id === updatedBinder.id) {
+            if (selectedBinder?.id === editingBinder.id) {
                 setSelectedBinder(updatedBinder);
             }
 
             setEditingBinder(null);
             setCurrentView('list');
+            console.log('Successfully updated binder:', updatedBinder.name);
         } catch (err) {
-            setError('Failed to update binder');
             console.error('Error updating binder:', err);
+            // Fallback to local storage if API fails
+            try {
+                const updatedBinder: Binder = {
+                    ...editingBinder,
+                    ...binderData,
+                    modifiedAt: new Date(),
+                };
+
+                storageService.saveBinder(updatedBinder);
+                setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
+
+                // Update selected binder if it's the same one
+                if (selectedBinder?.id === updatedBinder.id) {
+                    setSelectedBinder(updatedBinder);
+                }
+
+                setEditingBinder(null);
+                setCurrentView('list');
+                console.log('Updated binder in local storage as fallback');
+            } catch (storageErr) {
+                setError('Failed to update binder');
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -250,7 +330,17 @@ const BinderPage: React.FC = () => {
             setIsDeleting(true);
             setError(null);
 
-            storageService.deleteBinder(deletingBinder.id);
+            // Get the UUID for the API call (use uuid if available, otherwise use id)
+            const binderUuid = deletingBinder.uuid || deletingBinder.id;
+
+            // Delete binder via backend API
+            const response = await binderService.deleteBinder(binderUuid);
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            // Update local state
             setBinders(prev => prev.filter(b => b.id !== deletingBinder.id));
 
             // Clear selection if deleted binder was selected
@@ -260,9 +350,25 @@ const BinderPage: React.FC = () => {
             }
 
             setDeletingBinder(null);
+            console.log('Successfully deleted binder:', deletingBinder.name);
         } catch (err) {
-            setError('Failed to delete binder');
             console.error('Error deleting binder:', err);
+            // Fallback to local storage if API fails
+            try {
+                storageService.deleteBinder(deletingBinder.id);
+                setBinders(prev => prev.filter(b => b.id !== deletingBinder.id));
+
+                // Clear selection if deleted binder was selected
+                if (selectedBinder?.id === deletingBinder.id) {
+                    setSelectedBinder(null);
+                    setCurrentView('list');
+                }
+
+                setDeletingBinder(null);
+                console.log('Deleted binder from local storage as fallback');
+            } catch (storageErr) {
+                setError('Failed to delete binder');
+            }
         } finally {
             setIsDeleting(false);
         }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { importExportService } from '../../services/importExport';
 import { storageService } from '../../services/storage';
+import { deckService } from '../../services/api';
 import { ConfirmDialog } from '../common/ConfirmDialog';
 import type { Deck } from '../../types';
 
@@ -40,9 +41,39 @@ const DeckList: React.FC<DeckListProps> = ({
         filterAndSortDecks();
     }, [decks, selectedTags, searchQuery, sortBy, sortOrder]);
 
-    const loadDecks = () => {
-        const allDecks = storageService.getDecks();
-        setDecks(allDecks);
+    const loadDecks = async () => {
+        try {
+            // Load decks from backend API (primary source)
+            const apiDecks = await deckService.getDecks();
+
+            if (apiDecks.error) {
+                throw new Error(apiDecks.error);
+            }
+
+            // Map API response to frontend Deck format
+            const mappedDecks = apiDecks.map((deck: any) => ({
+                ...deck,
+                id: deck.uuid || deck.id, // Use uuid as id for consistency
+                createdAt: new Date(deck.created_at),
+                modifiedAt: new Date(deck.updated_at),
+                mainDeck: deck.main_deck || [],
+                extraDeck: deck.extra_deck || [],
+                sideDeck: deck.side_deck || []
+            }));
+
+            setDecks(mappedDecks);
+            console.log(`Loaded ${mappedDecks.length} decks from backend API`);
+        } catch (error) {
+            console.error('Failed to load decks from API, falling back to local storage:', error);
+            // Fallback to local storage if API fails
+            try {
+                const allDecks = storageService.getDecks();
+                setDecks(allDecks);
+                console.log(`Loaded ${allDecks.length} decks from local storage as fallback`);
+            } catch (storageError) {
+                console.error('Failed to load from local storage:', storageError);
+            }
+        }
     };
 
     const filterAndSortDecks = () => {
@@ -105,8 +136,38 @@ const DeckList: React.FC<DeckListProps> = ({
         setDeleteConfirm({ show: true, deckId, deckName });
     };
 
-    const confirmDelete = () => {
-        storageService.deleteDeck(deleteConfirm.deckId);
+    const confirmDelete = async () => {
+        try {
+            // Find the deck to get its UUID
+            const deck = decks.find(d => d.id === deleteConfirm.deckId);
+            if (!deck) {
+                throw new Error('Deck not found');
+            }
+
+            // Use uuid if available, otherwise use id
+            const deckUuid = (deck as any).uuid || deck.id;
+
+            // Delete deck via backend API
+            const response = await deckService.deleteDeck(deckUuid);
+
+            if (response.error) {
+                throw new Error(response.error);
+            }
+
+            console.log('Successfully deleted deck:', deck.name);
+        } catch (error) {
+            console.error('Failed to delete deck from API, falling back to local storage:', error);
+            // Fallback to local storage if API fails
+            try {
+                storageService.deleteDeck(deleteConfirm.deckId);
+                console.log('Deleted deck from local storage as fallback');
+            } catch (storageError) {
+                console.error('Failed to delete from local storage:', storageError);
+                // TODO: Show error message to user
+            }
+        }
+
+        // Reload decks and close dialog
         loadDecks();
         setDeleteConfirm({ show: false, deckId: '', deckName: '' });
     };
