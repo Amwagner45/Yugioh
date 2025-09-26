@@ -361,14 +361,15 @@ class Binder:
         with get_db_connection() as conn:
             conn.execute("DELETE FROM binders WHERE id = ?", (self.id,))
             conn.commit()
-        
+
         # Delete associated CSV file
         try:
             from ..services.file_export import file_export_service
+
             file_export_service.delete_binder_csv(self)
         except Exception as e:
             print(f"Warning: Failed to delete CSV file for binder '{self.name}': {e}")
-        
+
         return True
 
     def get_cards(self) -> List["BinderCard"]:
