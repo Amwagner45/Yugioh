@@ -10,6 +10,9 @@ services:
       # Persistent data volume for cache, databases, and user data
       - yugioh_data:/app/data
       - yugioh_cache:/app/cache
+      # Export directories for binders and decklists
+      - ./docker-data/binders:/app/binders
+      - ./docker-data/decklists:/app/decklists
     environment:
       # Environment variables for the application
       - PYTHONPATH=/app

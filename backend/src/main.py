@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 import os
-from src.routes import cards, binders, decks, banlists
+from src.routes import cards, binders, decks, banlists, exports
 from src.services.cache import initialize_cache, cleanup_cache
 from src.config import config
 from src.database.manager import DatabaseManager
@@ -60,6 +60,7 @@ def create_app() -> FastAPI:
     app.include_router(binders.router, prefix="/api/binders", tags=["binders"])
     app.include_router(decks.router, prefix="/api/decks", tags=["decks"])
     app.include_router(banlists.router, tags=["banlists"])
+    app.include_router(exports.router, prefix="/api/exports", tags=["exports"])
 
     @app.get("/api")
     async def api_root():

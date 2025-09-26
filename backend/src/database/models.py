@@ -272,7 +272,7 @@ class Binder:
         )
 
     def save(self) -> "Binder":
-        """Save binder to database"""
+        """Save binder to database and export to CSV file"""
         # Validate before saving
         self.validate()
 
@@ -311,6 +311,15 @@ class Binder:
                 )
                 self.id = cursor.lastrowid
             conn.commit()
+
+        # Automatically export to CSV file after saving to database
+        try:
+            from ..services.file_export import file_export_service
+
+            file_export_service.save_binder_as_csv(self)
+        except Exception as e:
+            print(f"Warning: Failed to auto-export binder to CSV: {e}")
+
         return self
 
     def validate(self) -> List[str]:
@@ -571,6 +580,19 @@ class BinderCard:
                     )
                     self.id = cursor.lastrowid
             conn.commit()
+
+        # Automatically export parent binder to CSV after card changes
+        try:
+            binder = Binder.get_by_id(self.binder_id)
+            if binder:
+                from ..services.file_export import file_export_service
+
+                file_export_service.save_binder_as_csv(binder)
+        except Exception as e:
+            print(
+                f"Warning: Failed to auto-export binder to CSV after card change: {e}"
+            )
+
         return self
 
     def validate(self) -> List[str]:
@@ -736,7 +758,7 @@ class Deck:
         )
 
     def save(self) -> "Deck":
-        """Save deck to database"""
+        """Save deck to database and export to YDK file"""
         # Validate before saving
         self.validate()
 
@@ -785,6 +807,16 @@ class Deck:
                 )
                 self.id = cursor.lastrowid
             conn.commit()
+
+        # Automatically export to YDK and JSON files after saving to database
+        try:
+            from ..services.file_export import file_export_service
+
+            file_export_service.save_deck_as_ydk(self)
+            file_export_service.save_deck_as_json(self)  # Also save JSON backup
+        except Exception as e:
+            print(f"Warning: Failed to auto-export deck to files: {e}")
+
         return self
 
     def validate(self) -> List[str]:
@@ -1142,6 +1174,20 @@ class DeckCard:
                 )
                 self.id = cursor.lastrowid
             conn.commit()
+
+        # Automatically export parent deck to YDK after card changes
+        try:
+            deck = Deck.get_by_id(self.deck_id)
+            if deck:
+                from ..services.file_export import file_export_service
+
+                file_export_service.save_deck_as_ydk(deck)
+                file_export_service.save_deck_as_json(deck)  # Also update JSON backup
+        except Exception as e:
+            print(
+                f"Warning: Failed to auto-export deck to files after card change: {e}"
+            )
+
         return self
 
     def validate(self) -> List[str]:
