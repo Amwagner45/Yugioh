@@ -265,6 +265,32 @@ class FileExportService:
             print(f"❌ Failed to export deck '{deck.name}' to JSON: {e}")
             return None
 
+    def delete_binder_csv(self, binder: Binder) -> bool:
+        """
+        Delete the CSV file associated with a binder
+        Returns True if successfully deleted, False if not found or error
+        """
+        try:
+            if not binder or not binder.uuid:
+                return False
+
+            # Generate the filename pattern that would have been used
+            safe_name = self._sanitize_filename(binder.name)
+            filename = f"{safe_name}_{binder.uuid[:8]}.csv"
+            file_path = self.binders_path / filename
+
+            if file_path.exists():
+                file_path.unlink()
+                print(f"✅ Deleted binder CSV file: {filename}")
+                return True
+            else:
+                print(f"⚠️ Binder CSV file not found: {filename}")
+                return False
+
+        except Exception as e:
+            print(f"❌ Failed to delete binder CSV file for '{binder.name}': {e}")
+            return False
+
     def cleanup_old_files(self, max_age_days: int = 30):
         """
         Clean up old export files to prevent disk space issues

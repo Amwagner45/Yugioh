@@ -244,6 +244,9 @@ async def get_binder(binder_uuid: str, include_card_details: bool = False):
             ]
 
         return response
+    except HTTPException:
+        # Re-raise HTTPExceptions (like 404) without modification
+        raise
     except Exception as e:
         print(f"Error in get_binder: {e}")
         import traceback
@@ -299,6 +302,9 @@ async def delete_binder(binder_uuid: str):
 
         binder.delete()
         return {"message": "Binder deleted successfully"}
+    except HTTPException:
+        # Re-raise HTTPExceptions (like 404) without modification
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
