@@ -290,6 +290,38 @@ export const binderService = {
             return { error: error instanceof Error ? error.message : 'Unknown error' };
         }
     },
+
+    async bulkAddCards(binderUuid: string, cards: Array<{
+        cardId: number;
+        quantity: number;
+        setCode?: string;
+        rarity?: string;
+        condition?: string;
+        edition?: string;
+        notes?: string;
+    }>) {
+        try {
+            const cardsData = cards.map(card => ({
+                card_id: card.cardId,
+                quantity: card.quantity,
+                set_code: card.setCode,
+                rarity: card.rarity,
+                condition: card.condition,
+                edition: card.edition,
+                notes: card.notes
+            }));
+
+            const response = await api.post(`/api/binders/${binderUuid}/cards/bulk`, cardsData, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Error bulk adding cards to binder:', error);
+            return { error: error instanceof Error ? error.message : 'Unknown error' };
+        }
+    },
 };
 
 /**

@@ -1,7 +1,7 @@
 import type { Binder, BinderCard, Card } from '../types';
 
 export interface ExportOptions {
-    format: 'csv' | 'json' | 'txt';
+    format: 'csv' | 'txt';
     includeCardDetails: boolean;
     includeImages: boolean;
     includeNotes: boolean;
@@ -34,8 +34,6 @@ export class BinderExportService {
         switch (options.format) {
             case 'csv':
                 return this.exportToCSV(binder, cardCache, options);
-            case 'json':
-                return this.exportToJSON(binder, cardCache, options);
             case 'txt':
                 return this.exportToText(binder, cardCache, options);
             default:
@@ -274,8 +272,6 @@ export class BinderExportService {
             const extension = file.name.split('.').pop()?.toLowerCase();
 
             switch (extension) {
-                case 'json':
-                    return this.importFromJSON(content);
                 case 'csv':
                     return this.importFromCSV(content);
                 default:
@@ -544,8 +540,8 @@ export class BinderExportService {
      * Generate a shareable link for a binder (JSON format)
      */
     generateShareableLink(binder: Binder, cardCache: Map<number, Card>): string {
-        const exportData = this.exportToJSON(binder, cardCache, {
-            format: 'json',
+        const exportData = this.exportToCSV(binder, cardCache, {
+            format: 'csv',
             includeCardDetails: true,
             includeImages: false,
             includeNotes: true,

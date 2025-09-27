@@ -7,6 +7,7 @@ import type { Card, CardSearchParams, Binder } from '../../types';
 interface CardSearchProps {
     selectedBinder: Binder | null;
     onAddToBinder: (cardId: number, quantity: number) => void;
+    onBulkAddToBinder?: (cards: Array<{ cardId: number; quantity: number }>) => void;
     isAddingCard?: boolean;
 }
 
@@ -30,6 +31,7 @@ interface SearchFilters {
 const CardSearch: React.FC<CardSearchProps> = ({
     selectedBinder,
     onAddToBinder,
+    onBulkAddToBinder,
     isAddingCard = false,
 }) => {
     const [searchResults, setSearchResults] = useState<Card[]>([]);
@@ -202,8 +204,14 @@ const CardSearch: React.FC<CardSearchProps> = ({
     };
 
     const handleBulkAdd = async (cardEntries: { cardId: number; quantity: number }[]) => {
-        for (const entry of cardEntries) {
-            await onAddToBinder(entry.cardId, entry.quantity);
+        if (onBulkAddToBinder) {
+            // Use the optimized bulk add function if available
+            await onBulkAddToBinder(cardEntries);
+        } else {
+            // Fallback to individual adds
+            for (const entry of cardEntries) {
+                await onAddToBinder(entry.cardId, entry.quantity);
+            }
         }
         setShowBulkAddModal(false);
     };

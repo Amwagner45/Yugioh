@@ -178,25 +178,71 @@ const BinderPage: React.FC = () => {
                 cards: [] // Start with empty cards, will be populated below
             };
 
-            // Add all the imported cards to the binder via API
+            // Add all the imported cards to the binder via bulk API
             const binderUuid = response.uuid || response.id;
             let successfulCards = 0;
 
-            for (const card of importedBinder.cards) {
+            if (importedBinder.cards.length > 0) {
                 try {
-                    await binderService.addCard(
+                    const bulkResult = await binderService.bulkAddCards(
                         binderUuid,
-                        card.cardId,
-                        card.quantity,
-                        card.setCode,
-                        card.rarity,
-                        card.condition,
-                        card.edition,
-                        card.notes
+                        importedBinder.cards.map(card => ({
+                            cardId: card.cardId,
+                            quantity: card.quantity,
+                            setCode: card.setCode,
+                            rarity: card.rarity,
+                            condition: card.condition,
+                            edition: card.edition,
+                            notes: card.notes
+                        }))
                     );
-                    successfulCards++;
-                } catch (cardError) {
-                    console.warn(`Failed to add card ${card.cardId} to binder:`, cardError);
+
+                    if (bulkResult.error) {
+                        console.error('Bulk add failed:', bulkResult.error);
+                        // Fall back to individual card adding
+                        console.log('Falling back to individual card adding...');
+                        for (const card of importedBinder.cards) {
+                            try {
+                                await binderService.addCard(
+                                    binderUuid,
+                                    card.cardId,
+                                    card.quantity,
+                                    card.setCode,
+                                    card.rarity,
+                                    card.condition,
+                                    card.edition,
+                                    card.notes
+                                );
+                                successfulCards++;
+                            } catch (cardError) {
+                                console.warn(`Failed to add card ${card.cardId} to binder:`, cardError);
+                            }
+                        }
+                    } else {
+                        successfulCards = (bulkResult.cards_added || 0) + (bulkResult.cards_updated || 0);
+                        console.log(`Bulk add successful: ${bulkResult.cards_added} added, ${bulkResult.cards_updated} updated`);
+                    }
+                } catch (bulkError) {
+                    console.error('Bulk add failed with exception:', bulkError);
+                    // Fall back to individual card adding
+                    console.log('Falling back to individual card adding...');
+                    for (const card of importedBinder.cards) {
+                        try {
+                            await binderService.addCard(
+                                binderUuid,
+                                card.cardId,
+                                card.quantity,
+                                card.setCode,
+                                card.rarity,
+                                card.condition,
+                                card.edition,
+                                card.notes
+                            );
+                            successfulCards++;
+                        } catch (cardError) {
+                            console.warn(`Failed to add card ${card.cardId} to binder:`, cardError);
+                        }
+                    }
                 }
             }
 
@@ -262,6 +308,16 @@ const BinderPage: React.FC = () => {
 
     const generateId = () => {
         return `binder-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    };
+
+    const mapApiBinderToLocal = (apiBinder: any): Binder => {
+        return {
+            ...apiBinder,
+            id: apiBinder.uuid || apiBinder.id, // Use uuid as id for consistency
+            createdAt: new Date(apiBinder.created_at),
+            modifiedAt: new Date(apiBinder.updated_at),
+            cards: apiBinder.cards || []
+        };
     };
 
     const handleCreateBinder = async (binderData: Omit<Binder, 'id' | 'cards' | 'createdAt' | 'modifiedAt'>) => {
@@ -490,32 +546,120 @@ const BinderPage: React.FC = () => {
             setIsAddingCard(true);
             setError(null);
 
-            const updatedBinder = { ...selectedBinder };
-            const existingCardIndex = updatedBinder.cards.findIndex(c => c.cardId === cardId);
-
-            if (existingCardIndex >= 0) {
-                // Update existing card quantity
-                updatedBinder.cards[existingCardIndex].quantity += quantity;
-            } else {
-                // Add new card
-                const newBinderCard: BinderCard = {
+            // Add card via API if we have a UUID (meaning it's been saved to the backend)
+            if (selectedBinder.uuid) {
+                const result = await binderService.addCard(
+                    selectedBinder.uuid,
                     cardId,
-                    quantity,
-                };
-                updatedBinder.cards.push(newBinderCard);
+                    quantity
+                );
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                // Reload the binder to get updated card list
+                const updatedBinder = await binderService.getBinder(selectedBinder.uuid, true);
+                if (updatedBinder && !updatedBinder.error) {
+                    const mappedBinder = mapApiBinderToLocal(updatedBinder);
+                    setBinders(prev => prev.map(b => b.id === mappedBinder.id ? mappedBinder : b));
+                    setSelectedBinder(mappedBinder);
+                } else {
+                    // Fallback to local update if API fails to reload
+                    updateBinderLocally(cardId, quantity);
+                }
+            } else {
+                // Update local storage if binder is not saved to backend
+                updateBinderLocally(cardId, quantity);
             }
-
-            updatedBinder.modifiedAt = new Date();
-
-            storageService.saveBinder(updatedBinder);
-            setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
-            setSelectedBinder(updatedBinder);
         } catch (err) {
-            setError('Failed to add card to binder');
-            console.error('Error adding card to binder:', err);
+            console.error('Error adding card to binder via API:', err);
+            // Fallback to local storage update
+            updateBinderLocally(cardId, quantity);
         } finally {
             setIsAddingCard(false);
         }
+    };
+
+    const handleBulkAddCardsToBinder = async (cards: Array<{ cardId: number; quantity: number }>) => {
+        if (!selectedBinder || cards.length === 0) return;
+
+        try {
+            setIsAddingCard(true);
+            setError(null);
+
+            // Add cards via API if we have a UUID (meaning it's been saved to the backend)
+            if (selectedBinder.uuid) {
+                const result = await binderService.bulkAddCards(
+                    selectedBinder.uuid,
+                    cards.map(card => ({
+                        cardId: card.cardId,
+                        quantity: card.quantity
+                    }))
+                );
+
+                if (result.error) {
+                    // Fallback to individual adds if bulk fails
+                    console.log('Bulk add failed, falling back to individual adds...');
+                    for (const card of cards) {
+                        try {
+                            await binderService.addCard(
+                                selectedBinder.uuid,
+                                card.cardId,
+                                card.quantity
+                            );
+                        } catch (cardError) {
+                            console.warn(`Failed to add card ${card.cardId} to binder:`, cardError);
+                        }
+                    }
+                }
+
+                // Reload the binder to get updated card list
+                const updatedBinder = await binderService.getBinder(selectedBinder.uuid, true);
+                if (updatedBinder && !updatedBinder.error) {
+                    const mappedBinder = mapApiBinderToLocal(updatedBinder);
+                    setBinders(prev => prev.map(b => b.id === mappedBinder.id ? mappedBinder : b));
+                    setSelectedBinder(mappedBinder);
+                } else {
+                    // Fallback to local updates if API fails to reload
+                    cards.forEach(card => updateBinderLocally(card.cardId, card.quantity));
+                }
+            } else {
+                // Update local storage if binder is not saved to backend
+                cards.forEach(card => updateBinderLocally(card.cardId, card.quantity));
+            }
+        } catch (err) {
+            console.error('Error bulk adding cards to binder via API:', err);
+            // Fallback to local storage updates
+            cards.forEach(card => updateBinderLocally(card.cardId, card.quantity));
+        } finally {
+            setIsAddingCard(false);
+        }
+    };
+
+    const updateBinderLocally = (cardId: number, quantity: number) => {
+        if (!selectedBinder) return;
+
+        const updatedBinder = { ...selectedBinder };
+        const existingCardIndex = updatedBinder.cards.findIndex(c => c.cardId === cardId);
+
+        if (existingCardIndex >= 0) {
+            // Update existing card quantity
+            updatedBinder.cards[existingCardIndex].quantity += quantity;
+        } else {
+            // Add new card
+            const newBinderCard: BinderCard = {
+                cardId,
+                quantity,
+            };
+            updatedBinder.cards.push(newBinderCard);
+        }
+
+        updatedBinder.modifiedAt = new Date();
+
+        storageService.saveBinder(updatedBinder);
+        setBinders(prev => prev.map(b => b.id === updatedBinder.id ? updatedBinder : b));
+        setSelectedBinder(updatedBinder);
     };
 
     const handleUpdateCardQuantity = async (cardId: number, newQuantity: number) => {
@@ -927,6 +1071,7 @@ const BinderPage: React.FC = () => {
                             <CardSearch
                                 selectedBinder={selectedBinder}
                                 onAddToBinder={handleAddCardToBinder}
+                                onBulkAddToBinder={handleBulkAddCardsToBinder}
                                 isAddingCard={isAddingCard}
                             />
                         )}
@@ -962,6 +1107,7 @@ const BinderPage: React.FC = () => {
                         }}
                         cardCache={cardCache}
                         onImportBinder={handleImportBinder}
+                        onRefreshBinders={loadBinders}
                         onClose={() => setShowExportImport(false)}
                     />
                 )}

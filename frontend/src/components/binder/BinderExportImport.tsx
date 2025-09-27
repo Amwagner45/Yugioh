@@ -6,6 +6,7 @@ interface BinderExportImportProps {
     binder: Binder;
     cardCache: Map<number, Card>;
     onImportBinder?: (binder: Binder) => void;
+    onRefreshBinders?: () => void;
     onClose: () => void;
 }
 
@@ -13,11 +14,12 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
     binder,
     cardCache,
     onImportBinder,
+    onRefreshBinders,
     onClose,
 }) => {
     const [activeTab, setActiveTab] = useState<'export' | 'import'>('export');
     const [exportOptions, setExportOptions] = useState<ExportOptions>({
-        format: 'json',
+        format: 'csv',
         includeCardDetails: true,
         includeImages: false,
         includeNotes: true,
@@ -70,11 +72,56 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
             setIsImporting(true);
             setImportResult(null);
 
-            const result = await binderExportService.importBinder(file);
-            setImportResult(result);
+            // Only support CSV files now
+            if (!file.name.toLowerCase().endsWith('.csv')) {
+                setImportResult({
+                    success: false,
+                    errors: ['Only CSV files are supported for import'],
+                    warnings: [],
+                });
+                return;
+            }
 
-            if (result.success && result.binder && onImportBinder) {
-                onImportBinder(result.binder);
+            // Use the backend CSV import endpoint with createNew=true to create a new binder
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('create_new', 'true');
+            formData.append('binder_name', file.name.replace('.csv', ''));
+
+            const response = await fetch('/api/binders/dummy/import-csv', {
+                method: 'POST',
+                body: formData,
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                setImportResult({
+                    success: true,
+                    errors: result.errors || [],
+                    warnings: result.warnings || [],
+                });
+
+                // The backend has already created the binder with all cards
+                // We just need to close this modal and let the parent refresh the binders list
+                // Don't call onImportBinder since that would create a duplicate empty binder
+                console.log(`Successfully imported binder "${result.binder_name || file.name.replace('.csv', '')}" with ${result.imported_cards || 0} cards`);
+                
+                // Trigger a refresh of the binders list if callback is provided
+                if (onRefreshBinders) {
+                    onRefreshBinders();
+                }
+                
+                // Close the modal after a brief delay to show the success message
+                setTimeout(() => {
+                    onClose();
+                }, 1500);
+            } else {
+                setImportResult({
+                    success: false,
+                    errors: result.errors || ['Import failed'],
+                    warnings: result.warnings || [],
+                });
             }
         } catch (error) {
             console.error('Import failed:', error);
@@ -151,7 +198,6 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
                                 onChange={(e) => setExportOptions(prev => ({ ...prev, format: e.target.value as any }))}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             >
-                                <option value="json">JSON (Recommended - Full data)</option>
                                 <option value="csv">CSV (Spreadsheet compatible)</option>
                                 <option value="txt">Text (Human readable)</option>
                             </select>
@@ -199,17 +245,7 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
                                     />
                                     <span className="ml-2 text-sm text-gray-700">Notes and comments</span>
                                 </label>
-                                {exportOptions.format === 'json' && (
-                                    <label className="flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={exportOptions.includeImages}
-                                            onChange={(e) => setExportOptions(prev => ({ ...prev, includeImages: e.target.checked }))}
-                                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                        />
-                                        <span className="ml-2 text-sm text-gray-700">Card images (increases file size)</span>
-                                    </label>
-                                )}
+                                {/* Card images option removed since we don't support JSON anymore */}
                             </div>
                         </div>
 
@@ -283,7 +319,7 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
                                 Import Binder
                             </h3>
                             <p className="text-gray-600 mb-4">
-                                Import a binder from a JSON or CSV file.
+                                Import a binder from a CSV file.
                             </p>
                         </div>
 
@@ -294,13 +330,13 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
                             </label>
                             <input
                                 type="file"
-                                accept=".json,.csv"
+                                accept=".csv"
                                 onChange={handleFileImport}
                                 disabled={isImporting}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                             <p className="text-xs text-gray-500 mt-1">
-                                Supported formats: JSON, CSV
+                                Supported formats: CSV
                             </p>
                         </div>
 
@@ -359,8 +395,8 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
                         <div className="bg-blue-50 rounded-lg p-4">
                             <h4 className="text-sm font-medium text-blue-900 mb-2">Import Instructions</h4>
                             <div className="text-sm text-blue-800 space-y-1">
-                                <p><strong>JSON:</strong> Full import with all data (recommended)</p>
-                                <p><strong>CSV:</strong> Requires "Card ID" and "Quantity" columns. Optional: "Set", "Rarity", "Tags", "Notes"</p>
+                                <p><strong>CSV:</strong> Use format: cardname,cardq,cardid,cardrarity,cardcondition,card_edition,cardset,cardcode</p>
+                                <p>Example: Blue-Eyes White Dragon,1,4007,Super Rare,NM,1st Edition,LOB,LOB-001</p>
                             </div>
                         </div>
                     </div>
