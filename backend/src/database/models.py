@@ -487,6 +487,114 @@ class Binder:
             result = cursor.fetchone()[0]
             return result if result else 0
 
+    def bulk_add_cards(self, card_data_list: List[dict]) -> dict:
+        """
+        Bulk add multiple cards to this binder in a single transaction
+
+        Args:
+            card_data_list: List of dictionaries with card data:
+                {
+                    'card_id': int,
+                    'quantity': int,
+                    'set_code': str,
+                    'rarity': str,
+                    'condition': str,
+                    'edition': str,
+                    'notes': str
+                }
+
+        Returns:
+            dict: {'added': int, 'updated': int, 'errors': list}
+        """
+        if not self.id:
+            raise ValueError("Cannot add cards to unsaved binder")
+
+        added = 0
+        updated = 0
+        errors = []
+
+        with get_db_connection() as conn:
+            # Start transaction
+            conn.execute("BEGIN")
+
+            try:
+                for card_data in card_data_list:
+                    try:
+                        # Validate card data
+                        card_id = int(card_data.get("card_id", 0))
+                        quantity = int(card_data.get("quantity", 0))
+
+                        if card_id <= 0 or quantity <= 0:
+                            errors.append(
+                                f"Invalid card_id ({card_id}) or quantity ({quantity})"
+                            )
+                            continue
+
+                        set_code = card_data.get("set_code") or None
+                        rarity = card_data.get("rarity") or None
+                        condition = card_data.get("condition") or "Near Mint"
+                        edition = card_data.get("edition") or None
+                        notes = card_data.get("notes") or None
+
+                        # Check for existing entry with same card/set/rarity/edition
+                        cursor = conn.execute(
+                            """
+                            SELECT id, quantity FROM binder_cards 
+                            WHERE binder_id = ? AND card_id = ? AND 
+                                  COALESCE(set_code, '') = COALESCE(?, '') AND 
+                                  COALESCE(rarity, '') = COALESCE(?, '') AND
+                                  COALESCE(edition, '') = COALESCE(?, '')
+                            """,
+                            (self.id, card_id, set_code, rarity, edition),
+                        )
+                        existing = cursor.fetchone()
+
+                        if existing:
+                            # Update quantity of existing entry
+                            new_quantity = existing[1] + quantity
+                            conn.execute(
+                                """
+                                UPDATE binder_cards SET quantity = ?, condition = ?, notes = ?
+                                WHERE id = ?
+                                """,
+                                (new_quantity, condition, notes, existing[0]),
+                            )
+                            updated += 1
+                        else:
+                            # Insert new entry
+                            conn.execute(
+                                """
+                                INSERT INTO binder_cards 
+                                (binder_id, card_id, quantity, set_code, rarity, condition, edition, notes, date_added)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+                                """,
+                                (
+                                    self.id,
+                                    card_id,
+                                    quantity,
+                                    set_code,
+                                    rarity,
+                                    condition,
+                                    edition,
+                                    notes,
+                                ),
+                            )
+                            added += 1
+
+                    except Exception as e:
+                        errors.append(f"Error processing card {card_data}: {str(e)}")
+                        continue
+
+                # Commit transaction
+                conn.commit()
+
+            except Exception as e:
+                # Rollback on error
+                conn.rollback()
+                raise e
+
+        return {"added": added, "updated": updated, "errors": errors}
+
 
 @dataclass
 class BinderCard:

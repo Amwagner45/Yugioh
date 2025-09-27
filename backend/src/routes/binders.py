@@ -361,7 +361,7 @@ async def import_csv_to_binder(
 
 
 async def parse_and_import_csv(csv_content: str, binder: Binder) -> dict:
-    """Parse CSV content and import cards to binder"""
+    """Parse CSV content and import cards to binder using bulk import"""
     errors = []
     warnings = []
     imported_cards = 0
@@ -387,7 +387,23 @@ async def parse_and_import_csv(csv_content: str, binder: Binder) -> dict:
         )
 
         if is_new_format:
-            # New format: cardname, cardq, cardid, cardrarity, cardcondition, card_edition, cardset, cardcode
+            print(f"DEBUG: Starting bulk CSV import for binder {binder.name}")
+
+            # Collect all card data for bulk import
+            card_data_list = []
+            skipped_cards = 0
+
+            # Condition mapping
+            condition_mapping = {
+                "M": "Mint",
+                "NM": "Near Mint",
+                "LP": "Lightly Played",
+                "MP": "Moderately Played",
+                "HP": "Heavily Played",
+                "D": "Damaged",
+                "": "Near Mint",  # Default for empty values
+            }
+
             for row_num, row in enumerate(csv_reader, start=2):
                 try:
                     card_id = int(row.get("cardid", 0))
@@ -406,40 +422,51 @@ async def parse_and_import_csv(csv_content: str, binder: Binder) -> dict:
                         warnings.append(
                             f"Row {row_num}: Card {card_id} ({row.get('cardname', 'Unknown')}) not found in cache. Please sync card database first."
                         )
+                        skipped_cards += 1
                         continue
 
                     # Map condition abbreviations to full names
-                    condition_mapping = {
-                        "M": "Mint",
-                        "NM": "Near Mint",
-                        "LP": "Lightly Played",
-                        "MP": "Moderately Played",
-                        "HP": "Heavily Played",
-                        "D": "Damaged",
-                        "": "Near Mint",  # Default for empty values
-                    }
-
                     raw_condition = row.get("cardcondition", "").strip()
                     condition = (
                         condition_mapping.get(raw_condition, raw_condition)
                         or "Near Mint"
                     )
 
-                    # Add card to binder
-                    binder.add_card(
-                        card_id=card_id,
-                        quantity=quantity,
-                        set_code=row.get("cardcode", "").strip() or None,
-                        rarity=row.get("cardrarity", "").strip() or None,
-                        condition=condition,
-                        edition=row.get("card_edition", "").strip() or None,
+                    # Collect card data for bulk import
+                    card_data_list.append(
+                        {
+                            "card_id": card_id,
+                            "quantity": quantity,
+                            "set_code": row.get("cardcode", "").strip() or None,
+                            "rarity": row.get("cardrarity", "").strip() or None,
+                            "condition": condition,
+                            "edition": row.get("card_edition", "").strip() or None,
+                            "notes": None,
+                        }
                     )
-                    imported_cards += 1
 
                 except (ValueError, ValidationError) as e:
                     warnings.append(f"Row {row_num}: {str(e)}")
                 except Exception as e:
                     errors.append(f"Row {row_num}: Unexpected error - {str(e)}")
+
+            # Perform bulk import
+            if card_data_list:
+                print(f"DEBUG: Bulk importing {len(card_data_list)} cards...")
+                bulk_result = binder.bulk_add_cards(card_data_list)
+
+                imported_cards = bulk_result["added"] + bulk_result["updated"]
+
+                # Add any bulk import errors to warnings
+                if bulk_result["errors"]:
+                    warnings.extend(bulk_result["errors"])
+
+                print(
+                    f"DEBUG: Bulk import completed - Added: {bulk_result['added']}, Updated: {bulk_result['updated']}, Errors: {len(bulk_result['errors'])}"
+                )
+            else:
+                print("DEBUG: No valid cards found for import")
+
         else:
             # Legacy format or other format
             errors.append(
@@ -469,26 +496,54 @@ async def add_card_to_binder(
 ):
     """Add a card to a binder"""
     try:
+        print(
+            f"DEBUG: add_card_to_binder called with: binder_uuid={binder_uuid}, card_id={card_id}, quantity={quantity}, set_code={set_code}, rarity={rarity}, condition={condition}, edition={edition}, notes={notes}"
+        )
+
+        # Map condition abbreviations to full names (same as CSV import)
+        condition_mapping = {
+            "M": "Mint",
+            "NM": "Near Mint",
+            "LP": "Lightly Played",
+            "MP": "Moderately Played",
+            "HP": "Heavily Played",
+            "D": "Damaged",
+            "": "Near Mint",  # Default for empty values
+        }
+
+        # Apply condition mapping
+        mapped_condition = condition_mapping.get(condition, condition) or "Near Mint"
+
+        print(f"DEBUG: Condition mapping: '{condition}' -> '{mapped_condition}'")
+
         binder = Binder.get_by_uuid(binder_uuid)
         if not binder:
+            print(f"ERROR: Binder not found for UUID: {binder_uuid}")
             raise HTTPException(status_code=404, detail="Binder not found")
+
+        print(f"DEBUG: Found binder: {binder.name} (ID: {binder.id})")
 
         # Fetch card info if not cached
         card = Card.get_by_id(card_id, fetch_if_missing=True)
         if not card:
+            print(f"ERROR: Card not found for ID: {card_id}")
             raise HTTPException(
                 status_code=404, detail=f"Card with ID {card_id} not found"
             )
+
+        print(f"DEBUG: Found card: {card.name} (ID: {card.id})")
 
         binder_card = binder.add_card(
             card_id=card_id,
             quantity=quantity,
             set_code=set_code,
             rarity=rarity,
-            condition=condition,
+            condition=mapped_condition,  # Use mapped condition instead of raw condition
             edition=edition,
             notes=notes,
         )
+
+        print(f"DEBUG: Successfully added card to binder: {binder_card.id}")
 
         return {
             "id": binder_card.id,
@@ -502,6 +557,91 @@ async def add_card_to_binder(
         }
 
     except ValidationError as e:
+        print(f"ERROR: Validation error in add_card_to_binder: {e.errors}")
         raise HTTPException(status_code=400, detail=e.errors)
     except Exception as e:
+        print(f"ERROR: Exception in add_card_to_binder: {str(e)}")
+        import traceback
+
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{binder_uuid}/cards/bulk")
+async def bulk_add_cards_to_binder(binder_uuid: str, cards: List[dict]):
+    """
+    Bulk add multiple cards to a binder in a single transaction
+
+    Expected format for each card in the list:
+    {
+        "card_id": int,
+        "quantity": int,
+        "set_code": str (optional),
+        "rarity": str (optional),
+        "condition": str (optional, defaults to "Near Mint"),
+        "edition": str (optional),
+        "notes": str (optional)
+    }
+    """
+    try:
+        print(
+            f"DEBUG: bulk_add_cards_to_binder called for binder {binder_uuid} with {len(cards)} cards"
+        )
+
+        binder = Binder.get_by_uuid(binder_uuid)
+        if not binder:
+            print(f"ERROR: Binder not found for UUID: {binder_uuid}")
+            raise HTTPException(status_code=404, detail="Binder not found")
+
+        print(f"DEBUG: Found binder: {binder.name} (ID: {binder.id})")
+
+        # Apply condition mapping to all cards
+        condition_mapping = {
+            "M": "Mint",
+            "NM": "Near Mint",
+            "LP": "Lightly Played",
+            "MP": "Moderately Played",
+            "HP": "Heavily Played",
+            "D": "Damaged",
+            "": "Near Mint",  # Default for empty values
+        }
+
+        processed_cards = []
+        for card_data in cards:
+            # Apply condition mapping
+            raw_condition = card_data.get("condition", "Near Mint")
+            mapped_condition = (
+                condition_mapping.get(raw_condition, raw_condition) or "Near Mint"
+            )
+
+            processed_card = {
+                "card_id": card_data.get("card_id"),
+                "quantity": card_data.get("quantity", 1),
+                "set_code": card_data.get("set_code"),
+                "rarity": card_data.get("rarity"),
+                "condition": mapped_condition,
+                "edition": card_data.get("edition"),
+                "notes": card_data.get("notes"),
+            }
+            processed_cards.append(processed_card)
+
+        # Perform bulk import
+        result = binder.bulk_add_cards(processed_cards)
+
+        print(f"DEBUG: Bulk import result: {result}")
+
+        return {
+            "success": True,
+            "binder_uuid": binder.uuid,
+            "binder_name": binder.name,
+            "cards_added": result["added"],
+            "cards_updated": result["updated"],
+            "errors": result["errors"],
+        }
+
+    except Exception as e:
+        print(f"ERROR: Exception in bulk_add_cards_to_binder: {str(e)}")
+        import traceback
+
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

@@ -184,7 +184,7 @@ const BinderPage: React.FC = () => {
 
             for (const card of importedBinder.cards) {
                 try {
-                    await binderService.addCardToBinder(
+                    await binderService.addCard(
                         binderUuid,
                         card.cardId,
                         card.quantity,
@@ -231,13 +231,14 @@ const BinderPage: React.FC = () => {
 
             // Load binders from backend API (primary source)
             const apiBinders = await binderService.getBinders();
+            console.log('Raw API binders:', apiBinders);
 
             // Map API response to frontend Binder format
             const mappedBinders = apiBinders.map((binder: any) => ({
                 ...binder,
                 id: binder.uuid || binder.id, // Use uuid as id for API binders
-                createdAt: new Date(binder.createdAt),
-                modifiedAt: new Date(binder.modifiedAt),
+                createdAt: new Date(binder.created_at),
+                modifiedAt: new Date(binder.updated_at),
                 cards: binder.cards || []
             }));
 
@@ -575,9 +576,10 @@ const BinderPage: React.FC = () => {
                 const cardIdsNeeded = selectedBinder.cards
                     .map(bc => {
                         console.log('Processing binder card:', bc, 'cardId type:', typeof bc.cardId);
-                        return bc.cardId;
+                        // Ensure cardId is a number
+                        return typeof bc.cardId === 'string' ? parseInt(bc.cardId, 10) : bc.cardId;
                     })
-                    .filter(cardId => !cardCache.has(cardId));
+                    .filter(cardId => !cardCache.has(cardId) && !isNaN(cardId));
 
                 if (cardIdsNeeded.length > 0) {
                     console.log(`Loading ${cardIdsNeeded.length} cards from cache...`);

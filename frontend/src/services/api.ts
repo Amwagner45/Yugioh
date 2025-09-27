@@ -105,13 +105,33 @@ export const cardService = {
  * Binder API services
  */
 export const binderService = {
-    async getBinders() {
+    async getBinders(includeCardDetails: boolean = true) {
         try {
-            const response = await api.get('/api/binders');
-            return response.data;
+            const params = includeCardDetails ? { include_card_details: 'true' } : {};
+            const response = await api.get('/api/binders', { params });
+            console.log('API Response:', response.data);
+
+            // Transform snake_case API response to camelCase for frontend
+            const transformedBinders = response.data.map((binder: any) => ({
+                ...binder,
+                cards: binder.cards?.map((card: any) => ({
+                    cardId: card.card_id,
+                    quantity: card.quantity,
+                    setCode: card.set_code,
+                    rarity: card.rarity,
+                    condition: card.condition,
+                    edition: card.edition,
+                    notes: card.notes,
+                    dateAdded: card.date_added ? new Date(card.date_added) : undefined,
+                    card_details: card.card_details // This should already be in the right format
+                })) || []
+            }));
+
+            console.log('Transformed binders:', transformedBinders);
+            return transformedBinders;
         } catch (error) {
             console.error('Error fetching binders:', error);
-            return { data: [], error: error instanceof Error ? error.message : 'Unknown error' };
+            throw error; // Throw the error instead of returning an object
         }
     },
 

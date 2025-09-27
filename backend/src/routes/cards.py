@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Body
 from typing import Optional, List
 import httpx
 from ..models import Card, CardSearchResponse
@@ -794,7 +794,7 @@ async def get_random_cards(
 @router.post("/batch")
 async def get_cards_batch(
     request: Request,
-    card_ids: List[int],
+    card_ids: List[int] = Body(...),
     cache_service: CacheService = Depends(get_cache_service),
 ):
     """
