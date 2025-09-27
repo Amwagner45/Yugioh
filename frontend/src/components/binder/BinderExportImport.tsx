@@ -106,12 +106,12 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
                 // We just need to close this modal and let the parent refresh the binders list
                 // Don't call onImportBinder since that would create a duplicate empty binder
                 console.log(`Successfully imported binder "${result.binder_name || file.name.replace('.csv', '')}" with ${result.imported_cards || 0} cards`);
-                
+
                 // Trigger a refresh of the binders list if callback is provided
                 if (onRefreshBinders) {
                     onRefreshBinders();
                 }
-                
+
                 // Close the modal after a brief delay to show the success message
                 setTimeout(() => {
                     onClose();
@@ -159,8 +159,8 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
                     <button
                         onClick={() => setActiveTab('export')}
                         className={`py-2 px-4 border-b-2 font-medium text-sm ${activeTab === 'export'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                     >
                         Export Binder
@@ -168,8 +168,8 @@ const BinderExportImport: React.FC<BinderExportImportProps> = ({
                     <button
                         onClick={() => setActiveTab('import')}
                         className={`py-2 px-4 border-b-2 font-medium text-sm ${activeTab === 'import'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            ? 'border-blue-500 text-blue-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
                     >
                         Import Binder
