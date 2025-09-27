@@ -337,12 +337,14 @@ class Binder:
             conn.commit()
 
         # Automatically export to CSV file after saving to database
-        try:
-            from ..services.file_export import file_export_service
+        # But skip during auto-import to avoid creating duplicate files
+        if not getattr(self, "_auto_importing", False):
+            try:
+                from ..services.file_export import file_export_service
 
-            file_export_service.save_binder_as_csv(self)
-        except Exception as e:
-            print(f"Warning: Failed to auto-export binder to CSV: {e}")
+                file_export_service.save_binder_as_csv(self)
+            except Exception as e:
+                print(f"Warning: Failed to auto-export binder to CSV: {e}")
 
         return self
 
@@ -616,16 +618,18 @@ class BinderCard:
             conn.commit()
 
         # Automatically export parent binder to CSV after card changes
-        try:
-            binder = Binder.get_by_id(self.binder_id)
-            if binder:
-                from ..services.file_export import file_export_service
+        # But skip during auto-import to avoid creating duplicate files
+        if not getattr(self, "_auto_importing", False):
+            try:
+                binder = Binder.get_by_id(self.binder_id)
+                if binder:
+                    from ..services.file_export import file_export_service
 
-                file_export_service.save_binder_as_csv(binder)
-        except Exception as e:
-            print(
-                f"Warning: Failed to auto-export binder to CSV after card change: {e}"
-            )
+                    file_export_service.save_binder_as_csv(binder)
+            except Exception as e:
+                print(
+                    f"Warning: Failed to auto-export binder to CSV after card change: {e}"
+                )
 
         return self
 

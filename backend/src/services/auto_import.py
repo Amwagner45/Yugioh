@@ -247,15 +247,20 @@ class AutoImportService:
             "name": "card_name",
             "card name": "card_name",
             "quantity": "quantity",
+            "cardq": "quantity",  # Add mapping for cardq
             "qty": "quantity",
             "count": "quantity",
             "set_code": "set_code",
+            "cardcode": "set_code",  # Use cardcode for set_code (short codes like LOB-009)
             "setcode": "set_code",
             "set code": "set_code",
             "set": "set_code",
             "rarity": "rarity",
+            "cardrarity": "rarity",  # Add mapping for cardrarity
             "condition": "condition",
+            "cardcondition": "condition",  # Add mapping for cardcondition
             "edition": "edition",
+            "card_edition": "edition",  # Add mapping for card_edition
             "notes": "notes",
             "note": "notes",
         }
@@ -294,6 +299,8 @@ class AutoImportService:
         )
 
         # Save the binder to get an ID and UUID
+        # Set a flag to prevent auto-export during import
+        binder._auto_importing = True
         binder.save()
 
         return binder
@@ -331,8 +338,12 @@ class AutoImportService:
     ) -> int:
         """Import cards into the binder"""
         cards_imported = 0
+        cards_skipped = 0
+        cards_failed = 0
 
-        for row in cards_data:
+        print(f"📥 Importing {len(cards_data)} cards to binder '{binder.name}'...")
+
+        for i, row in enumerate(cards_data):
             try:
                 card_id = row.get("card_id", "").strip()
                 card_name = row.get("card_name", "").strip()
@@ -344,12 +355,27 @@ class AutoImportService:
                         # Validate that card_id is numeric
                         card_id_int = int(card_id)
                     except ValueError:
-                        print(f"⚠️ Invalid card ID '{card_id}', skipping row")
+                        print(f"⚠️ Row {i+1}: Invalid card ID '{card_id}', skipping row")
+                        cards_skipped += 1
                         continue
                 else:
                     # If only name is provided, we might need to look it up
                     # For now, skip if no card_id (this could be enhanced later)
-                    print(f"⚠️ No card ID provided for '{card_name}', skipping row")
+                    print(
+                        f"⚠️ Row {i+1}: No card ID provided for '{card_name}', skipping row"
+                    )
+                    cards_skipped += 1
+                    continue
+
+                # Ensure the card exists in the cache first
+                from src.database.models import Card
+
+                card = Card.get_by_id(card_id_int, fetch_if_missing=True)
+                if not card:
+                    print(
+                        f"⚠️ Row {i+1}: Could not find or fetch card ID {card_id_int}, skipping row"
+                    )
+                    cards_skipped += 1
                     continue
 
                 # Create binder card
@@ -365,14 +391,23 @@ class AutoImportService:
                     notes=row.get("notes") or None,
                 )
 
-                # Save the card
+                # Save the card - set flag to prevent auto-export on each card
+                binder_card._auto_importing = True
                 binder_card.save()
                 cards_imported += 1
 
+                # Progress indicator for large imports
+                if cards_imported % 50 == 0:
+                    print(f"   ... imported {cards_imported} cards so far")
+
             except Exception as e:
-                print(f"⚠️ Error importing card row {row}: {e}")
+                print(f"⚠️ Row {i+1}: Error importing card row {row}: {e}")
+                cards_failed += 1
                 continue
 
+        print(
+            f"📊 Import summary: {cards_imported} imported, {cards_skipped} skipped, {cards_failed} failed"
+        )
         return cards_imported
 
     def _print_import_summary(self):
