@@ -72,26 +72,7 @@ RUN if [ -f "cache/yugioh_deckbuilder.db" ]; then \
 # Clean the database to remove personal development data, keeping only card cache
 RUN if [ -f "/app/data/yugioh_deckbuilder.db" ]; then \
     echo "🔧 Cleaning database for production..."; \
-    python -c "\
-    from src.database.manager import DatabaseManager; \
-    import os; \
-    db_manager = DatabaseManager('/app/data/yugioh_deckbuilder.db'); \
-    conn = db_manager.get_connection(); \
-    print('📊 Original database size:', f'{os.path.getsize(\"/app/data/yugioh_deckbuilder.db\") / (1024*1024):.1f} MB'); \
-    cursor = conn.execute('SELECT COUNT(*) FROM card_cache'); \
-    card_count = cursor.fetchone()[0]; \
-    print(f'📦 Preserving {card_count} cached cards'); \
-    print('🗑️ Removing personal development data...'); \
-    conn.execute('DELETE FROM binders'); \
-    conn.execute('DELETE FROM binder_cards'); \
-    conn.execute('DELETE FROM decks'); \
-    conn.execute('DELETE FROM deck_cards'); \
-    conn.execute('DELETE FROM users WHERE id != 1'); \
-    conn.execute('UPDATE users SET username = \\\"default\\\", display_name = \\\"Default User\\\" WHERE id = 1'); \
-    conn.commit(); \
-    conn.close(); \
-    print('📊 Cleaned database size:', f'{os.path.getsize(\"/app/data/yugioh_deckbuilder.db\") / (1024*1024):.1f} MB'); \
-    print('✅ Database cleaned and ready for production')"; \
+    python -c "from src.database.manager import DatabaseManager; import os; db_manager = DatabaseManager('/app/data/yugioh_deckbuilder.db'); conn = db_manager.get_connection(); print('📊 Original database size:', f'{os.path.getsize(\"/app/data/yugioh_deckbuilder.db\") / (1024*1024):.1f} MB'); cursor = conn.execute('SELECT COUNT(*) FROM card_cache'); card_count = cursor.fetchone()[0]; print(f'📦 Preserving {card_count} cached cards'); print('🗑️ Removing personal development data...'); conn.execute('DELETE FROM binders'); conn.execute('DELETE FROM binder_cards'); conn.execute('DELETE FROM decks'); conn.execute('DELETE FROM deck_cards'); conn.execute('DELETE FROM users WHERE id != 1'); conn.execute('UPDATE users SET username = \"default\", display_name = \"Default User\" WHERE id = 1'); conn.commit(); conn.close(); print('📊 Cleaned database size:', f'{os.path.getsize(\"/app/data/yugioh_deckbuilder.db\") / (1024*1024):.1f} MB'); print('✅ Database cleaned and ready for production')"; \
     fi
 
 # Create a non-root user for security

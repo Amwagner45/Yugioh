@@ -37,9 +37,9 @@ class FileExportService:
             if not binder or not binder.id:
                 return None
 
-            # Generate safe filename
+            # Generate safe filename - use binder name only, no UUID suffix
             safe_name = self._sanitize_filename(binder.name)
-            filename = f"{safe_name}_{binder.uuid[:8]}.csv"
+            filename = f"{safe_name}.csv"
             file_path = self.binders_path / filename
 
             # Get binder cards with details
@@ -135,9 +135,9 @@ class FileExportService:
             if not deck or not deck.id:
                 return None
 
-            # Generate safe filename
+            # Generate safe filename - use deck name only, no UUID suffix
             safe_name = self._sanitize_filename(deck.name)
-            filename = f"{safe_name}_{deck.uuid[:8]}.ydk"
+            filename = f"{safe_name}.ydk"
             file_path = self.decklists_path / filename
 
             # Get deck cards by section
@@ -190,9 +190,9 @@ class FileExportService:
             if not deck or not deck.id:
                 return None
 
-            # Generate safe filename
+            # Generate safe filename - use deck name only, no UUID suffix
             safe_name = self._sanitize_filename(deck.name)
-            filename = f"{safe_name}_{deck.uuid[:8]}.json"
+            filename = f"{safe_name}.json"
             file_path = self.decklists_path / filename
 
             # Get deck cards by section with details
@@ -274,9 +274,9 @@ class FileExportService:
             if not binder or not binder.uuid:
                 return False
 
-            # Generate the filename pattern that would have been used
+            # Generate the filename pattern that would have been used - use binder name only, no UUID suffix
             safe_name = self._sanitize_filename(binder.name)
-            filename = f"{safe_name}_{binder.uuid[:8]}.csv"
+            filename = f"{safe_name}.csv"
             file_path = self.binders_path / filename
 
             if file_path.exists():
