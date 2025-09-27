@@ -65,6 +65,8 @@ Makefile*
 
 # Temporary and cache files (will be recreated in container)
 cache/
+# But allow the populated database for Docker builds
+!backend/cache/yugioh_deckbuilder.db
 *.db-shm
 *.db-wal
 

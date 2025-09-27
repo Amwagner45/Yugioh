@@ -1,6 +1,8 @@
 # System Prompt
 When testing, debugging, or running the application, please run the docker compose file located in the root directory.
 Avoid creating test files and just run them in the console. If you need to create a test file, please delete it after the issue is fixed.
+Avoid creating README files and documentation files.
+Avoid creating excessive files and try to integrate into the existing codebase where applicable, unless absolutely necessary.
 
 # Yu-Gi-Oh Progression Series Deck Builder
 
